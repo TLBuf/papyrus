@@ -94,6 +94,10 @@ func (t Type) String() string {
 	return "<unknown>"
 }
 
+// Token encodes a single lexical token in the Papyrus language.
+//
+// Each token has a [Type] and information about where it is located
+// in a source file.
 type Token struct {
 	Type        Type
 	SourceRange source.Range

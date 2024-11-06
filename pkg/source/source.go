@@ -9,7 +9,7 @@ type File struct {
 	Text []byte
 }
 
-// Range points to a range of runes in a source code file.
+// Range points to a range of bytes in a source code file.
 type Range struct {
 	// File is the file that contains the range.
 	File *File
