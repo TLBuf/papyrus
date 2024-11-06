@@ -5,16 +5,15 @@ import (
 	"fmt"
 	"unicode/utf8"
 
+	"github.com/TLBuf/papyrus/pkg/source"
 	"github.com/TLBuf/papyrus/pkg/token"
 )
 
 // Error defines an error raised by the lexer.
 type Error struct {
 	msg string
-	// OffendingText is the segment of input text that caused an error.
-	OffendingText []byte
-	// ByteOffset is the byte offset of the offending text in the input.
-	ByteOffset int
+	// SourceRange is the source range of the segment of input text that caused an error.
+	SourceRange source.Range
 }
 
 // Error implments the error interface.
@@ -23,15 +22,21 @@ func (e Error) Error() string {
 }
 
 type Lexer struct {
-	text      []byte
+	file      *source.File
 	position  int
 	next      int
 	character rune
+	column    int
+	line      int
 }
 
 // New returns a [*Lexer] initialized for the given text.
-func New(text []byte) *Lexer {
-	l := &Lexer{text: text}
+func New(file *source.File) *Lexer {
+	l := &Lexer{
+		file:   file,
+		line:   1,
+		column: 0,
+	}
 	l.readChar()
 	return l
 }
@@ -44,7 +49,16 @@ func (l *Lexer) NextToken() (token.Token, error) {
 	l.skipWhitespace()
 	switch l.character {
 	case 0:
-		tok = token.Token{Type: token.EOF, ByteOffset: l.position}
+		tok = token.Token{
+			Type: token.EOF,
+			SourceRange: source.Range{
+				File:       l.file,
+				ByteOffset: l.position,
+				Length:     0,
+				Line:       l.line,
+				Column:     l.column,
+			},
+		}
 	case '(':
 		tok = l.newToken(token.LParen)
 	case ')':
@@ -60,94 +74,104 @@ func (l *Lexer) NextToken() (token.Token, error) {
 	case '\n':
 		tok = l.newToken(token.Newline)
 	case '\r':
+		column := l.column
 		l.readChar()
 		if l.character == '\n' {
-			tok = token.Token{Type: token.Newline, Text: l.text[l.position-1 : l.next], ByteOffset: l.position - 1}
+			tok = l.newTokenWithRange(token.Newline, l.position-1, l.next-l.position+1, l.line, column)
 		}
-		text := l.text[l.position-1 : l.position]
-		return token.Token{Type: token.Illegal, Text: text, ByteOffset: l.position - 1},
-			Error{msg: "expected a newline after carriage return", OffendingText: text, ByteOffset: l.position - 1}
+		errTok := l.newTokenWithRange(token.Illegal, l.position-1, 1, l.line, column)
+		return errTok, Error{msg: "expected a newline after carriage return", SourceRange: errTok.SourceRange}
 	case '\\':
+		column := l.column
 		l.readChar()
 		tok, err := l.NextToken()
 		if err != nil {
 			return tok, err
 		}
 		if tok.Type != token.Newline {
-			return token.Token{Type: token.Illegal, Text: tok.Text, ByteOffset: tok.ByteOffset},
-				Error{msg: "expected a newline immediately after '/'", OffendingText: tok.Text, ByteOffset: tok.ByteOffset}
+			errTok := l.newTokenWithRange(token.Illegal, tok.SourceRange.ByteOffset, 1, l.line, column)
+			return errTok, Error{msg: "expected a newline immediately after '/'", SourceRange: errTok.SourceRange}
 		}
 		return l.NextToken()
 	case '=':
+		column := l.column
 		l.readChar()
 		if l.character == '=' {
-			tok = token.Token{Type: token.Equal, Text: l.text[l.position-1 : l.next], ByteOffset: l.position - 1}
+			tok = l.newTokenWithRange(token.Equal, l.position-1, 2, l.line, column)
 		}
-		return token.Token{Type: token.Assign, Text: l.text[l.position-1 : l.position], ByteOffset: l.position - 1}, nil
+		return l.newTokenWithRange(token.Assign, l.position-1, 1, l.line, column), nil
 	case '+':
+		column := l.column
 		l.readChar()
 		if l.character == '=' {
-			tok = token.Token{Type: token.AssignAdd, Text: l.text[l.position-1 : l.next], ByteOffset: l.position - 1}
+			tok = l.newTokenWithRange(token.AssignAdd, l.position-1, 2, l.line, column)
 		}
-		return token.Token{Type: token.Add, Text: l.text[l.position-1 : l.position], ByteOffset: l.position - 1}, nil
+		return l.newTokenWithRange(token.Add, l.position-1, 1, l.line, column), nil
 	case '-':
+		column := l.column
 		l.readChar()
 		if l.character == '=' {
-			tok = token.Token{Type: token.AssignSubtract, Text: l.text[l.position-1 : l.next], ByteOffset: l.position - 1}
+			tok = l.newTokenWithRange(token.AssignSubtract, l.position-1, 2, l.line, column)
 		}
-		return token.Token{Type: token.Subtract, Text: l.text[l.position-1 : l.position], ByteOffset: l.position - 1}, nil
+		return l.newTokenWithRange(token.Subtract, l.position-1, 1, l.line, column), nil
 	case '*':
+		column := l.column
 		l.readChar()
 		if l.character == '=' {
-			tok = token.Token{Type: token.AssignMultiply, Text: l.text[l.position-1 : l.next], ByteOffset: l.position - 1}
+			tok = l.newTokenWithRange(token.AssignMultiply, l.position-1, 2, l.line, column)
 		}
-		return token.Token{Type: token.Multiply, Text: l.text[l.position-1 : l.position], ByteOffset: l.position - 1}, nil
+		return l.newTokenWithRange(token.Multiply, l.position-1, 1, l.line, column), nil
 	case '/':
+		column := l.column
 		l.readChar()
 		if l.character == '=' {
-			tok = token.Token{Type: token.AssignDivide, Text: l.text[l.position-1 : l.next], ByteOffset: l.position - 1}
+			tok = l.newTokenWithRange(token.AssignDivide, l.position-1, 2, l.line, column)
 		}
-		return token.Token{Type: token.Divide, Text: l.text[l.position-1 : l.position], ByteOffset: l.position - 1}, nil
+		return l.newTokenWithRange(token.Divide, l.position-1, 1, l.line, column), nil
 	case '%':
+		column := l.column
 		l.readChar()
 		if l.character == '=' {
-			tok = token.Token{Type: token.AssignModulo, Text: l.text[l.position-1 : l.next], ByteOffset: l.position - 1}
+			tok = l.newTokenWithRange(token.AssignModulo, l.position-1, 2, l.line, column)
 		}
-		return token.Token{Type: token.Modulo, Text: l.text[l.position-1 : l.position], ByteOffset: l.position - 1}, nil
+		return l.newTokenWithRange(token.Modulo, l.position-1, 1, l.line, column), nil
 	case '!':
+		column := l.column
 		l.readChar()
 		if l.character == '=' {
-			tok = token.Token{Type: token.NotEqual, Text: l.text[l.position-1 : l.next], ByteOffset: l.position - 1}
+			tok = l.newTokenWithRange(token.NotEqual, l.position-1, 2, l.line, column)
 		}
-		return token.Token{Type: token.LogicalNot, Text: l.text[l.position-1 : l.position], ByteOffset: l.position - 1}, nil
+		return l.newTokenWithRange(token.LogicalNot, l.position-1, 1, l.line, column), nil
 	case '>':
+		column := l.column
 		l.readChar()
 		if l.character == '=' {
-			tok = token.Token{Type: token.GreaterOrEqual, Text: l.text[l.position-1 : l.next], ByteOffset: l.position - 1}
+			tok = l.newTokenWithRange(token.GreaterOrEqual, l.position-1, 2, l.line, column)
 		}
-		return token.Token{Type: token.Greater, Text: l.text[l.position-1 : l.position], ByteOffset: l.position - 1}, nil
+		return l.newTokenWithRange(token.Greater, l.position-1, 1, l.line, column), nil
 	case '<':
+		column := l.column
 		l.readChar()
 		if l.character == '=' {
-			tok = token.Token{Type: token.LessOrEqual, Text: l.text[l.position-1 : l.next], ByteOffset: l.position - 1}
+			tok = l.newTokenWithRange(token.LessOrEqual, l.position-1, 2, l.line, column)
 		}
-		return token.Token{Type: token.Less, Text: l.text[l.position-1 : l.position], ByteOffset: l.position - 1}, nil
+		return l.newTokenWithRange(token.Less, l.position-1, 1, l.line, column), nil
 	case '|':
+		column := l.column
 		l.readChar()
 		if l.character == '|' {
-			tok = token.Token{Type: token.LogicalOr, Text: l.text[l.position-1 : l.next], ByteOffset: l.position - 1}
+			tok = l.newTokenWithRange(token.LogicalOr, l.position-1, 2, l.line, column)
 		}
-		text := l.text[l.position-1 : l.position]
-		return token.Token{Type: token.Illegal, Text: text, ByteOffset: l.position - 1},
-			Error{msg: "'|' is not a valid operator", OffendingText: text, ByteOffset: l.position - 1}
+		errTok := l.newTokenWithRange(token.Illegal, l.position-1, 1, l.line, column)
+		return errTok, Error{msg: "'|' is not a valid operator", SourceRange: errTok.SourceRange}
 	case '&':
+		column := l.column
 		l.readChar()
 		if l.character == '&' {
-			tok = token.Token{Type: token.LogicalOr, Text: l.text[l.position-1 : l.next], ByteOffset: l.position - 1}
+			tok = l.newTokenWithRange(token.LogicalAnd, l.position-1, 2, l.line, column)
 		}
-		text := l.text[l.position-1 : l.position]
-		return token.Token{Type: token.Illegal, Text: text, ByteOffset: l.position - 1},
-			Error{msg: "'&' is not a valid operator", OffendingText: text, ByteOffset: l.position - 1}
+		errTok := l.newTokenWithRange(token.Illegal, l.position-1, 1, l.line, column)
+		return errTok, Error{msg: "'&' is not a valid operator", SourceRange: errTok.SourceRange}
 	case '{', ';':
 		return l.readComment()
 	case '"':
@@ -160,7 +184,7 @@ func (l *Lexer) NextToken() (token.Token, error) {
 		} else {
 			tok = l.newToken(token.Illegal)
 			l.readChar()
-			return tok, Error{msg: "failed to lex any token", OffendingText: tok.Text, ByteOffset: tok.ByteOffset}
+			return tok, Error{msg: "failed to lex any token", SourceRange: tok.SourceRange}
 		}
 	}
 	l.readChar()
@@ -168,22 +192,46 @@ func (l *Lexer) NextToken() (token.Token, error) {
 }
 
 func (l *Lexer) newToken(t token.Type) token.Token {
-	return token.Token{Type: t, Text: l.text[l.position:l.next], ByteOffset: l.position}
+	return token.Token{
+		Type: t,
+		SourceRange: source.Range{
+			File:       l.file,
+			ByteOffset: l.position,
+			Length:     l.next - l.position,
+			Line:       l.line,
+			Column:     l.column,
+		},
+	}
+}
+
+func (l *Lexer) newTokenWithRange(t token.Type, byteOffset, length, line, column int) token.Token {
+	return token.Token{
+		Type: t,
+		SourceRange: source.Range{
+			File:       l.file,
+			ByteOffset: byteOffset,
+			Length:     length,
+			Line:       line,
+			Column:     column,
+		},
+	}
 }
 
 func (l *Lexer) readIdentifier() token.Token {
 	start := l.position
+	column := l.column
 	l.readChar()
 	for isLetter(l.character) || isDigit(l.character) {
 		l.readChar()
 	}
-	text := l.text[start:l.position]
-	return token.Token{Type: token.LookupIdentifier(string(text)), Text: text, ByteOffset: start}
+	text := l.file.Text[start:l.position]
+	return l.newTokenWithRange(token.LookupIdentifier(string(text)), start, l.position-start, l.line, column)
 }
 
 func (l *Lexer) readNumber() (token.Token, error) {
 	start := l.position
 	first := l.character
+	column := l.column
 	l.readChar()
 	if first == '0' && (l.character == 'x' || l.character == 'X') {
 		// Hex Int
@@ -191,12 +239,12 @@ func (l *Lexer) readNumber() (token.Token, error) {
 		for isHexDigit(l.character) {
 			l.readChar()
 		}
-		text := l.text[start:l.position]
-		if text[len(text)-1] == 'x' || text[len(text)-1] == 'X' {
-			return token.Token{Type: token.Illegal, Text: text, ByteOffset: start},
-				Error{msg: fmt.Sprintf("expected a digit to follow the %s in a hex int literal", string(text[len(text)-1])), OffendingText: text, ByteOffset: start}
+		tok := l.newTokenWithRange(token.IntLiteral, start, l.position-start, l.line, column)
+		if l.file.Text[l.position-1] == 'x' || l.file.Text[l.position-1] == 'X' {
+			tok.Type = token.Illegal
+			return tok, Error{msg: fmt.Sprintf("expected a digit to follow the %s in a hex int literal", string(l.file.Text[l.position-1])), SourceRange: tok.SourceRange}
 		}
-		return token.Token{Type: token.IntLiteral, Text: text, ByteOffset: start}, nil
+		return tok, nil
 	}
 	isFloat := false
 	for isDigit(l.character) || l.character == '.' {
@@ -205,20 +253,21 @@ func (l *Lexer) readNumber() (token.Token, error) {
 		}
 		l.readChar()
 	}
-	text := l.text[start:l.position]
-	if text[len(text)-1] == '.' {
+	tok := l.newTokenWithRange(token.IntLiteral, start, l.position-start, l.line, column)
+	if l.file.Text[l.position-1] == '.' {
 		// Number ends with a dot?
-		return token.Token{Type: token.Illegal, Text: text, ByteOffset: start},
-			Error{msg: "expected a digit to follow the dot in a float literal", OffendingText: text, ByteOffset: start}
+		tok.Type = token.Illegal
+		return tok, Error{msg: "expected a digit to follow the dot in a float literal", SourceRange: tok.SourceRange}
 	}
 	if isFloat {
-		return token.Token{Type: token.FloatLiteral, Text: text, ByteOffset: start}, nil
+		tok.Type = token.FloatLiteral
 	}
-	return token.Token{Type: token.IntLiteral, Text: text, ByteOffset: start}, nil
+	return tok, nil
 }
 
 func (l *Lexer) readString() (token.Token, error) {
 	start := l.position
+	column := l.column
 	l.readChar()
 	escaping := false
 	for {
@@ -235,37 +284,46 @@ func (l *Lexer) readString() (token.Token, error) {
 				escaping = false
 				continue
 			}
-			text := l.text[start:l.position]
-			return token.Token{Type: token.Illegal, Text: text, ByteOffset: start},
-				Error{msg: fmt.Sprintf("encountered an invalid string escape sequence: \\%s", string(l.character)), OffendingText: text, ByteOffset: start}
+			tok := l.newTokenWithRange(token.Illegal, start, l.position-start, l.line, column)
+			return tok, Error{msg: fmt.Sprintf("encountered an invalid string escape sequence: \\%s", string(l.character)), SourceRange: tok.SourceRange}
 		}
 		if l.character == '"' {
 			break
 		}
 	}
-	text := l.text[start:l.position]
+	tok := l.newTokenWithRange(token.StringLiteral, start, l.position-start, l.line, column)
 	if l.character == 0 {
-		return token.Token{Type: token.Illegal, Text: text, ByteOffset: start},
-			Error{msg: "reached end of file while reading string literal", OffendingText: text, ByteOffset: start}
+		tok.Type = token.Illegal
+		return tok, Error{msg: "reached end of file while reading string literal", SourceRange: tok.SourceRange}
 	}
 	l.readChar()
-	return token.Token{Type: token.StringLiteral, Text: text, ByteOffset: start}, nil
+	return tok, nil
 }
 
 func (l *Lexer) readComment() (token.Token, error) {
-	start := l.position
+	tok := token.Token{
+		Type: token.Illegal,
+		SourceRange: source.Range{
+			File:       l.file,
+			ByteOffset: l.position,
+			Line:       l.line,
+			Column:     l.column,
+		},
+	}
 	if l.character == '{' {
 		// Doc comment
 		for l.character != 0 && l.character != '}' {
 			l.readChar()
 		}
-		text := l.text[start:l.position]
+
 		if l.character == 0 {
-			return token.Token{Type: token.Illegal, Text: text, ByteOffset: start},
-				Error{msg: "reached end of file while reading doc comment", OffendingText: text, ByteOffset: start}
+			tok.SourceRange.Length = l.position - tok.SourceRange.ByteOffset
+			return tok, Error{msg: "reached end of file while reading doc comment", SourceRange: tok.SourceRange}
 		}
 		l.readChar()
-		return token.Token{Type: token.DocComment, Text: l.text[start:l.position], ByteOffset: start}, nil
+		tok.Type = token.DocComment
+		tok.SourceRange.Length = l.position - tok.SourceRange.ByteOffset
+		return tok, nil
 	}
 	l.readChar()
 	if l.character == '/' {
@@ -283,23 +341,23 @@ func (l *Lexer) readComment() (token.Token, error) {
 			}
 			l.readChar()
 		}
-		text := l.text[start:l.position]
+
 		if l.character == 0 {
-			return token.Token{Type: token.Illegal, Text: text, ByteOffset: start},
-				Error{msg: "reached end of file while reading block comment", OffendingText: text, ByteOffset: start}
+			tok.SourceRange.Length = l.position - tok.SourceRange.ByteOffset
+			return tok, Error{msg: "reached end of file while reading block comment", SourceRange: tok.SourceRange}
 		}
 		l.readChar()
-		return token.Token{Type: token.BlockComment, Text: l.text[start:l.position], ByteOffset: start}, nil
+		tok.Type = token.BlockComment
+		tok.SourceRange.Length = l.position - tok.SourceRange.ByteOffset
+		return tok, nil
 	}
 	// Line comment
 	for l.character != 0 && l.character != '\n' {
 		l.readChar()
 	}
-	text := l.text[start:l.position]
-	if l.character == 0 {
-		return token.Token{Type: token.LineComment, Text: text, ByteOffset: start}, nil
-	}
-	return token.Token{Type: token.LineComment, Text: text, ByteOffset: start}, nil
+	tok.Type = token.LineComment
+	tok.SourceRange.Length = l.position - tok.SourceRange.ByteOffset
+	return tok, nil
 }
 
 func (l *Lexer) skipWhitespace() {
@@ -310,15 +368,21 @@ func (l *Lexer) skipWhitespace() {
 
 func (l *Lexer) readChar() error {
 	width := 1
-	if l.next >= len(l.text) {
+	if l.character == '\n' {
+		l.line++
+		l.column = 0
+	}
+	if l.next >= len(l.file.Text) {
 		l.character = 0
+		l.column = 1
 	} else {
-		r, w := utf8.DecodeRune(l.text[l.next:])
+		r, w := utf8.DecodeRune(l.file.Text[l.next:])
 		if r == utf8.RuneError {
 			return fmt.Errorf("encountered invalid UTF-8 at byte %d", l.next)
 		}
 		l.character = r
 		width = w
+		l.column++
 	}
 	l.position = l.next
 	l.next += width

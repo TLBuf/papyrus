@@ -1,7 +1,11 @@
 // Package token defines the Papyrus tokens understood by the parser.
 package token
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/TLBuf/papyrus/pkg/source"
+)
 
 // Type is the type of token.
 type Type byte
@@ -91,9 +95,8 @@ func (t Type) String() string {
 }
 
 type Token struct {
-	Type       Type
-	Text       []byte
-	ByteOffset int
+	Type        Type
+	SourceRange source.Range
 }
 
 // LookupIdentifier returns the [Type] of the given identifier or keyword.
