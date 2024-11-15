@@ -30,3 +30,23 @@ type Issue struct {
 	// error.
 	Location source.Range
 }
+
+type status int
+
+const (
+	// statusOK indicates the operation completed successfully.
+	statusOK status = iota
+	// statusError indicates the operation encountered an issue, but error
+	// recovery should be attempted.
+	statusError
+	// statusFatal indicates the operation encountered an issue and no error
+	// recovery should be attempted.
+	statusFatal
+)
+
+func (p *parser) issue(location source.Range, msg string, args ...any) {
+	p.issues = append(p.issues, &Issue{
+		Message:  fmt.Sprintf(msg, args...),
+		Location: location,
+	})
+}

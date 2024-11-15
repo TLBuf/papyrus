@@ -21,7 +21,7 @@ func TestHeader(t *testing.T) {
 			input: "ScriptName Foo",
 			want: &ast.Script{
 				Name: &ast.Identifier{
-					Text: "Foo",
+					Text: "foo",
 					SourceRange: source.Range{
 						ByteOffset: 11,
 						Length:     3,
