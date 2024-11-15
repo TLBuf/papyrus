@@ -4,9 +4,11 @@ import "github.com/TLBuf/papyrus/pkg/source"
 
 // Argument is a named argument for a function call.
 type Argument struct {
-	// Name is the name of the parameter for this argument or nil if using positional syntax.
+	// Name is the name of the parameter for this argument or nil if using
+	// positional syntax.
 	Name *Identifier
-	// Operator is the assignment operator betweent he name and value or nil if using positional syntax.
+	// Operator is the assignment operator betweent he name and value or nil if
+	// using positional syntax.
 	//
 	// When present the kind is always [Assign].
 	Operator *AssignmentOperator

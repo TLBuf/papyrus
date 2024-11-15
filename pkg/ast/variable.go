@@ -8,8 +8,8 @@ type ScriptVariable struct {
 	Type *TypeLiteral
 	// Name is the name of the variable.
 	Name *Identifier
-	// Value is the literal the script variable is assigned or nil if there isn't one
-	// (and the variable should have the default value for its type).
+	// Value is the literal the script variable is assigned or nil if there isn't
+	// one (and the variable should have the default value for its type).
 	Value Literal
 	// IsConditional
 	IsConditional bool
@@ -26,7 +26,8 @@ func (*ScriptVariable) scriptStatement() {}
 
 var _ ScriptStatement = (*ScriptVariable)(nil)
 
-// FunctionVariable is a variable definition within the body of a function (or event).
+// FunctionVariable is a variable definition within the body of a function (or
+// event).
 type FunctionVariable struct {
 	// Type is the type literal that defines the type of the variable.
 	Type *TypeLiteral

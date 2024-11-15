@@ -6,7 +6,8 @@ import (
 
 // Import represents a script import statement.
 //
-// These are used to bring identifiers available within one script into the scope of another script.
+// These are used to bring identifiers available within one script into the
+// scope of another script.
 type Import struct {
 	Name        *Identifier
 	SourceRange source.Range

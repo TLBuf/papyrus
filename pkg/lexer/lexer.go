@@ -12,7 +12,8 @@ import (
 // Error defines an error raised by the lexer.
 type Error struct {
 	msg string
-	// SourceRange is the source range of the segment of input text that caused an error.
+	// SourceRange is the source range of the segment of input text that caused an
+	// error.
 	SourceRange source.Range
 }
 
@@ -21,6 +22,7 @@ func (e Error) Error() string {
 	return e.msg
 }
 
+// Lexer provides the ability to lex a Papyrus script.
 type Lexer struct {
 	file      *source.File
 	position  int

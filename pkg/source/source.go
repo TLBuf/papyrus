@@ -13,7 +13,8 @@ type File struct {
 type Range struct {
 	// File is the file that contains the range.
 	File *File
-	// ByteOffset is the number of bytes from the start of the file for this position.
+	// ByteOffset is the number of bytes from the start of the file for this
+	// position.
 	ByteOffset int
 	// Length is the number of bytes in this range.
 	Length int

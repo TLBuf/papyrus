@@ -17,7 +17,8 @@ type ScriptStatement interface {
 	scriptStatement()
 }
 
-// FunctionStatement is a common interface for all function (and event) statement nodes.
+// FunctionStatement is a common interface for all function (and event)
+// statement nodes.
 type FunctionStatement interface {
 	Node
 	functionStatement()
@@ -29,13 +30,15 @@ type Expression interface {
 	expression()
 }
 
-// Literal is a common interface for all expression nodes that describe literal values.
+// Literal is a common interface for all expression nodes that describe literal
+// values.
 type Literal interface {
 	Expression
 	literal()
 }
 
-// Invokable is a common interface for statements that define invokable entities (i.e. functions and events).
+// Invokable is a common interface for statements that define invokable entities
+// (i.e. functions and events).
 type Invokable interface {
 	ScriptStatement
 	invokable()
@@ -45,4 +48,11 @@ type Invokable interface {
 type Reference interface {
 	Expression
 	reference()
+}
+
+// LooseComment is a common interface for loose comments (i.e. non-doc
+// comments).
+type LooseComment interface {
+	Node
+	looseComment()
 }

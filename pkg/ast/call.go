@@ -6,7 +6,8 @@ import "github.com/TLBuf/papyrus/pkg/source"
 type Call struct {
 	// Function is the reference to the function being called.
 	Function *Reference
-	// Arguments is the list of arguments being passed to the function being called.
+	// Arguments is the list of arguments being passed to the function being
+	// called.
 	Arguments []*Argument
 	// SourceRange is the source range of the node.
 	SourceRange source.Range

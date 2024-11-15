@@ -6,7 +6,8 @@ import "github.com/TLBuf/papyrus/pkg/source"
 type AssignmentOperatorKind int
 
 const (
-	// UnknownAssignmentOperatorKind is the default (and invalid) assignment operator.
+	// UnknownAssignmentOperatorKind is the default (and invalid) assignment
+	// operator.
 	UnknownAssignmentOperatorKind AssignmentOperatorKind = iota
 	// Assign is the basic assignment opertator, '='.
 	//
@@ -14,23 +15,28 @@ const (
 	Assign
 	// AssignAdd is the assign with addition operator, '+='.
 	//
-	// The varable is updated to the value of the variable added to the value of the expression.
+	// The varable is updated to the value of the variable added to the value of
+	// the expression.
 	AssignAdd
 	// AssignSubtract is the assign with subtraction operator, '-='.
 	//
-	// The varable is updated to the value of the variable less the value of the expression.
+	// The varable is updated to the value of the variable less the value of the
+	// expression.
 	AssignSubtract
 	// AssignMultiply is the assign with multiplication operator, '*='.
 	//
-	// The varable is updated to the value of the variable multiplied by the value of the expression.
+	// The varable is updated to the value of the variable multiplied by the value
+	// of the expression.
 	AssignMultiply
 	// AssignDivide is the assign with division operator, '/='.
 	//
-	// The varable is updated to the value of the variable divided by the value of the expression.
+	// The varable is updated to the value of the variable divided by the value of
+	// the expression.
 	AssignDivide
 	// AssignModulo is the assign with modulus operator, '%='.
 	//
-	// The varable is updated to the value of the variable modulo the value of the expression.
+	// The varable is updated to the value of the variable modulo the value of the
+	// expression.
 	AssignModulo
 )
 
@@ -66,7 +72,8 @@ func (o *AssignmentOperator) Range() source.Range {
 
 var _ Node = (*AssignmentOperator)(nil)
 
-// Assignment is a statement that assigns a new value to a variable (or property).
+// Assignment is a statement that assigns a new value to a variable (or
+// property).
 type Assignment struct {
 	// Assignee is the reference to a variable to assign the value to.
 	Assignee Reference

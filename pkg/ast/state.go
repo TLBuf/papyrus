@@ -4,7 +4,8 @@ import "github.com/TLBuf/papyrus/pkg/source"
 
 // State defines a Papyrus script state.
 //
-// States define which implementation of functions and events are run at a given time.
+// States define which implementation of functions and events are run at a given
+// time.
 type State struct {
 	// Name is the name of the variable.
 	Name *Identifier

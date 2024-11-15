@@ -10,11 +10,13 @@ type Event struct {
 	Name *Identifier
 	// Parameters is the list of parameters this event defines in order.
 	Parameters []*Parameter
-	// IsNative defines whether this is a native event. If true, this event will have no statements.
+	// IsNative defines whether this is a native event. If true, this event will
+	// have no statements.
 	IsNative bool
 	// Comment is the optional documentation comment for this event.
 	Comment *DocComment
-	// Statements is the list of function statements that constitute the body of the event.
+	// Statements is the list of function statements that constitute the body of
+	// the event.
 	Statements []FunctionStatement
 	// SourceRange is the source range of the node.
 	SourceRange source.Range

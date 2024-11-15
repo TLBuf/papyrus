@@ -8,7 +8,8 @@ type Index struct {
 	Value Expression
 	// OpenOperator is the open bracket.
 	OpenOperator *ArrayOpenOperator
-	// Index is the expression that defines the index of the element to reference in the array.
+	// Index is the expression that defines the index of the element to reference
+	// in the array.
 	Index Expression
 	// CloseOperator is the close bracket.
 	CloseOperator *ArrayCloseOperator
