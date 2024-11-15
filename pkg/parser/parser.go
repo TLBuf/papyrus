@@ -11,26 +11,7 @@ import (
 // Parser provides the ability to lex and parse a Papyrus script into an
 // [*ast.Script].
 type Parser struct {
-	l *lexer.Lexer
-
-	token     token.Token
-	lookahead token.Token
-
 	keepLooseComments bool
-	looseComments     []token.Token
-}
-
-// Error defines an error raised by the parser.
-type Error struct {
-	msg string
-	// SourceRange is the source range of the segment of input text that caused an
-	// error.
-	SourceRange source.Range
-}
-
-// Error implments the error interface.
-func (e Error) Error() string {
-	return e.msg
 }
 
 type Option func(*Parser)
@@ -44,21 +25,56 @@ func WithLooseComments(keep bool) Option {
 	}
 }
 
-func New(l *lexer.Lexer, opts ...Option) *Parser {
-	p := &Parser{l: l}
+// New returns a [*Parser] that is configured to parser script files.
+func New(opts ...Option) *Parser {
+	p := &Parser{}
 	for _, opt := range opts {
 		opt(p)
 	}
-	p.next()
-	p.next()
 	return p
 }
 
-func (p *Parser) next() error {
+// Parser returns the file parsed as an [*ast.Script] or an [Error] if parsing
+// encountered one or more issues.
+func (p *Parser) Parse(file *source.File) (*ast.Script, error) {
+	prsr := &parser{
+		l:                 lexer.New(file),
+		keepLooseComments: p.keepLooseComments,
+	}
+	if issue := prsr.next(); issue != nil {
+		return nil, Error{[]*Issue{issue}}
+	}
+	if issue := prsr.next(); issue != nil {
+		return nil, Error{[]*Issue{issue}}
+	}
+	script, issues := prsr.ParseScript()
+	if len(issues) > 0 {
+		return nil, Error{issues}
+	}
+	return script, nil
+}
+
+type parser struct {
+	l *lexer.Lexer
+
+	token     token.Token
+	lookahead token.Token
+
+	keepLooseComments bool
+	looseComments     []token.Token
+}
+
+// next advances token and lookahead by one token while skipping loose comment
+// tokens. A non-nil issue is returned if the lexer encountered an error while
+// reading the input; such errors are fatal and should halt parsing.
+func (p *parser) next() *Issue {
 	p.token = p.lookahead
 	t, err := p.l.NextToken()
 	if err != nil {
-		return err
+		return &Issue{
+			Message:  err.(lexer.Error).Message,
+			Location: err.(lexer.Error).Location,
+		}
 	}
 	p.lookahead = t
 	// Consume loose comments immediately so the rest of the
@@ -72,6 +88,6 @@ func (p *Parser) next() error {
 	return nil
 }
 
-func (p *Parser) ParseScript() (*ast.Script, error) {
+func (p *parser) ParseScript() (*ast.Script, []*Issue) {
 	return nil, nil
 }

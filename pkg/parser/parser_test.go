@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/TLBuf/papyrus/pkg/ast"
-	"github.com/TLBuf/papyrus/pkg/lexer"
 	"github.com/TLBuf/papyrus/pkg/parser"
 	"github.com/TLBuf/papyrus/pkg/source"
 	"github.com/google/go-cmp/cmp"
@@ -43,10 +42,9 @@ func TestHeader(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			f := &source.File{Text: []byte(test.input)}
-			l := lexer.New(f)
-			p := parser.New(l)
+			p := parser.New()
 
-			got, err := p.ParseScript()
+			got, err := p.Parse(f)
 			if err != nil {
 				t.Errorf("ParseScript() returned an unexpected error: %v", err)
 			}

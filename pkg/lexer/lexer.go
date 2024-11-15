@@ -11,15 +11,16 @@ import (
 
 // Error defines an error raised by the lexer.
 type Error struct {
-	msg string
-	// SourceRange is the source range of the segment of input text that caused an
+	// A human-readable message describing what went wrong.
+	Message string
+	// Location is the source range of the segment of input text that caused an
 	// error.
-	SourceRange source.Range
+	Location source.Range
 }
 
 // Error implments the error interface.
 func (e Error) Error() string {
-	return e.msg
+	return e.Message
 }
 
 // Lexer provides the ability to lex a Papyrus script.
@@ -82,7 +83,7 @@ func (l *Lexer) NextToken() (token.Token, error) {
 			tok = l.newTokenWithRange(token.Newline, l.position-1, l.next-l.position+1, l.line, column)
 		}
 		errTok := l.newTokenWithRange(token.Illegal, l.position-1, 1, l.line, column)
-		return errTok, Error{msg: "expected a newline after carriage return", SourceRange: errTok.SourceRange}
+		return errTok, Error{Message: "expected a newline after carriage return", Location: errTok.SourceRange}
 	case '\\':
 		column := l.column
 		l.readChar()
@@ -92,7 +93,7 @@ func (l *Lexer) NextToken() (token.Token, error) {
 		}
 		if tok.Type != token.Newline {
 			errTok := l.newTokenWithRange(token.Illegal, tok.SourceRange.ByteOffset, 1, l.line, column)
-			return errTok, Error{msg: "expected a newline immediately after '/'", SourceRange: errTok.SourceRange}
+			return errTok, Error{Message: "expected a newline immediately after '/'", Location: errTok.SourceRange}
 		}
 		return l.NextToken()
 	case '=':
@@ -165,7 +166,7 @@ func (l *Lexer) NextToken() (token.Token, error) {
 			tok = l.newTokenWithRange(token.LogicalOr, l.position-1, 2, l.line, column)
 		}
 		errTok := l.newTokenWithRange(token.Illegal, l.position-1, 1, l.line, column)
-		return errTok, Error{msg: "'|' is not a valid operator", SourceRange: errTok.SourceRange}
+		return errTok, Error{Message: "'|' is not a valid operator", Location: errTok.SourceRange}
 	case '&':
 		column := l.column
 		l.readChar()
@@ -173,7 +174,7 @@ func (l *Lexer) NextToken() (token.Token, error) {
 			tok = l.newTokenWithRange(token.LogicalAnd, l.position-1, 2, l.line, column)
 		}
 		errTok := l.newTokenWithRange(token.Illegal, l.position-1, 1, l.line, column)
-		return errTok, Error{msg: "'&' is not a valid operator", SourceRange: errTok.SourceRange}
+		return errTok, Error{Message: "'&' is not a valid operator", Location: errTok.SourceRange}
 	case '{', ';':
 		return l.readComment()
 	case '"':
@@ -186,7 +187,7 @@ func (l *Lexer) NextToken() (token.Token, error) {
 		} else {
 			tok = l.newToken(token.Illegal)
 			l.readChar()
-			return tok, Error{msg: "failed to lex any token", SourceRange: tok.SourceRange}
+			return tok, Error{Message: "failed to lex any token", Location: tok.SourceRange}
 		}
 	}
 	l.readChar()
@@ -244,7 +245,7 @@ func (l *Lexer) readNumber() (token.Token, error) {
 		tok := l.newTokenWithRange(token.IntLiteral, start, l.position-start, l.line, column)
 		if l.file.Text[l.position-1] == 'x' || l.file.Text[l.position-1] == 'X' {
 			tok.Type = token.Illegal
-			return tok, Error{msg: fmt.Sprintf("expected a digit to follow the %s in a hex int literal", string(l.file.Text[l.position-1])), SourceRange: tok.SourceRange}
+			return tok, Error{Message: fmt.Sprintf("expected a digit to follow the %s in a hex int literal", string(l.file.Text[l.position-1])), Location: tok.SourceRange}
 		}
 		return tok, nil
 	}
@@ -259,7 +260,7 @@ func (l *Lexer) readNumber() (token.Token, error) {
 	if l.file.Text[l.position-1] == '.' {
 		// Number ends with a dot?
 		tok.Type = token.Illegal
-		return tok, Error{msg: "expected a digit to follow the dot in a float literal", SourceRange: tok.SourceRange}
+		return tok, Error{Message: "expected a digit to follow the dot in a float literal", Location: tok.SourceRange}
 	}
 	if isFloat {
 		tok.Type = token.FloatLiteral
@@ -287,7 +288,7 @@ func (l *Lexer) readString() (token.Token, error) {
 				continue
 			}
 			tok := l.newTokenWithRange(token.Illegal, start, l.position-start, l.line, column)
-			return tok, Error{msg: fmt.Sprintf("encountered an invalid string escape sequence: \\%s", string(l.character)), SourceRange: tok.SourceRange}
+			return tok, Error{Message: fmt.Sprintf("encountered an invalid string escape sequence: \\%s", string(l.character)), Location: tok.SourceRange}
 		}
 		if l.character == '"' {
 			break
@@ -296,7 +297,7 @@ func (l *Lexer) readString() (token.Token, error) {
 	tok := l.newTokenWithRange(token.StringLiteral, start, l.position-start, l.line, column)
 	if l.character == 0 {
 		tok.Type = token.Illegal
-		return tok, Error{msg: "reached end of file while reading string literal", SourceRange: tok.SourceRange}
+		return tok, Error{Message: "reached end of file while reading string literal", Location: tok.SourceRange}
 	}
 	l.readChar()
 	return tok, nil
@@ -320,7 +321,7 @@ func (l *Lexer) readComment() (token.Token, error) {
 
 		if l.character == 0 {
 			tok.SourceRange.Length = l.position - tok.SourceRange.ByteOffset
-			return tok, Error{msg: "reached end of file while reading doc comment", SourceRange: tok.SourceRange}
+			return tok, Error{Message: "reached end of file while reading doc comment", Location: tok.SourceRange}
 		}
 		l.readChar()
 		tok.Type = token.DocComment
@@ -346,7 +347,7 @@ func (l *Lexer) readComment() (token.Token, error) {
 
 		if l.character == 0 {
 			tok.SourceRange.Length = l.position - tok.SourceRange.ByteOffset
-			return tok, Error{msg: "reached end of file while reading block comment", SourceRange: tok.SourceRange}
+			return tok, Error{Message: "reached end of file while reading block comment", Location: tok.SourceRange}
 		}
 		l.readChar()
 		tok.Type = token.BlockComment
