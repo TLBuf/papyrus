@@ -9,7 +9,9 @@ import (
 // These are used to bring identifiers available within one script into the
 // scope of another script.
 type Import struct {
-	Name        *Identifier
+	// Name is the name of the script being imported.
+	Name *Identifier
+	// SourceRange is the source range of the node.
 	SourceRange source.Range
 }
 

@@ -208,7 +208,19 @@ func (p *parser) ParseScriptStatement() (ast.ScriptStatement, error) {
 }
 
 func (p *parser) ParseImport() (*ast.Import, error) {
-	return nil, newError(p.token.SourceRange, "ParseImport unimplemented.")
+	start := p.token.SourceRange
+	if err := p.next(); err != nil {
+		return nil, err
+	}
+	ident, err := p.ParseIdentifier()
+	if err != nil {
+		return nil, err
+	}
+	node := &ast.Import{
+		Name:        ident,
+		SourceRange: source.Span(start, ident.SourceRange),
+	}
+	return node, p.tryConsume(token.Newline, token.EOF)
 }
 
 func (p *parser) ParseState() (*ast.State, error) {

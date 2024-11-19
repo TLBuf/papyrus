@@ -28,3 +28,14 @@ type Range struct {
 func (r Range) Text() []byte {
 	return r.File.Text[r.ByteOffset : r.ByteOffset+r.Length]
 }
+
+// Span returns a Range that spans two given Ranges.
+func Span(start, end Range) Range {
+	return Range{
+		File:       start.File,
+		ByteOffset: start.ByteOffset,
+		Length:     end.ByteOffset - start.ByteOffset + end.Length,
+		Line:       start.Line,
+		Column:     start.Line,
+	}
+}

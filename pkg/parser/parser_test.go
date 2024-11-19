@@ -212,6 +212,47 @@ func TestHeader(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "import",
+			input: `ScriptName Foo
+			Import Bar`,
+			want: &ast.Script{
+				Name: &ast.Identifier{
+					Text: "foo",
+					SourceRange: source.Range{
+						ByteOffset: 11,
+						Length:     3,
+						Line:       1,
+						Column:     12,
+					},
+				},
+				Statements: []ast.ScriptStatement{
+					&ast.Import{
+						Name: &ast.Identifier{
+							Text: "bar",
+							SourceRange: source.Range{
+								ByteOffset: 25,
+								Length:     3,
+								Line:       2,
+								Column:     11,
+							},
+						},
+						SourceRange: source.Range{
+							ByteOffset: 18,
+							Length:     10,
+							Line:       2,
+							Column:     2,
+						},
+					},
+				},
+				SourceRange: source.Range{
+					ByteOffset: 0,
+					Length:     28,
+					Line:       1,
+					Column:     1,
+				},
+			},
+		},
 	}
 
 	for _, test := range tests {
