@@ -3,6 +3,7 @@ package parser
 
 import (
 	"bytes"
+	"strings"
 
 	"github.com/TLBuf/papyrus/pkg/ast"
 	"github.com/TLBuf/papyrus/pkg/lexer"
@@ -43,17 +44,13 @@ func (p *Parser) Parse(file *source.File) (*ast.Script, error) {
 		l:                 lexer.New(file),
 		keepLooseComments: p.keepLooseComments,
 	}
-	if status := prsr.next(); status != statusOK {
-		return nil, Error{prsr.issues}
+	if err := prsr.next(); err != nil {
+		return nil, err
 	}
-	if status := prsr.next(); status != statusOK {
-		return nil, Error{prsr.issues}
+	if err := prsr.next(); err != nil {
+		return nil, err
 	}
-	script, status := prsr.ParseScript()
-	if status != statusOK {
-		return nil, Error{prsr.issues}
-	}
-	return script, nil
+	return prsr.ParseScript()
 }
 
 type parser struct {
@@ -64,19 +61,15 @@ type parser struct {
 
 	keepLooseComments bool
 	looseComments     []token.Token
-
-	issues []*Issue
 }
 
 // next advances token and lookahead by one token while skipping loose comment
-// tokens. A non-ok status is returned if the lexer encountered an error while
-// reading the input.
-func (p *parser) next() status {
+// tokens. Returns true if parsing should continue, false otherwise.
+func (p *parser) next() error {
 	p.token = p.lookahead
 	t, err := p.l.NextToken()
 	if err != nil {
-		p.issue(err.(lexer.Error).Location, err.(lexer.Error).Message)
-		return statusFatal
+		return newError(err.(lexer.Error).Location, err.(lexer.Error).Message)
 	}
 	p.lookahead = t
 	// Consume loose comments immediately so the rest of the
@@ -87,37 +80,42 @@ func (p *parser) next() status {
 		}
 		return p.next()
 	}
-	return statusOK
+	return nil
 }
 
 // tryConsume advances the token position if the current token matches the given
-// token type or records an issue and returns a non-ok status.
-func (p *parser) tryConsume(t token.Type) status {
-	if p.token.Type != t {
-		p.issue(p.token.SourceRange, "expected %s, but found %s", t, p.token.Type)
-		return statusError
+// token type or returns an error.
+func (p *parser) tryConsume(t token.Type, alts ...token.Type) error {
+	if p.token.Type == t {
+		return p.next()
 	}
-	return p.next()
+	for _, t := range alts {
+		if p.token.Type == t {
+			return p.next()
+		}
+	}
+	if len(alts) > 0 {
+		strs := make([]string, len(alts))
+		for i, alt := range alts {
+			strs[i] = alt.String()
+		}
+		return newError(p.token.SourceRange, "expected any of [%s, %s], but found %s", t, strings.Join(strs, ", "), p.token.Type)
+	}
+	return newError(p.token.SourceRange, "expected %s, but found %s", t, p.token.Type)
 }
 
-// consumeLine advances the token position through the next newline reporting
-// an issue for any non-newline tokens found.
-func (p *parser) consumeLine() status {
-	ok := true
-	for p.token.Type != token.Newline && p.token.Type != token.EOF {
-		p.issue(p.token.SourceRange, "expected %s, but found %s", token.Newline, p.token.Type)
-		ok = false
+// consumeNewlines advances the token position through the as many newlines as
+// possible until a non-newline token is found.
+func (p *parser) consumeNewlines() error {
+	for p.token.Type == token.Newline {
+		if err := p.next(); err != nil {
+			return err
+		}
 	}
-	if s := p.next(); s != statusOK {
-		return s
-	}
-	if !ok {
-		return statusError
-	}
-	return statusOK
+	return nil
 }
 
-func (p *parser) ParseScript() (*ast.Script, status) {
+func (p *parser) ParseScript() (*ast.Script, error) {
 	script := &ast.Script{
 		SourceRange: source.Range{
 			File:   p.token.SourceRange.File,
@@ -126,28 +124,47 @@ func (p *parser) ParseScript() (*ast.Script, status) {
 			Column: 1,
 		},
 	}
-	if status := p.ParseScriptHeader(script); status == statusFatal {
-		return nil, status
+	if err := p.ParseScriptHeader(script); err != nil {
+		return nil, err
 	}
-	return script, statusOK
+	if p.token.Type == token.DocComment {
+		script.Comment = &ast.DocComment{
+			Text:        string(p.token.SourceRange.Text()),
+			SourceRange: p.token.SourceRange,
+		}
+		if err := p.next(); err != nil {
+			return nil, err
+		}
+	}
+	for p.token.Type != token.EOF {
+		if err := p.consumeNewlines(); err != nil {
+			return nil, err
+		}
+		stmt, err := p.ParseScriptStatement()
+		if err != nil {
+			return nil, err
+		}
+		if stmt != nil {
+			script.Statements = append(script.Statements, stmt)
+		}
+	}
+	return script, nil
 }
 
-func (p *parser) ParseScriptHeader(script *ast.Script) status {
-	if status := p.tryConsume(token.ScriptName); status == statusFatal {
-		return status
+func (p *parser) ParseScriptHeader(script *ast.Script) error {
+	if err := p.tryConsume(token.ScriptName); err != nil {
+		return err
 	}
-	var status status
-	script.Name, status = p.ParseIdentifier()
-	if status == statusFatal {
-		return status
+	var err error
+	if script.Name, err = p.ParseIdentifier(); err != nil {
+		return err
 	}
 	if p.token.Type == token.Extends {
-		if status := p.next(); status == statusFatal {
-			return status
+		if err := p.next(); err != nil {
+			return err
 		}
-		script.Extends, status = p.ParseIdentifier()
-		if status == statusFatal {
-			return status
+		if script.Extends, err = p.ParseIdentifier(); err != nil {
+			return err
 		}
 	}
 	for p.token.Type == token.Hidden || p.token.Type == token.Conditional {
@@ -156,23 +173,75 @@ func (p *parser) ParseScriptHeader(script *ast.Script) status {
 		} else {
 			script.IsConditional = true
 		}
-		if status := p.next(); status == statusFatal {
-			return status
+		if err := p.next(); err != nil {
+			return err
 		}
 	}
-	if status := p.consumeLine(); status == statusFatal {
-		return status
-	}
-	return statusOK
+	return p.tryConsume(token.Newline, token.EOF)
 }
 
-func (p *parser) ParseIdentifier() (*ast.Identifier, status) {
+func (p *parser) ParseScriptStatement() (ast.ScriptStatement, error) {
+	switch p.token.Type {
+	case token.Import:
+		return p.ParseImport()
+	case token.Event:
+		return p.ParseEvent()
+	case token.Auto, token.State:
+		return p.ParseState()
+	case token.Function:
+		return p.ParseFunction(nil)
+	case token.Bool, token.Float, token.Int, token.String, token.Identifier:
+		typeLiteral, err := p.ParseTypeLiteral()
+		if err != nil {
+			return nil, err
+		}
+		switch p.token.Type {
+		case token.Identifier:
+			return p.ParseScriptVariable(typeLiteral)
+		case token.Property:
+			return p.ParseProperty(typeLiteral)
+		case token.Function:
+			return p.ParseFunction(typeLiteral)
+		}
+	}
+	return nil, newError(p.token.SourceRange, "expected Import, Event, State, Function, Property, or Variable, but found %s", p.token.Type)
+}
+
+func (p *parser) ParseImport() (*ast.Import, error) {
+	return nil, newError(p.token.SourceRange, "ParseImport unimplemented.")
+}
+
+func (p *parser) ParseState() (*ast.State, error) {
+	return nil, newError(p.token.SourceRange, "ParseState unimplemented.")
+}
+
+func (p *parser) ParseEvent() (*ast.Event, error) {
+	return nil, newError(p.token.SourceRange, "ParseEvent unimplemented.")
+}
+
+func (p *parser) ParseFunction(returnType *ast.TypeLiteral) (*ast.Function, error) {
+	return nil, newError(p.token.SourceRange, "ParseFunction unimplemented.")
+}
+
+func (p *parser) ParseProperty(propertyType *ast.TypeLiteral) (*ast.Property, error) {
+	return nil, newError(p.token.SourceRange, "ParseProperty unimplemented.")
+}
+
+func (p *parser) ParseScriptVariable(variableType *ast.TypeLiteral) (*ast.ScriptVariable, error) {
+	return nil, newError(p.token.SourceRange, "ParseScriptVariable unimplemented.")
+}
+
+func (p *parser) ParseIdentifier() (*ast.Identifier, error) {
 	rng := p.token.SourceRange
-	if status := p.tryConsume(token.Identifier); status != statusOK {
-		return nil, status
+	if err := p.tryConsume(token.Identifier); err != nil {
+		return nil, err
 	}
 	return &ast.Identifier{
 		Text:        string(bytes.ToLower(rng.Text())),
 		SourceRange: rng,
-	}, statusOK
+	}, nil
+}
+
+func (p *parser) ParseTypeLiteral() (*ast.TypeLiteral, error) {
+	return nil, newError(p.token.SourceRange, "ParseTypeLiteral unimplemented.")
 }
