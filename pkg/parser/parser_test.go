@@ -253,6 +253,92 @@ func TestHeader(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "state",
+			input: `ScriptName Foo
+			State Bar
+			EndState`,
+			want: &ast.Script{
+				Name: &ast.Identifier{
+					Text: "foo",
+					SourceRange: source.Range{
+						ByteOffset: 11,
+						Length:     3,
+						Line:       1,
+						Column:     12,
+					},
+				},
+				Statements: []ast.ScriptStatement{
+					&ast.State{
+						Name: &ast.Identifier{
+							Text: "bar",
+							SourceRange: source.Range{
+								ByteOffset: 24,
+								Length:     3,
+								Line:       2,
+								Column:     10,
+							},
+						},
+						IsAuto: false,
+						SourceRange: source.Range{
+							ByteOffset: 18,
+							Length:     21,
+							Line:       2,
+							Column:     2,
+						},
+					},
+				},
+				SourceRange: source.Range{
+					ByteOffset: 0,
+					Length:     39,
+					Line:       1,
+					Column:     1,
+				},
+			},
+		},
+		{
+			name: "state_auto",
+			input: `ScriptName Foo
+			Auto State Bar
+			EndState`,
+			want: &ast.Script{
+				Name: &ast.Identifier{
+					Text: "foo",
+					SourceRange: source.Range{
+						ByteOffset: 11,
+						Length:     3,
+						Line:       1,
+						Column:     12,
+					},
+				},
+				Statements: []ast.ScriptStatement{
+					&ast.State{
+						Name: &ast.Identifier{
+							Text: "bar",
+							SourceRange: source.Range{
+								ByteOffset: 29,
+								Length:     3,
+								Line:       2,
+								Column:     15,
+							},
+						},
+						IsAuto: true,
+						SourceRange: source.Range{
+							ByteOffset: 18,
+							Length:     26,
+							Line:       2,
+							Column:     2,
+						},
+					},
+				},
+				SourceRange: source.Range{
+					ByteOffset: 0,
+					Length:     44,
+					Line:       1,
+					Column:     1,
+				},
+			},
+		},
 	}
 
 	for _, test := range tests {

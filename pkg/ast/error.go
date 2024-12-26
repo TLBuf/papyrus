@@ -22,6 +22,8 @@ func (e *ErrorScriptStatement) ErrorMessage() string {
 
 func (*ErrorScriptStatement) scriptStatement() {}
 
+func (*ErrorScriptStatement) invokable() {}
+
 // FunctionStatement is a common interface for all function (and event)
 // statement nodes.
 type ErrorFunctionStatement struct {

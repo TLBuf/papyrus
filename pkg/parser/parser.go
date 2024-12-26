@@ -211,6 +211,8 @@ func (p *parser) ParseScriptStatement() (ast.ScriptStatement, error) {
 		case token.Function:
 			stmt, err = p.ParseFunction(typeLiteral)
 		}
+	default:
+		err = fmt.Errorf("expected Import, Event, State, Function, Property, or Variable, but found %s", start.Type)
 	}
 	if err == nil {
 		return stmt, nil
@@ -226,7 +228,7 @@ func (p *parser) ParseScriptStatement() (ast.ScriptStatement, error) {
 		return nil, err
 	}
 	errStmt := &ast.ErrorScriptStatement{
-		Message:     fmt.Sprintf("expected Import, Event, State, Function, Property, or Variable, but found %s", start.Type),
+		Message:     fmt.Sprintf("%v", err),
 		SourceRange: source.Span(start.SourceRange, p.token.SourceRange),
 	}
 	p.errors = append(p.errors, errStmt)
@@ -270,8 +272,118 @@ func (p *parser) ParseImport() (*ast.Import, error) {
 	return node, p.tryConsume(token.Newline, token.EOF)
 }
 
-func (p *parser) ParseState() (*ast.State, error) {
-	return nil, newError(p.token.SourceRange, "ParseState unimplemented.")
+func (p *parser) ParseState() (ast.ScriptStatement, error) {
+	start := p.token.SourceRange
+	isAuto := p.token.Type == token.Auto
+	if isAuto {
+		if err := p.next(); err != nil {
+			return nil, err
+		}
+	}
+	if err := p.next(); err != nil {
+		return nil, err
+	}
+	name, err := p.ParseIdentifier()
+	if err != nil {
+		return nil, err
+	}
+	node := &ast.State{
+		Name:   name,
+		IsAuto: isAuto,
+	}
+	for p.token.Type != token.EndState {
+		if p.token.Type == token.EOF {
+			// State was never closed, proactively create a
+			errStmt := &ast.ErrorScriptStatement{
+				Message:     fmt.Sprintf("hit end of file while parsing state %q, did you forget EndState?", name.SourceRange.Text()),
+				SourceRange: source.Span(start, p.token.SourceRange),
+			}
+			p.errors = append(p.errors, errStmt)
+			return errStmt, nil
+		}
+		if err := p.consumeNewlines(); err != nil {
+			return nil, err
+		}
+		if p.token.Type == token.EndState {
+			break
+		}
+		stmt, err := p.ParseInvokable()
+		if err != nil {
+			return nil, err
+		}
+		if stmt != nil {
+			node.Invokables = append(node.Invokables, stmt)
+		}
+	}
+	node.SourceRange = source.Span(start, p.token.SourceRange)
+	if err := p.next(); err != nil {
+		return nil, err
+	}
+	return node, p.tryConsume(token.Newline, token.EOF)
+}
+
+func (p *parser) ParseInvokable() (ast.Invokable, error) {
+	start := p.token
+	var stmt ast.Invokable
+	var err error
+	switch p.token.Type {
+	case token.Event:
+		stmt, err = p.ParseEvent()
+	case token.Function:
+		stmt, err = p.ParseFunction(nil)
+	case token.Bool, token.Float, token.Int, token.String, token.Identifier:
+		var typeLiteral *ast.TypeLiteral
+		typeLiteral, err = p.ParseTypeLiteral()
+		if err != nil {
+			return nil, err
+		}
+		switch p.token.Type {
+		case token.Function:
+			stmt, err = p.ParseFunction(typeLiteral)
+		}
+	default:
+		err = fmt.Errorf("expected Event or Function, but found %s", start.Type)
+	}
+	if err == nil {
+		return stmt, nil
+	}
+	// Error recovery. Attempt to realign to a known statement token and emit an
+	// error statement to fill the gap.
+	if p.recovery {
+		// If an error was returned during a recovery operation, just propagate it.
+		return nil, err
+	}
+	p.recovery = true
+	if err := p.recoverInvokable(); err != nil {
+		return nil, err
+	}
+	errStmt := &ast.ErrorScriptStatement{
+		Message:     fmt.Sprintf("%v", err),
+		SourceRange: source.Span(start.SourceRange, p.token.SourceRange),
+	}
+	p.errors = append(p.errors, errStmt)
+	if err := p.next(); err != nil {
+		return nil, err
+	}
+	p.recovery = false
+	return errStmt, nil
+}
+
+func (p *parser) recoverInvokable() error {
+	for {
+		switch p.lookahead.Type {
+		case token.EOF:
+			// Hit end of file, give up.
+			return nil
+		case token.Event, token.Function, token.Bool, token.Float, token.Int, token.String, token.Identifier:
+			// Next token is the start of a valid invokable.
+			return nil
+		default:
+			if err := p.next(); err != nil {
+				return err // An error during recovery just fails.
+			}
+		}
+	}
 }
 
 func (p *parser) ParseEvent() (*ast.Event, error) {
