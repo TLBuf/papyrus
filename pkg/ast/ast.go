@@ -56,3 +56,11 @@ type LooseComment interface {
 	Node
 	looseComment()
 }
+
+// Error is a common interface for error nodes that are produced when invalid
+// input is encountered.
+type Error interface {
+	Node
+	// Message returns a human-readable message describing the error encountered.
+	ErrorMessage() string
+}

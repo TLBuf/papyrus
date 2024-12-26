@@ -3,6 +3,7 @@ package parser
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 
 	"github.com/TLBuf/papyrus/pkg/ast"
@@ -61,6 +62,9 @@ type parser struct {
 
 	keepLooseComments bool
 	looseComments     []token.Token
+
+	recovery bool
+	errors   []ast.Error
 }
 
 // next advances token and lookahead by one token while skipping loose comment
@@ -181,30 +185,73 @@ func (p *parser) ParseScriptHeader(script *ast.Script) error {
 }
 
 func (p *parser) ParseScriptStatement() (ast.ScriptStatement, error) {
+	start := p.token
+	var stmt ast.ScriptStatement
+	var err error
 	switch p.token.Type {
 	case token.Import:
-		return p.ParseImport()
+		stmt, err = p.ParseImport()
 	case token.Event:
-		return p.ParseEvent()
+		stmt, err = p.ParseEvent()
 	case token.Auto, token.State:
-		return p.ParseState()
+		stmt, err = p.ParseState()
 	case token.Function:
-		return p.ParseFunction(nil)
+		stmt, err = p.ParseFunction(nil)
 	case token.Bool, token.Float, token.Int, token.String, token.Identifier:
-		typeLiteral, err := p.ParseTypeLiteral()
+		var typeLiteral *ast.TypeLiteral
+		typeLiteral, err = p.ParseTypeLiteral()
 		if err != nil {
 			return nil, err
 		}
 		switch p.token.Type {
 		case token.Identifier:
-			return p.ParseScriptVariable(typeLiteral)
+			stmt, err = p.ParseScriptVariable(typeLiteral)
 		case token.Property:
-			return p.ParseProperty(typeLiteral)
+			stmt, err = p.ParseProperty(typeLiteral)
 		case token.Function:
-			return p.ParseFunction(typeLiteral)
+			stmt, err = p.ParseFunction(typeLiteral)
 		}
 	}
-	return nil, newError(p.token.SourceRange, "expected Import, Event, State, Function, Property, or Variable, but found %s", p.token.Type)
+	if err == nil {
+		return stmt, nil
+	}
+	// Error recovery. Attempt to realign to a known statement token and emit an
+	// error statement to fill the gap.
+	if p.recovery {
+		// If an error was returned during a recovery operation, just propagate it.
+		return nil, err
+	}
+	p.recovery = true
+	if err := p.recoverScriptStatement(); err != nil {
+		return nil, err
+	}
+	errStmt := &ast.ErrorScriptStatement{
+		Message:     fmt.Sprintf("expected Import, Event, State, Function, Property, or Variable, but found %s", start.Type),
+		SourceRange: source.Span(start.SourceRange, p.token.SourceRange),
+	}
+	p.errors = append(p.errors, errStmt)
+	if err := p.next(); err != nil {
+		return nil, err
+	}
+	p.recovery = false
+	return errStmt, nil
+}
+
+func (p *parser) recoverScriptStatement() error {
+	for {
+		switch p.lookahead.Type {
+		case token.EOF:
+			// Hit end of file, give up.
+			return nil
+		case token.Import, token.Event, token.Auto, token.State, token.Function, token.Bool, token.Float, token.Int, token.String, token.Identifier:
+			// Next token is the start of a valid statement.
+			return nil
+		default:
+			if err := p.next(); err != nil {
+				return err // An error during recovery just fails.
+			}
+		}
+	}
 }
 
 func (p *parser) ParseImport() (*ast.Import, error) {
