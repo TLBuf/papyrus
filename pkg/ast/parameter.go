@@ -9,7 +9,7 @@ type Parameter struct {
 	// Name is the name of the parameter.
 	Name *Identifier
 	// Value is the optional default value of the parameter.
-	Value *Literal
+	Value Literal
 	// SourceRange is the source range of the node.
 	SourceRange source.Range
 }

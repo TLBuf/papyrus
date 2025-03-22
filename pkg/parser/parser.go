@@ -4,12 +4,14 @@ package parser
 import (
 	"bytes"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/TLBuf/papyrus/pkg/ast"
 	"github.com/TLBuf/papyrus/pkg/lexer"
 	"github.com/TLBuf/papyrus/pkg/source"
 	"github.com/TLBuf/papyrus/pkg/token"
+	"github.com/TLBuf/papyrus/pkg/types"
 )
 
 // Parser provides the ability to lex and parse a Papyrus script into an
@@ -212,7 +214,7 @@ func (p *parser) ParseScriptStatement() (ast.ScriptStatement, error) {
 			stmt, err = p.ParseFunction(typeLiteral)
 		}
 	default:
-		err = fmt.Errorf("expected Import, Event, State, Function, Property, or Variable, but found %s", start.Type)
+		err = fmt.Errorf("expected Import, Event, State, Function, Property, or a variable definition, but found %s", start.Type)
 	}
 	if err == nil {
 		return stmt, nil
@@ -295,7 +297,7 @@ func (p *parser) ParseState() (ast.ScriptStatement, error) {
 		if p.token.Type == token.EOF {
 			// State was never closed, proactively create a
 			errStmt := &ast.ErrorScriptStatement{
-				Message:     fmt.Sprintf("hit end of file while parsing state %q, did you forget EndState?", name.SourceRange.Text()),
+				Message:     fmt.Sprintf("hit end of file while parsing state %q, did you forget %s?", name.SourceRange.Text(), token.EndState),
 				SourceRange: source.Span(start, p.token.SourceRange),
 			}
 			p.errors = append(p.errors, errStmt)
@@ -387,11 +389,381 @@ func (p *parser) recoverInvokable() error {
 }
 
 func (p *parser) ParseEvent() (*ast.Event, error) {
-	return nil, newError(p.token.SourceRange, "ParseEvent unimplemented.")
+	start := p.token.SourceRange
+	if err := p.next(); err != nil {
+		return nil, err
+	}
+	name, err := p.ParseIdentifier()
+	if err != nil {
+		return nil, err
+	}
+	node := &ast.Event{
+		Name: name,
+	}
+	params, err := p.ParseParameterList()
+	if err != nil {
+		return nil, err
+	}
+	node.Parameters = params
+	if p.token.Type == token.Native {
+		if err := p.next(); err != nil {
+			return nil, err
+		}
+		node.IsNative = true
+		node.SourceRange = source.Span(start, p.token.SourceRange)
+		if err := p.consumeNewlines(); err != nil {
+			return nil, err
+		}
+		return node, err
+	}
+	stmts, err := p.ParseFunctionStatementBlock(token.EndEvent)
+	if err != nil {
+		return nil, err
+	}
+	node.Statements = stmts
+	node.SourceRange = source.Span(start, p.token.SourceRange)
+	if err := p.next(); err != nil {
+		return nil, err
+	}
+	return node, p.tryConsume(token.Newline, token.EOF)
 }
 
 func (p *parser) ParseFunction(returnType *ast.TypeLiteral) (*ast.Function, error) {
-	return nil, newError(p.token.SourceRange, "ParseFunction unimplemented.")
+	start := p.token.SourceRange
+	if returnType != nil {
+		start = returnType.SourceRange
+	}
+	if err := p.next(); err != nil {
+		return nil, err
+	}
+	name, err := p.ParseIdentifier()
+	if err != nil {
+		return nil, err
+	}
+	node := &ast.Function{
+		Name:       name,
+		ReturnType: returnType,
+	}
+	params, err := p.ParseParameterList()
+	if err != nil {
+		return nil, err
+	}
+	node.Parameters = params
+	var end source.Range
+	for p.token.Type == token.Native || p.token.Type == token.Global {
+		if p.token.Type == token.Native {
+			node.IsNative = true
+		} else {
+			node.IsGlobal = true
+		}
+		end = p.token.SourceRange
+		if err := p.next(); err != nil {
+			return nil, err
+		}
+	}
+	if err := p.consumeNewlines(); err != nil {
+		return nil, err
+	}
+	if p.token.Type == token.DocComment {
+		node.Comment = &ast.DocComment{
+			Text:        string(p.token.SourceRange.Text()[1 : p.token.SourceRange.Length-1]),
+			SourceRange: p.token.SourceRange,
+		}
+		end = p.token.SourceRange
+		if err := p.next(); err != nil {
+			return nil, err
+		}
+		if err := p.consumeNewlines(); err != nil {
+			return nil, err
+		}
+	}
+	if node.IsNative {
+		node.SourceRange = source.Span(start, end)
+		return node, nil
+	}
+	stmts, err := p.ParseFunctionStatementBlock(token.EndFunction)
+	if err != nil {
+		return nil, err
+	}
+	node.Statements = stmts
+	node.SourceRange = source.Span(start, p.token.SourceRange)
+	if err := p.next(); err != nil {
+		return nil, err
+	}
+	return node, p.tryConsume(token.Newline, token.EOF)
+}
+
+func (p *parser) ParseParameterList() ([]*ast.Parameter, error) {
+	if err := p.tryConsume(token.LParen); err != nil {
+		return nil, err
+	}
+	var params []*ast.Parameter
+	for {
+		switch p.token.Type {
+		case token.Comma:
+			if err := p.next(); err != nil {
+				return nil, err
+			}
+		case token.RParen:
+			if err := p.next(); err != nil {
+				return nil, err
+			}
+			return params, nil
+		default:
+			param, err := p.ParseParameter()
+			if err != nil {
+				return nil, err
+			}
+			params = append(params, param)
+		}
+	}
+}
+
+func (p *parser) ParseParameter() (*ast.Parameter, error) {
+	start := p.token.SourceRange
+	typeLiteral, err := p.ParseTypeLiteral()
+	if err != nil {
+		return nil, err
+	}
+	name, err := p.ParseIdentifier()
+	if err != nil {
+		return nil, err
+	}
+	node := &ast.Parameter{
+		Type: typeLiteral,
+		Name: name,
+	}
+	node.SourceRange = source.Span(start, name.SourceRange)
+	if p.token.Type == token.Assign {
+		// Has default.
+		if err := p.next(); err != nil {
+			return nil, err
+		}
+		literal, err := p.ParseLiteral()
+		if err != nil {
+			return nil, err
+		}
+		node.Value = literal
+		node.SourceRange = source.Span(start, literal.Range())
+	}
+	return node, nil
+}
+
+func (p *parser) ParseFunctionStatementBlock(terminals ...token.Type) ([]ast.FunctionStatement, error) {
+	terms := make(map[token.Type]struct{})
+	for _, t := range terminals {
+		terms[t] = struct{}{}
+	}
+	var stmts []ast.FunctionStatement
+	for {
+		if err := p.consumeNewlines(); err != nil {
+			return nil, err
+		}
+		if _, ok := terms[p.token.Type]; ok {
+			return stmts, nil
+		}
+		start := p.token.SourceRange
+		stmt, err := p.ParseFunctionStatement()
+		if err == nil {
+			stmts = append(stmts, stmt)
+			continue
+		}
+		// Error recovery. Attempt to realign to a known statement token and emit an
+		// error statement to fill the gap.
+		if p.recovery {
+			// If an error was returned during a recovery operation, just propagate it.
+			return nil, err
+		}
+		p.recovery = true
+		if err := p.recoverFunctionStatement(); err != nil {
+			return nil, err
+		}
+		errStmt := &ast.ErrorFunctionStatement{
+			Message:     fmt.Sprintf("%v", err),
+			SourceRange: source.Span(start, p.token.SourceRange),
+		}
+		p.errors = append(p.errors, errStmt)
+		p.recovery = false
+		stmts = append(stmts, errStmt)
+	}
+}
+
+func (p *parser) recoverFunctionStatement() error {
+	for {
+		switch p.lookahead.Type {
+		case token.EOF:
+			// Hit end of file, give up.
+			return nil
+		case token.Newline:
+			// Next token is the start of a valid invokable.
+			return nil
+		default:
+			if err := p.next(); err != nil {
+				return err // An error during recovery just fails.
+			}
+		}
+	}
+}
+
+func (p *parser) ParseFunctionStatement() (ast.FunctionStatement, error) {
+	return nil, fmt.Errorf("ParseFunctionStatement unimplmented.")
+}
+
+func (p *parser) ParseFunctionVariable() (*ast.FunctionVariable, error) {
+	start := p.token.SourceRange
+	typeLiteral, err := p.ParseTypeLiteral()
+	if err != nil {
+		return nil, err
+	}
+	name, err := p.ParseIdentifier()
+	if err != nil {
+		return nil, err
+	}
+	if err := p.tryConsume(token.Assign); err != nil {
+		return nil, err
+	}
+	expr, err := p.ParseExpression()
+	if err != nil {
+		return nil, err
+	}
+	return &ast.FunctionVariable{
+		Type:        typeLiteral,
+		Name:        name,
+		Value:       expr,
+		SourceRange: source.Span(start, expr.Range()),
+	}, nil
+}
+
+func (p *parser) ParseReturn() (*ast.Return, error) {
+	start := p.token.SourceRange
+	if err := p.tryConsume(token.Return); err != nil {
+		return nil, err
+	}
+	if p.token.Type == token.Newline {
+		return &ast.Return{
+			SourceRange: start,
+		}, nil
+	}
+	expr, err := p.ParseExpression()
+	if err != nil {
+		return nil, err
+	}
+	return &ast.Return{
+		Value:       expr,
+		SourceRange: source.Span(start, expr.Range()),
+	}, nil
+}
+
+func (p *parser) ParseIf() (*ast.If, error) {
+	start := p.token.SourceRange
+	if err := p.tryConsume(token.If); err != nil {
+		return nil, err
+	}
+	expr, err := p.ParseExpression()
+	if err != nil {
+		return nil, err
+	}
+	if err := p.consumeNewlines(); err != nil {
+		return nil, err
+	}
+	stmts, err := p.ParseFunctionStatementBlock(token.EndIf, token.Else, token.ElseIf)
+	if err != nil {
+		return nil, err
+	}
+	node := &ast.If{
+		Conditional: ast.ConditionalBlock{
+			Condition:  expr,
+			Statements: stmts,
+		},
+	}
+	for {
+		if p.token.Type != token.ElseIf {
+			break
+		}
+		if err := p.next(); err != nil {
+			return nil, err
+		}
+		expr, err := p.ParseExpression()
+		if err != nil {
+			return nil, err
+		}
+		if err := p.consumeNewlines(); err != nil {
+			return nil, err
+		}
+		stmts, err := p.ParseFunctionStatementBlock(token.EndIf, token.Else, token.ElseIf)
+		if err != nil {
+			return nil, err
+		}
+		block := ast.ConditionalBlock{
+			Condition:  expr,
+			Statements: stmts,
+		}
+		node.AlternativeConditionals = append(node.AlternativeConditionals, block)
+	}
+	if p.token.Type == token.Else {
+		if err := p.next(); err != nil {
+			return nil, err
+		}
+		if err := p.consumeNewlines(); err != nil {
+			return nil, err
+		}
+		stmts, err := p.ParseFunctionStatementBlock(token.EndIf)
+		if err != nil {
+			return nil, err
+		}
+		node.Alternative = stmts
+	}
+	node.SourceRange = source.Span(start, p.token.SourceRange)
+	if err := p.tryConsume(token.EndIf); err != nil {
+		return nil, err
+	}
+	return node, nil
+}
+
+func (p *parser) ParseWhile() (*ast.While, error) {
+	start := p.token.SourceRange
+	if err := p.tryConsume(token.If); err != nil {
+		return nil, err
+	}
+	expr, err := p.ParseExpression()
+	if err != nil {
+		return nil, err
+	}
+	if err := p.consumeNewlines(); err != nil {
+		return nil, err
+	}
+	stmts, err := p.ParseFunctionStatementBlock(token.EndWhile)
+	if err != nil {
+		return nil, err
+	}
+	node := &ast.While{
+		Condition:   expr,
+		Statements:  stmts,
+		SourceRange: source.Span(start, p.token.SourceRange),
+	}
+	if err := p.tryConsume(token.EndWhile); err != nil {
+		return nil, err
+	}
+	return node, nil
+}
+
+func (p *parser) ParseParenthetical() (*ast.Parenthetical, error) {
+	start := p.token.SourceRange
+	if err := p.tryConsume(token.LParen); err != nil {
+		return nil, err
+	}
+	expr, err := p.ParseExpression()
+	if err != nil {
+		return nil, err
+	}
+	node := &ast.Parenthetical{
+		Value:       expr,
+		SourceRange: source.Span(start, p.token.SourceRange),
+	}
+	if err := p.tryConsume(token.RParen); err != nil {
+		return nil, err
+	}
+	return node, nil
 }
 
 func (p *parser) ParseProperty(propertyType *ast.TypeLiteral) (*ast.Property, error) {
@@ -414,5 +786,120 @@ func (p *parser) ParseIdentifier() (*ast.Identifier, error) {
 }
 
 func (p *parser) ParseTypeLiteral() (*ast.TypeLiteral, error) {
-	return nil, newError(p.token.SourceRange, "ParseTypeLiteral unimplemented.")
+	start := p.token.SourceRange
+	var scalar types.Scalar
+	switch p.token.Type {
+	case token.Bool:
+		scalar = types.Bool{}
+	case token.Int:
+		scalar = types.Int{}
+	case token.Float:
+		scalar = types.Float{}
+	case token.String:
+		scalar = types.String{}
+	case token.Identifier:
+		scalar = types.Object{
+			Name: string(bytes.ToLower(p.token.SourceRange.Text())),
+		}
+	default:
+		return nil, newError(p.token.SourceRange, "expected Bool, Int, Float, String, or an identifier, but found %s", p.token.Type)
+	}
+	if err := p.next(); err != nil {
+		return nil, err
+	}
+	if p.token.Type != token.LBracket {
+		return &ast.TypeLiteral{
+			Type:        scalar,
+			SourceRange: start,
+		}, nil
+	}
+	if err := p.next(); err != nil {
+		return nil, err
+	}
+	end := p.token.SourceRange
+	if err := p.tryConsume(token.RBracket); err != nil {
+		return nil, err
+	}
+	return &ast.TypeLiteral{
+		Type: types.Array{
+			ElementType: scalar,
+		},
+		SourceRange: source.Span(start, end),
+	}, nil
+}
+
+func (p *parser) ParseExpression() (ast.Expression, error) {
+	return nil, newError(p.token.SourceRange, "ParseExpression unimplemented.")
+}
+
+func (p *parser) ParseLiteral() (ast.Literal, error) {
+	switch p.token.Type {
+	case token.Subtract:
+		sign := p.token
+		if err := p.next(); err != nil {
+			return nil, err
+		}
+		return p.ParseNumber(&sign)
+	case token.True, token.False:
+		return &ast.BoolLiteral{
+			Value:       p.token.Type == token.True,
+			SourceRange: p.token.SourceRange,
+		}, nil
+	case token.IntLiteral, token.FloatLiteral:
+		return p.ParseNumber(nil)
+	case token.StringLiteral:
+		return &ast.StringLiteral{
+			Value:       string(p.token.SourceRange.Text()[1 : p.token.SourceRange.Length-1]),
+			SourceRange: p.token.SourceRange,
+		}, nil
+	case token.None:
+		return &ast.NoneLiteral{
+			SourceRange: p.token.SourceRange,
+		}, nil
+	}
+	return nil, fmt.Errorf("expected True, False, None, Integer, Float, or String literal, but found %s", p.token.Type)
+}
+
+func (p *parser) ParseNumber(sign *token.Token) (ast.Literal, error) {
+	switch p.token.Type {
+	case token.IntLiteral:
+		tok := p.token
+		if err := p.tryConsume(token.IntLiteral); err != nil {
+			return nil, err
+		}
+		text := strings.ToLower(string(tok.SourceRange.Text()))
+		val, err := strconv.ParseInt(text, 0, 32)
+		if err != nil {
+			return nil, newError(tok.SourceRange, "failed to parse %q as an integer: %v", text, err)
+		}
+		srcRange := tok.SourceRange
+		if sign != nil {
+			srcRange = source.Span(sign.SourceRange, tok.SourceRange)
+			val = -val
+		}
+		return &ast.IntLiteral{
+			Value:       int(val),
+			SourceRange: srcRange,
+		}, nil
+	case token.FloatLiteral:
+		tok := p.token
+		if err := p.tryConsume(token.FloatLiteral); err != nil {
+			return nil, err
+		}
+		text := strings.ToLower(string(tok.SourceRange.Text()))
+		val, err := strconv.ParseFloat(text, 32)
+		if err != nil {
+			return nil, newError(tok.SourceRange, "failed to parse %q as a float: %v", text, err)
+		}
+		srcRange := tok.SourceRange
+		if sign != nil {
+			srcRange = source.Span(sign.SourceRange, tok.SourceRange)
+			val = -val
+		}
+		return &ast.FloatLiteral{
+			Value:       float32(val),
+			SourceRange: srcRange,
+		}, nil
+	}
+	return nil, fmt.Errorf("expected Int or Float literal, but found %s", p.token.Type)
 }

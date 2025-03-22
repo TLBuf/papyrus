@@ -50,6 +50,7 @@ var _ Scalar = String{}
 
 // Object represents the object type.
 type Object struct {
+	// Name is the normalized object type name.
 	Name string
 }
 
