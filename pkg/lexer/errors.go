@@ -1,4 +1,4 @@
-package parser
+package lexer
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 	"github.com/TLBuf/papyrus/pkg/source"
 )
 
-// Error defines an error raised by the parser.
+// Error defines an error raised by the lexer.
 type Error struct {
 	// The underlying error.
 	Err error

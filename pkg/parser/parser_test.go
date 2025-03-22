@@ -25,15 +25,11 @@ func TestHeader(t *testing.T) {
 					SourceRange: source.Range{
 						ByteOffset: 11,
 						Length:     3,
-						Line:       1,
-						Column:     12,
 					},
 				},
 				SourceRange: source.Range{
 					ByteOffset: 0,
 					Length:     14,
-					Line:       1,
-					Column:     1,
 				},
 			},
 		},
@@ -46,8 +42,6 @@ func TestHeader(t *testing.T) {
 					SourceRange: source.Range{
 						ByteOffset: 11,
 						Length:     3,
-						Line:       1,
-						Column:     12,
 					},
 				},
 				Extends: &ast.Identifier{
@@ -55,15 +49,11 @@ func TestHeader(t *testing.T) {
 					SourceRange: source.Range{
 						ByteOffset: 23,
 						Length:     3,
-						Line:       1,
-						Column:     24,
 					},
 				},
 				SourceRange: source.Range{
 					ByteOffset: 0,
 					Length:     26,
-					Line:       1,
-					Column:     1,
 				},
 			},
 		},
@@ -76,16 +66,12 @@ func TestHeader(t *testing.T) {
 					SourceRange: source.Range{
 						ByteOffset: 11,
 						Length:     3,
-						Line:       1,
-						Column:     12,
 					},
 				},
 				IsHidden: true,
 				SourceRange: source.Range{
 					ByteOffset: 0,
 					Length:     21,
-					Line:       1,
-					Column:     1,
 				},
 			},
 		},
@@ -98,16 +84,12 @@ func TestHeader(t *testing.T) {
 					SourceRange: source.Range{
 						ByteOffset: 11,
 						Length:     3,
-						Line:       1,
-						Column:     12,
 					},
 				},
 				IsConditional: true,
 				SourceRange: source.Range{
 					ByteOffset: 0,
 					Length:     26,
-					Line:       1,
-					Column:     1,
 				},
 			},
 		},
@@ -120,8 +102,6 @@ func TestHeader(t *testing.T) {
 					SourceRange: source.Range{
 						ByteOffset: 11,
 						Length:     3,
-						Line:       1,
-						Column:     12,
 					},
 				},
 				IsHidden:      true,
@@ -129,8 +109,6 @@ func TestHeader(t *testing.T) {
 				SourceRange: source.Range{
 					ByteOffset: 0,
 					Length:     33,
-					Line:       1,
-					Column:     1,
 				},
 			},
 		},
@@ -143,8 +121,6 @@ func TestHeader(t *testing.T) {
 					SourceRange: source.Range{
 						ByteOffset: 11,
 						Length:     3,
-						Line:       1,
-						Column:     12,
 					},
 				},
 				IsHidden:      true,
@@ -152,8 +128,6 @@ func TestHeader(t *testing.T) {
 				SourceRange: source.Range{
 					ByteOffset: 0,
 					Length:     33,
-					Line:       1,
-					Column:     1,
 				},
 			},
 		},
@@ -166,8 +140,6 @@ func TestHeader(t *testing.T) {
 					SourceRange: source.Range{
 						ByteOffset: 11,
 						Length:     3,
-						Line:       1,
-						Column:     12,
 					},
 				},
 				IsHidden:      true,
@@ -175,8 +147,6 @@ func TestHeader(t *testing.T) {
 				SourceRange: source.Range{
 					ByteOffset: 0,
 					Length:     52,
-					Line:       1,
-					Column:     1,
 				},
 			},
 		},
@@ -189,8 +159,6 @@ func TestHeader(t *testing.T) {
 					SourceRange: source.Range{
 						ByteOffset: 11,
 						Length:     3,
-						Line:       1,
-						Column:     12,
 					},
 				},
 				Extends: &ast.Identifier{
@@ -198,8 +166,6 @@ func TestHeader(t *testing.T) {
 					SourceRange: source.Range{
 						ByteOffset: 23,
 						Length:     3,
-						Line:       1,
-						Column:     24,
 					},
 				},
 				IsHidden:      true,
@@ -207,8 +173,6 @@ func TestHeader(t *testing.T) {
 				SourceRange: source.Range{
 					ByteOffset: 0,
 					Length:     64,
-					Line:       1,
-					Column:     1,
 				},
 			},
 		},
@@ -222,8 +186,6 @@ func TestHeader(t *testing.T) {
 					SourceRange: source.Range{
 						ByteOffset: 11,
 						Length:     3,
-						Line:       1,
-						Column:     12,
 					},
 				},
 				Statements: []ast.ScriptStatement{
@@ -233,23 +195,17 @@ func TestHeader(t *testing.T) {
 							SourceRange: source.Range{
 								ByteOffset: 25,
 								Length:     3,
-								Line:       2,
-								Column:     11,
 							},
 						},
 						SourceRange: source.Range{
 							ByteOffset: 18,
 							Length:     10,
-							Line:       2,
-							Column:     2,
 						},
 					},
 				},
 				SourceRange: source.Range{
 					ByteOffset: 0,
 					Length:     28,
-					Line:       1,
-					Column:     1,
 				},
 			},
 		},
@@ -264,8 +220,6 @@ func TestHeader(t *testing.T) {
 					SourceRange: source.Range{
 						ByteOffset: 11,
 						Length:     3,
-						Line:       1,
-						Column:     12,
 					},
 				},
 				Statements: []ast.ScriptStatement{
@@ -275,24 +229,18 @@ func TestHeader(t *testing.T) {
 							SourceRange: source.Range{
 								ByteOffset: 24,
 								Length:     3,
-								Line:       2,
-								Column:     10,
 							},
 						},
 						IsAuto: false,
 						SourceRange: source.Range{
 							ByteOffset: 18,
 							Length:     21,
-							Line:       2,
-							Column:     2,
 						},
 					},
 				},
 				SourceRange: source.Range{
 					ByteOffset: 0,
 					Length:     39,
-					Line:       1,
-					Column:     1,
 				},
 			},
 		},
@@ -307,8 +255,6 @@ func TestHeader(t *testing.T) {
 					SourceRange: source.Range{
 						ByteOffset: 11,
 						Length:     3,
-						Line:       1,
-						Column:     12,
 					},
 				},
 				Statements: []ast.ScriptStatement{
@@ -318,24 +264,18 @@ func TestHeader(t *testing.T) {
 							SourceRange: source.Range{
 								ByteOffset: 29,
 								Length:     3,
-								Line:       2,
-								Column:     15,
 							},
 						},
 						IsAuto: true,
 						SourceRange: source.Range{
 							ByteOffset: 18,
 							Length:     26,
-							Line:       2,
-							Column:     2,
 						},
 					},
 				},
 				SourceRange: source.Range{
 					ByteOffset: 0,
 					Length:     44,
-					Line:       1,
-					Column:     1,
 				},
 			},
 		},
@@ -353,10 +293,15 @@ func TestHeader(t *testing.T) {
 			if got == nil {
 				t.Fatalf("ParseScript() returned nil")
 			}
-			if diff := cmp.Diff(test.want, got, cmpopts.IgnoreFields(source.Range{}, "File")); diff != "" {
+			if diff := cmp.Diff(test.want, got, ignoreFields...); diff != "" {
 				t.Errorf("ParseScript() mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
+}
 
+var ignoreFields = []cmp.Option{
+	// lexer_test pretty thoroughly covers these fields, if the
+	// byte offset and length match, that's sufficent for this test.
+	cmpopts.IgnoreFields(source.Range{}, "File", "StartLine", "StartColumn", "EndLine", "EndColumn", "PreambleLength", "PostambleLength"),
 }

@@ -99,8 +99,10 @@ func (t Type) String() string {
 // Each token has a [Type] and information about where it is located
 // in a source file.
 type Token struct {
-	Type        Type
-	SourceRange source.Range
+	// Type defines the specific token the text represents.
+	Type Type
+	// Location describes exactly where in a file the token is.
+	Location source.Range
 }
 
 // LookupIdentifier returns the [Type] of the given identifier or keyword.

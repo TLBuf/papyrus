@@ -1,6 +1,7 @@
 package lexer_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/TLBuf/papyrus/pkg/lexer"
@@ -30,69 +31,79 @@ Auto State Waiting
 EndState ; Comment
 `
 	tests := []struct {
-		wantType   token.Type
-		wantText   string
-		wantOffset int
-		wantLine   int
-		wantColumn int
+		wantType            token.Type
+		wantText            string
+		wantOffset          int
+		wantLength          int
+		wantStartLine       int
+		wantStartColumn     int
+		wantEndLine         int
+		wantEndColumn       int
+		wantPreambleLength  int
+		wantPostambleLength int
 	}{
-		{token.ScriptName, "ScriptName", 0, 1, 1},
-		{token.Identifier, "Foo", 11, 1, 12},
-		{token.Extends, "Extends", 15, 1, 16},
-		{token.Identifier, "Bar", 23, 1, 24},
-		{token.Newline, "\n", 26, 1, 27},
-		{token.DocComment, "{A muliline\n\nDoc Comment}", 27, 2, 1},
-		{token.Newline, "\n", 52, 4, 13},
-		{token.Newline, "\n", 53, 5, 1},
-		{token.Auto, "Auto", 54, 6, 1},
-		{token.State, "State", 59, 6, 6},
-		{token.Identifier, "Waiting", 65, 6, 12},
-		{token.Newline, "\n", 72, 6, 19},
-		{token.Event, "Event", 74, 7, 2},
-		{token.Identifier, "OnThing", 80, 7, 8},
-		{token.LParen, "(", 87, 7, 15},
-		{token.Identifier, "Baz", 88, 7, 16},
-		{token.Identifier, "arg", 92, 7, 20},
-		{token.RParen, ")", 95, 7, 23},
-		{token.Newline, "\n", 96, 7, 24},
-		{token.BlockComment, ";/\n\t\t\tA\n\t\t\tBlock\n\t\t\tComment\n\t\t/;", 99, 8, 3},
-		{token.Newline, "\n", 131, 12, 5},
-		{token.Int, "Int", 134, 13, 3},
-		{token.Identifier, "a", 138, 13, 7},
-		{token.Assign, "=", 140, 13, 9},
-		{token.IntLiteral, "1", 142, 13, 11},
-		{token.Add, "+", 144, 13, 13},
-		{token.IntLiteral, "2", 146, 13, 15},
-		{token.Newline, "\n", 147, 13, 16},
-		{token.EndEvent, "EndEvent", 149, 14, 2},
-		{token.Newline, "\n", 157, 14, 10},
-		{token.Newline, "\n", 158, 15, 1},
-		{token.Int, "Int", 160, 16, 2},
-		{token.LBracket, "[", 163, 16, 5},
-		{token.RBracket, "]", 164, 16, 6},
-		{token.Function, "Function", 166, 16, 8},
-		{token.Identifier, "Foo", 175, 16, 17},
-		{token.LParen, "(", 178, 16, 20},
-		{token.RParen, ")", 179, 16, 21},
-		{token.Newline, "\n", 180, 16, 22},
-		{token.Return, "Return", 183, 17, 3},
-		{token.New, "New", 190, 17, 10},
-		{token.Int, "Int", 194, 17, 14},
-		{token.LBracket, "[", 197, 17, 17},
-		{token.IntLiteral, "2", 198, 17, 18},
-		{token.RBracket, "]", 199, 17, 19},
-		{token.Newline, "\n", 200, 17, 20},
-		{token.EndFunction, "EndFunction", 202, 18, 2},
-		{token.Newline, "\n", 213, 18, 13},
-		{token.EndState, "EndState", 214, 19, 1},
-		{token.LineComment, "; Comment", 223, 19, 10},
-		{token.Newline, "\n", 232, 19, 19},
-		{token.EOF, "", 233, 20, 1},
+		{token.ScriptName, "ScriptName", 0, 10, 1, 1, 1, 10, 0, 16},
+		{token.Identifier, "Foo", 11, 3, 1, 12, 1, 14, 11, 12},
+		{token.Extends, "Extends", 15, 7, 1, 16, 1, 22, 15, 4},
+		{token.Identifier, "Bar", 23, 3, 1, 24, 1, 26, 23, 0},
+		{token.Newline, "\r\n", 26, 2, 1, 27, 1, 28, 26, 0},
+		{token.DocComment, "{A muliline\r\n\r\nDoc Comment}", 28, 27, 2, 1, 4, 12, 0, 0},
+		{token.Newline, "\r\n", 55, 2, 4, 13, 4, 14, 12, 0},
+		{token.Newline, "\r\n", 57, 2, 5, 1, 5, 2, 0, 0},
+		{token.Auto, "Auto", 59, 4, 6, 1, 6, 4, 0, 14},
+		{token.State, "State", 64, 5, 6, 6, 6, 10, 5, 8},
+		{token.Identifier, "Waiting", 70, 7, 6, 12, 6, 18, 11, 0},
+		{token.Newline, "\r\n", 77, 2, 6, 19, 6, 20, 18, 0},
+		{token.Event, "Event", 80, 5, 7, 2, 7, 6, 1, 17},
+		{token.Identifier, "OnThing", 86, 7, 7, 8, 7, 14, 7, 9},
+		{token.LParen, "(", 93, 1, 7, 15, 7, 15, 14, 8},
+		{token.Identifier, "Baz", 94, 3, 7, 16, 7, 18, 15, 5},
+		{token.Identifier, "arg", 98, 3, 7, 20, 7, 22, 19, 1},
+		{token.RParen, ")", 101, 1, 7, 23, 7, 23, 22, 0},
+		{token.Newline, "\r\n", 102, 2, 7, 24, 7, 25, 23, 0},
+		{token.BlockComment, ";/\r\n\t\t\tA\r\n\t\t\tBlock\r\n\t\t\tComment\r\n\t\t/;", 106, 36, 8, 3, 12, 4, 2, 0},
+		{token.Newline, "\r\n", 142, 2, 12, 5, 12, 6, 4, 0},
+		{token.Int, "Int", 146, 3, 13, 3, 13, 5, 2, 10},
+		{token.Identifier, "a", 150, 1, 13, 7, 13, 7, 6, 8},
+		{token.Assign, "=", 152, 1, 13, 9, 13, 9, 8, 6},
+		{token.IntLiteral, "1", 154, 1, 13, 11, 13, 11, 10, 4},
+		{token.Add, "+", 156, 1, 13, 13, 13, 13, 12, 2},
+		{token.IntLiteral, "2", 158, 1, 13, 15, 13, 15, 14, 0},
+		{token.Newline, "\r\n", 159, 2, 13, 16, 13, 17, 15, 0},
+		{token.EndEvent, "EndEvent", 162, 8, 14, 2, 14, 9, 1, 0},
+		{token.Newline, "\r\n", 170, 2, 14, 10, 14, 11, 9, 0},
+		{token.Newline, "\r\n", 172, 2, 15, 1, 15, 2, 0, 0},
+		{token.Int, "Int", 175, 3, 16, 2, 16, 4, 1, 17},
+		{token.LBracket, "[", 178, 1, 16, 5, 16, 5, 4, 16},
+		{token.RBracket, "]", 179, 1, 16, 6, 16, 6, 5, 15},
+		{token.Function, "Function", 181, 8, 16, 8, 16, 15, 7, 6},
+		{token.Identifier, "Foo", 190, 3, 16, 17, 16, 19, 16, 2},
+		{token.LParen, "(", 193, 1, 16, 20, 16, 20, 19, 1},
+		{token.RParen, ")", 194, 1, 16, 21, 16, 21, 20, 0},
+		{token.Newline, "\r\n", 195, 2, 16, 22, 16, 23, 21, 0},
+		{token.Return, "Return", 199, 6, 17, 3, 17, 8, 2, 11},
+		{token.New, "New", 206, 3, 17, 10, 17, 12, 9, 7},
+		{token.Int, "Int", 210, 3, 17, 14, 17, 16, 13, 3},
+		{token.LBracket, "[", 213, 1, 17, 17, 17, 17, 16, 2},
+		{token.IntLiteral, "2", 214, 1, 17, 18, 17, 18, 17, 1},
+		{token.RBracket, "]", 215, 1, 17, 19, 17, 19, 18, 0},
+		{token.Newline, "\r\n", 216, 2, 17, 20, 17, 21, 19, 0},
+		{token.EndFunction, "EndFunction", 219, 11, 18, 2, 18, 12, 1, 0},
+		{token.Newline, "\r\n", 230, 2, 18, 13, 18, 14, 12, 0},
+		{token.EndState, "EndState", 232, 8, 19, 1, 19, 8, 0, 10},
+		{token.LineComment, "; Comment", 241, 9, 19, 10, 19, 18, 9, 0},
+		{token.Newline, "\r\n", 250, 2, 19, 19, 19, 20, 18, 0},
+		{token.EOF, "", 252, 0, 20, 1, 20, 1, 0, 0},
 	}
+	// Papyrus uses Windows line endings.
+	text = strings.ReplaceAll(text, "\n", "\r\n")
 	file := &source.File{
 		Text: []byte(text),
 	}
-	l := lexer.New(file)
+	l, err := lexer.New(file)
+	if err != nil {
+		t.Fatalf("expected error creating lexer: %v", err)
+	}
 	for i, tt := range tests {
 		tok, err := l.NextToken()
 		if err != nil {
@@ -101,18 +112,33 @@ EndState ; Comment
 		if tok.Type != tt.wantType {
 			t.Errorf("token type mismatch at token %d, want: %v, got: %v", i, tt.wantType, tok.Type)
 		}
-		gotText := string(tok.SourceRange.Text())
+		gotText := string(tok.Location.Text())
 		if gotText != tt.wantText {
 			t.Errorf("token text mismatch at token %d, want: %q, got: %q", i, tt.wantText, gotText)
 		}
-		if tok.SourceRange.ByteOffset != tt.wantOffset {
-			t.Errorf("token byte offset mismatch at token %d, want: %d, got: %d", i, tt.wantOffset, tok.SourceRange.ByteOffset)
+		if tok.Location.ByteOffset != tt.wantOffset {
+			t.Errorf("token byte offset mismatch at token %d, want: %d, got: %d", i, tt.wantOffset, tok.Location.ByteOffset)
 		}
-		if tok.SourceRange.Line != tt.wantLine {
-			t.Errorf("token line mismatch at token %d, want: %d, got: %d", i, tt.wantLine, tok.SourceRange.Line)
+		if tok.Location.Length != tt.wantLength {
+			t.Errorf("token length mismatch at token %d, want: %d, got: %d", i, tt.wantLength, tok.Location.Length)
 		}
-		if tok.SourceRange.Column != tt.wantColumn {
-			t.Errorf("token column mismatch at token %d, want: %d, got: %d", i, tt.wantColumn, tok.SourceRange.Column)
+		if tok.Location.StartLine != tt.wantStartLine {
+			t.Errorf("token start line mismatch at token %d, want: %d, got: %d", i, tt.wantStartLine, tok.Location.StartLine)
+		}
+		if tok.Location.StartColumn != tt.wantStartColumn {
+			t.Errorf("token start column mismatch at token %d, want: %d, got: %d", i, tt.wantStartColumn, tok.Location.StartColumn)
+		}
+		if tok.Location.EndLine != tt.wantEndLine {
+			t.Errorf("token end line mismatch at token %d, want: %d, got: %d", i, tt.wantEndLine, tok.Location.EndLine)
+		}
+		if tok.Location.EndColumn != tt.wantEndColumn {
+			t.Errorf("token end column mismatch at token %d, want: %d, got: %d", i, tt.wantEndColumn, tok.Location.EndColumn)
+		}
+		if tok.Location.PreambleLength != tt.wantPreambleLength {
+			t.Errorf("token preamble length mismatch at token %d, want: %d, got: %d", i, tt.wantPreambleLength, tok.Location.PreambleLength)
+		}
+		if tok.Location.PostambleLength != tt.wantPostambleLength {
+			t.Errorf("token postamble length mismatch at token %d, want: %d, got: %d", i, tt.wantPostambleLength, tok.Location.PostambleLength)
 		}
 	}
 }
