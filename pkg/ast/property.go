@@ -45,13 +45,13 @@ type Property struct {
 	// This function is never global or native, has one parameter that is the same
 	// type as this property's type, and returns nothing.
 	Set *Function
-	// SourceRange is the source range of the node.
-	SourceRange source.Range
+	// Location is the source range of the node.
+	Location source.Range
 }
 
 // Range returns the source range of the node.
 func (p *Property) Range() source.Range {
-	return p.SourceRange
+	return p.Location
 }
 
 func (*Property) scriptStatement() {}

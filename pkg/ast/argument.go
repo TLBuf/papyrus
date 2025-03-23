@@ -14,13 +14,13 @@ type Argument struct {
 	Operator *AssignmentOperator
 	// Value is the expression that defines the value of this argument.
 	Value Expression
-	// SourceRange is the source range of the node.
-	SourceRange source.Range
+	// Location is the source range of the node.
+	Location source.Range
 }
 
 // Range returns the source range of the node.
 func (a *Argument) Range() source.Range {
-	return a.SourceRange
+	return a.Location
 }
 
 var _ Node = (*Argument)(nil)

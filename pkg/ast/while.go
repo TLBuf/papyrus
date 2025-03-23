@@ -11,13 +11,13 @@ type While struct {
 	// Statements is the list of function statements that constitute the body of
 	// the while.
 	Statements []FunctionStatement
-	// SourceRange is the source range of the node.
-	SourceRange source.Range
+	// Location is the source range of the node.
+	Location source.Range
 }
 
 // Range returns the source range of the node.
 func (w *While) Range() source.Range {
-	return w.SourceRange
+	return w.Location
 }
 
 func (*While) functionStatement() {}

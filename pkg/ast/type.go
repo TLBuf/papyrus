@@ -9,13 +9,13 @@ import (
 type TypeLiteral struct {
 	// Type is the type the literal represents.
 	Type types.Type
-	// SourceRange is the source range of the node.
-	SourceRange source.Range
+	// Location is the source range of the node.
+	Location source.Range
 }
 
 // Range returns the source range of the node.
 func (t *TypeLiteral) Range() source.Range {
-	return t.SourceRange
+	return t.Location
 }
 
 var _ Node = (*TypeLiteral)(nil)

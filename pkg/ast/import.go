@@ -11,13 +11,13 @@ import (
 type Import struct {
 	// Name is the name of the script being imported.
 	Name *Identifier
-	// SourceRange is the source range of the node.
-	SourceRange source.Range
+	// Location is the source range of the node.
+	Location source.Range
 }
 
 // Range returns the source range of the node.
 func (i *Import) Range() source.Range {
-	return i.SourceRange
+	return i.Location
 }
 
 func (*Import) scriptStatement() {}

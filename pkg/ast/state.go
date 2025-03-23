@@ -13,13 +13,13 @@ type State struct {
 	IsAuto bool
 	// Invokables is the list of functions and events defined for this state.
 	Invokables []Invokable
-	// SourceRange is the source range of the node.
-	SourceRange source.Range
+	// Location is the source range of the node.
+	Location source.Range
 }
 
 // Range returns the source range of the node.
 func (s *State) Range() source.Range {
-	return s.SourceRange
+	return s.Location
 }
 
 func (*State) scriptStatement() {}

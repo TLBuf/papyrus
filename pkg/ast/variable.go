@@ -13,13 +13,13 @@ type ScriptVariable struct {
 	Value Literal
 	// IsConditional
 	IsConditional bool
-	// SourceRange is the source range of the node.
-	SourceRange source.Range
+	// Location is the source range of the node.
+	Location source.Range
 }
 
 // Range returns the source range of the node.
 func (v *ScriptVariable) Range() source.Range {
-	return v.SourceRange
+	return v.Location
 }
 
 func (*ScriptVariable) scriptStatement() {}
@@ -36,13 +36,13 @@ type FunctionVariable struct {
 	// Value is the expression the variable is assigned or nil if there isn't one
 	// (and the variable should have the default value for its type).
 	Value Expression
-	// SourceRange is the source range of the node.
-	SourceRange source.Range
+	// Location is the source range of the node.
+	Location source.Range
 }
 
 // Range returns the source range of the node.
 func (v *FunctionVariable) Range() source.Range {
-	return v.SourceRange
+	return v.Location
 }
 
 func (*FunctionVariable) functionStatement() {}

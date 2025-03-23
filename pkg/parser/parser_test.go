@@ -22,12 +22,12 @@ func TestHeader(t *testing.T) {
 			want: &ast.Script{
 				Name: &ast.Identifier{
 					Text: "foo",
-					SourceRange: source.Range{
+					Location: source.Range{
 						ByteOffset: 11,
 						Length:     3,
 					},
 				},
-				SourceRange: source.Range{
+				Location: source.Range{
 					ByteOffset: 0,
 					Length:     14,
 				},
@@ -39,19 +39,19 @@ func TestHeader(t *testing.T) {
 			want: &ast.Script{
 				Name: &ast.Identifier{
 					Text: "foo",
-					SourceRange: source.Range{
+					Location: source.Range{
 						ByteOffset: 11,
 						Length:     3,
 					},
 				},
 				Extends: &ast.Identifier{
 					Text: "bar",
-					SourceRange: source.Range{
+					Location: source.Range{
 						ByteOffset: 23,
 						Length:     3,
 					},
 				},
-				SourceRange: source.Range{
+				Location: source.Range{
 					ByteOffset: 0,
 					Length:     26,
 				},
@@ -63,13 +63,13 @@ func TestHeader(t *testing.T) {
 			want: &ast.Script{
 				Name: &ast.Identifier{
 					Text: "foo",
-					SourceRange: source.Range{
+					Location: source.Range{
 						ByteOffset: 11,
 						Length:     3,
 					},
 				},
 				IsHidden: true,
-				SourceRange: source.Range{
+				Location: source.Range{
 					ByteOffset: 0,
 					Length:     21,
 				},
@@ -81,13 +81,13 @@ func TestHeader(t *testing.T) {
 			want: &ast.Script{
 				Name: &ast.Identifier{
 					Text: "foo",
-					SourceRange: source.Range{
+					Location: source.Range{
 						ByteOffset: 11,
 						Length:     3,
 					},
 				},
 				IsConditional: true,
-				SourceRange: source.Range{
+				Location: source.Range{
 					ByteOffset: 0,
 					Length:     26,
 				},
@@ -99,14 +99,14 @@ func TestHeader(t *testing.T) {
 			want: &ast.Script{
 				Name: &ast.Identifier{
 					Text: "foo",
-					SourceRange: source.Range{
+					Location: source.Range{
 						ByteOffset: 11,
 						Length:     3,
 					},
 				},
 				IsHidden:      true,
 				IsConditional: true,
-				SourceRange: source.Range{
+				Location: source.Range{
 					ByteOffset: 0,
 					Length:     33,
 				},
@@ -118,14 +118,14 @@ func TestHeader(t *testing.T) {
 			want: &ast.Script{
 				Name: &ast.Identifier{
 					Text: "foo",
-					SourceRange: source.Range{
+					Location: source.Range{
 						ByteOffset: 11,
 						Length:     3,
 					},
 				},
 				IsHidden:      true,
 				IsConditional: true,
-				SourceRange: source.Range{
+				Location: source.Range{
 					ByteOffset: 0,
 					Length:     33,
 				},
@@ -137,14 +137,14 @@ func TestHeader(t *testing.T) {
 			want: &ast.Script{
 				Name: &ast.Identifier{
 					Text: "foo",
-					SourceRange: source.Range{
+					Location: source.Range{
 						ByteOffset: 11,
 						Length:     3,
 					},
 				},
 				IsHidden:      true,
 				IsConditional: true,
-				SourceRange: source.Range{
+				Location: source.Range{
 					ByteOffset: 0,
 					Length:     52,
 				},
@@ -156,21 +156,21 @@ func TestHeader(t *testing.T) {
 			want: &ast.Script{
 				Name: &ast.Identifier{
 					Text: "foo",
-					SourceRange: source.Range{
+					Location: source.Range{
 						ByteOffset: 11,
 						Length:     3,
 					},
 				},
 				Extends: &ast.Identifier{
 					Text: "bar",
-					SourceRange: source.Range{
+					Location: source.Range{
 						ByteOffset: 23,
 						Length:     3,
 					},
 				},
 				IsHidden:      true,
 				IsConditional: true,
-				SourceRange: source.Range{
+				Location: source.Range{
 					ByteOffset: 0,
 					Length:     64,
 				},
@@ -183,7 +183,7 @@ func TestHeader(t *testing.T) {
 			want: &ast.Script{
 				Name: &ast.Identifier{
 					Text: "foo",
-					SourceRange: source.Range{
+					Location: source.Range{
 						ByteOffset: 11,
 						Length:     3,
 					},
@@ -192,18 +192,18 @@ func TestHeader(t *testing.T) {
 					&ast.Import{
 						Name: &ast.Identifier{
 							Text: "bar",
-							SourceRange: source.Range{
+							Location: source.Range{
 								ByteOffset: 25,
 								Length:     3,
 							},
 						},
-						SourceRange: source.Range{
+						Location: source.Range{
 							ByteOffset: 18,
 							Length:     10,
 						},
 					},
 				},
-				SourceRange: source.Range{
+				Location: source.Range{
 					ByteOffset: 0,
 					Length:     28,
 				},
@@ -217,7 +217,7 @@ func TestHeader(t *testing.T) {
 			want: &ast.Script{
 				Name: &ast.Identifier{
 					Text: "foo",
-					SourceRange: source.Range{
+					Location: source.Range{
 						ByteOffset: 11,
 						Length:     3,
 					},
@@ -226,19 +226,19 @@ func TestHeader(t *testing.T) {
 					&ast.State{
 						Name: &ast.Identifier{
 							Text: "bar",
-							SourceRange: source.Range{
+							Location: source.Range{
 								ByteOffset: 24,
 								Length:     3,
 							},
 						},
 						IsAuto: false,
-						SourceRange: source.Range{
+						Location: source.Range{
 							ByteOffset: 18,
 							Length:     21,
 						},
 					},
 				},
-				SourceRange: source.Range{
+				Location: source.Range{
 					ByteOffset: 0,
 					Length:     39,
 				},
@@ -252,7 +252,7 @@ func TestHeader(t *testing.T) {
 			want: &ast.Script{
 				Name: &ast.Identifier{
 					Text: "foo",
-					SourceRange: source.Range{
+					Location: source.Range{
 						ByteOffset: 11,
 						Length:     3,
 					},
@@ -261,19 +261,19 @@ func TestHeader(t *testing.T) {
 					&ast.State{
 						Name: &ast.Identifier{
 							Text: "bar",
-							SourceRange: source.Range{
+							Location: source.Range{
 								ByteOffset: 29,
 								Length:     3,
 							},
 						},
 						IsAuto: true,
-						SourceRange: source.Range{
+						Location: source.Range{
 							ByteOffset: 18,
 							Length:     26,
 						},
 					},
 				},
-				SourceRange: source.Range{
+				Location: source.Range{
 					ByteOffset: 0,
 					Length:     44,
 				},

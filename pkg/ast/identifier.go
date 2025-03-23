@@ -6,13 +6,13 @@ import "github.com/TLBuf/papyrus/pkg/source"
 type Identifier struct {
 	// Text is the normalized text of the identifier.
 	Text string
-	// SourceRange is the source range of the node.
-	SourceRange source.Range
+	// Location is the source range of the node.
+	Location source.Range
 }
 
 // Range returns the source range of the node.
 func (i *Identifier) Range() source.Range {
-	return i.SourceRange
+	return i.Location
 }
 
 func (*Identifier) expression() {}

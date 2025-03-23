@@ -31,13 +31,13 @@ var UnaryOperatorKindNames = map[UnaryOperatorKind]string{
 type UnaryOperator struct {
 	// Kind is the type of unary operator.
 	Kind UnaryOperatorKind
-	// SourceRange is the source range of the node.
-	SourceRange source.Range
+	// Location is the source range of the node.
+	Location source.Range
 }
 
 // Range returns the source range of the node.
 func (o *UnaryOperator) Range() source.Range {
-	return o.SourceRange
+	return o.Location
 }
 
 var _ Node = (*UnaryOperator)(nil)
@@ -48,13 +48,13 @@ type Unary struct {
 	Operator *UnaryOperator
 	// Operand is the operand.
 	Operand Expression
-	// SourceRange is the source range of the node.
-	SourceRange source.Range
+	// Location is the source range of the node.
+	Location source.Range
 }
 
 // Range returns the source range of the node.
 func (u *Unary) Range() source.Range {
-	return u.SourceRange
+	return u.Location
 }
 
 func (*Unary) expression() {}

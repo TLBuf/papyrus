@@ -13,13 +13,13 @@ type Index struct {
 	Index Expression
 	// CloseOperator is the close bracket.
 	CloseOperator *ArrayCloseOperator
-	// SourceRange is the source range of the node.
-	SourceRange source.Range
+	// Location is the source range of the node.
+	Location source.Range
 }
 
 // Range returns the source range of the node.
 func (i *Index) Range() source.Range {
-	return i.SourceRange
+	return i.Location
 }
 
 func (*Index) expression() {}

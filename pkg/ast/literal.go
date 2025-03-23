@@ -6,13 +6,13 @@ import "github.com/TLBuf/papyrus/pkg/source"
 type BoolLiteral struct {
 	// Value is the parsed value of the string literal.
 	Value bool
-	// SourceRange is the source range of the node.
-	SourceRange source.Range
+	// Location is the source range of the node.
+	Location source.Range
 }
 
 // Range returns the source range of the node.
 func (l *BoolLiteral) Range() source.Range {
-	return l.SourceRange
+	return l.Location
 }
 
 func (*BoolLiteral) expression() {}
@@ -25,13 +25,13 @@ var _ Literal = (*BoolLiteral)(nil)
 type IntLiteral struct {
 	// Value is the parsed value of the string literal.
 	Value int
-	// SourceRange is the source range of the node.
-	SourceRange source.Range
+	// Location is the source range of the node.
+	Location source.Range
 }
 
 // Range returns the source range of the node.
 func (l *IntLiteral) Range() source.Range {
-	return l.SourceRange
+	return l.Location
 }
 
 func (*IntLiteral) expression() {}
@@ -44,13 +44,13 @@ var _ Literal = (*IntLiteral)(nil)
 type FloatLiteral struct {
 	// Value is the parsed value of the string literal.
 	Value float32
-	// SourceRange is the source range of the node.
-	SourceRange source.Range
+	// Location is the source range of the node.
+	Location source.Range
 }
 
 // Range returns the source range of the node.
 func (l *FloatLiteral) Range() source.Range {
-	return l.SourceRange
+	return l.Location
 }
 
 func (*FloatLiteral) expression() {}
@@ -63,13 +63,13 @@ var _ Literal = (*FloatLiteral)(nil)
 type StringLiteral struct {
 	// Value is the parsed value of the string literal.
 	Value string
-	// SourceRange is the source range of the node.
-	SourceRange source.Range
+	// Location is the source range of the node.
+	Location source.Range
 }
 
 // Range returns the source range of the node.
 func (l *StringLiteral) Range() source.Range {
-	return l.SourceRange
+	return l.Location
 }
 
 func (*StringLiteral) expression() {}
@@ -80,13 +80,13 @@ var _ Literal = (*StringLiteral)(nil)
 
 // NoneLiteral is the none literal (i.e. the null object literal).
 type NoneLiteral struct {
-	// SourceRange is the source range of the node.
-	SourceRange source.Range
+	// Location is the source range of the node.
+	Location source.Range
 }
 
 // Range returns the source range of the node.
 func (l *NoneLiteral) Range() source.Range {
-	return l.SourceRange
+	return l.Location
 }
 
 func (*NoneLiteral) expression() {}

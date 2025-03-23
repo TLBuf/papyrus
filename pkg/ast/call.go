@@ -9,13 +9,13 @@ type Call struct {
 	// Arguments is the list of arguments being passed to the function being
 	// called.
 	Arguments []*Argument
-	// SourceRange is the source range of the node.
-	SourceRange source.Range
+	// Location is the source range of the node.
+	Location source.Range
 }
 
 // Range returns the source range of the node.
 func (c *Call) Range() source.Range {
-	return c.SourceRange
+	return c.Location
 }
 
 func (*Call) expression() {}

@@ -4,13 +4,13 @@ import "github.com/TLBuf/papyrus/pkg/source"
 
 // AccessOperator represents the dot operator for performing accesses.
 type AccessOperator struct {
-	// SourceRange is the source range of the node.
-	SourceRange source.Range
+	// Location is the source range of the node.
+	Location source.Range
 }
 
 // Range returns the source range of the node.
 func (o *AccessOperator) Range() source.Range {
-	return o.SourceRange
+	return o.Location
 }
 
 var _ Node = (*AccessOperator)(nil)
@@ -23,13 +23,13 @@ type Access struct {
 	Operator *AccessOperator
 	// Name is the name of the variable or function being accessed in value.
 	Name *Identifier
-	// SourceRange is the source range of the node.
-	SourceRange source.Range
+	// Location is the source range of the node.
+	Location source.Range
 }
 
 // Range returns the source range of the node.
 func (a *Access) Range() source.Range {
-	return a.SourceRange
+	return a.Location
 }
 
 func (*Access) expression() {}

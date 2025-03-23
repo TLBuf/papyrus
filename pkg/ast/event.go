@@ -18,13 +18,13 @@ type Event struct {
 	// Statements is the list of function statements that constitute the body of
 	// the event.
 	Statements []FunctionStatement
-	// SourceRange is the source range of the node.
-	SourceRange source.Range
+	// Location is the source range of the node.
+	Location source.Range
 }
 
 // Range returns the source range of the node.
 func (e *Event) Range() source.Range {
-	return e.SourceRange
+	return e.Location
 }
 
 func (*Event) scriptStatement() {}

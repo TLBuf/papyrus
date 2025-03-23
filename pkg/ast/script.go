@@ -21,13 +21,13 @@ type Script struct {
 	// Statements is the list of statements that constitute the body of the
 	// script.
 	Statements []ScriptStatement
-	// SourceRange is the source range of the node.
-	SourceRange source.Range
+	// Location is the source range of the node.
+	Location source.Range
 }
 
 // Range returns the source range of the node.
 func (s *Script) Range() source.Range {
-	return s.SourceRange
+	return s.Location
 }
 
 var _ Node = (*Script)(nil)

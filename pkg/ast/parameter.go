@@ -10,13 +10,13 @@ type Parameter struct {
 	Name *Identifier
 	// Value is the optional default value of the parameter.
 	Value Literal
-	// SourceRange is the source range of the node.
-	SourceRange source.Range
+	// Location is the source range of the node.
+	Location source.Range
 }
 
 // Range returns the source range of the node.
 func (v *Parameter) Range() source.Range {
-	return v.SourceRange
+	return v.Location
 }
 
 var _ Node = (*Parameter)(nil)

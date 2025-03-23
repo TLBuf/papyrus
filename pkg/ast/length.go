@@ -8,13 +8,13 @@ type Length struct {
 	Value Expression
 	// Operator is the access operator for this length expression.
 	AccessOperator *AccessOperator
-	// SourceRange is the source range of the node.
-	SourceRange source.Range
+	// Location is the source range of the node.
+	Location source.Range
 }
 
 // Range returns the source range of the node.
 func (l *Length) Range() source.Range {
-	return l.SourceRange
+	return l.Location
 }
 
 func (*Length) expression() {}
