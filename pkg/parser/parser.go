@@ -50,7 +50,38 @@ func (p *Parser) Parse(file *source.File) (*ast.Script, error) {
 	prsr := &parser{
 		l:                 lex,
 		keepLooseComments: p.keepLooseComments,
+		prefix:            make(map[token.Type]prefixParser),
+		infix:             make(map[token.Type]infixParser),
 	}
+
+	registerPrefix(prsr, prsr.ParseBoolLiteral, token.True, token.False)
+	registerPrefix(prsr, prsr.ParseFloatLiteral, token.FloatLiteral)
+	registerPrefix(prsr, prsr.ParseIdentifier, token.Identifier)
+	registerPrefix(prsr, prsr.ParseIntLiteral, token.IntLiteral)
+	registerPrefix(prsr, prsr.ParseNoneLiteral, token.None)
+	registerPrefix(prsr, prsr.ParseParenthetical, token.LParen)
+	registerPrefix(prsr, prsr.ParseStringLiteral, token.StringLiteral)
+	registerPrefix(prsr, prsr.ParseUnary, token.Subtract, token.LogicalNot)
+
+	registerInfix(prsr, prsr.ParseAccess, token.Dot)
+	registerInfix(prsr, prsr.ParseBinary,
+		token.LogicalOr,
+		token.LogicalAnd,
+		token.Equal,
+		token.NotEqual,
+		token.Greater,
+		token.GreaterOrEqual,
+		token.Less,
+		token.LessOrEqual,
+		token.Add,
+		token.Subtract,
+		token.Divide,
+		token.Multiply,
+		token.Modulo)
+	registerInfix(prsr, prsr.ParseCall, token.LParen)
+	registerInfix(prsr, prsr.ParseCast, token.As)
+	registerInfix(prsr, prsr.ParseIndex, token.LBracket)
+
 	if err := prsr.next(); err != nil {
 		return nil, err
 	}
@@ -71,7 +102,57 @@ type parser struct {
 
 	recovery bool
 	errors   []ast.Error
+
+	prefix map[token.Type]prefixParser
+	infix  map[token.Type]infixParser
 }
+
+const (
+	_ int = iota
+	Lowest
+	LogicalOr      // ||
+	LogicalAnd     // &&
+	Comparison     // ==, !=, >, >=, <, <=
+	Additive       // +, -
+	Multiplicitive // *, /, %
+	Prefix         // -x or !y
+	Cast           // x As y
+	Access         // x.y
+	Call           // x(y)
+	Index          // x[y]
+)
+
+var precedences = map[token.Type]int{
+	token.LogicalOr:      LogicalOr,
+	token.LogicalAnd:     LogicalAnd,
+	token.Equal:          Comparison,
+	token.NotEqual:       Comparison,
+	token.Greater:        Comparison,
+	token.GreaterOrEqual: Comparison,
+	token.Less:           Comparison,
+	token.LessOrEqual:    Comparison,
+	token.Add:            Additive,
+	token.Subtract:       Additive,
+	token.Multiply:       Multiplicitive,
+	token.Divide:         Multiplicitive,
+	token.Modulo:         Multiplicitive,
+	token.As:             Cast,
+	token.Dot:            Access,
+	token.LParen:         Call,
+	token.LBracket:       Index,
+}
+
+func precedenceOf(t token.Type) int {
+	if p, ok := precedences[t]; ok {
+		return p
+	}
+	return Lowest
+}
+
+type (
+	prefixParser func() (ast.Expression, error)
+	infixParser  func(ast.Expression) (ast.Expression, error)
+)
 
 // next advances token and lookahead by one token while skipping loose comment
 // tokens. Returns true if parsing should continue, false otherwise.
@@ -623,7 +704,21 @@ func (p *parser) recoverFunctionStatement() error {
 }
 
 func (p *parser) ParseFunctionStatement() (ast.FunctionStatement, error) {
-	return nil, fmt.Errorf("ParseFunctionStatement unimplmented")
+	switch p.token.Type {
+	case token.Return:
+		return p.ParseReturn()
+	case token.If:
+		return p.ParseIf()
+	case token.While:
+		return p.ParseWhile()
+	case token.Bool, token.Int, token.Float, token.String:
+		return p.ParseFunctionVariable()
+	case token.Identifier:
+		if p.lookahead.Type == token.Identifier { // Object type.
+			return p.ParseFunctionVariable()
+		}
+	}
+	return p.ParseAssignment()
 }
 
 func (p *parser) ParseFunctionVariable() (*ast.FunctionVariable, error) {
@@ -639,7 +734,7 @@ func (p *parser) ParseFunctionVariable() (*ast.FunctionVariable, error) {
 	if err := p.tryConsume(token.Assign); err != nil {
 		return nil, err
 	}
-	expr, err := p.ParseExpression()
+	expr, err := p.ParseExpression(Lowest)
 	if err != nil {
 		return nil, err
 	}
@@ -651,9 +746,9 @@ func (p *parser) ParseFunctionVariable() (*ast.FunctionVariable, error) {
 	}, nil
 }
 
-func (p *parser) ParseAssignStatement() (*ast.Assignment, error) {
+func (p *parser) ParseAssignment() (*ast.Assignment, error) {
 	start := p.token.Location
-	reference, err := p.ParseReference()
+	assignee, err := p.ParseExpression(Lowest)
 	if err != nil {
 		return nil, err
 	}
@@ -661,12 +756,12 @@ func (p *parser) ParseAssignStatement() (*ast.Assignment, error) {
 	if err != nil {
 		return nil, err
 	}
-	expr, err := p.ParseExpression()
+	expr, err := p.ParseExpression(Lowest)
 	if err != nil {
 		return nil, err
 	}
 	return &ast.Assignment{
-		Assignee: reference,
+		Assignee: assignee,
 		Operator: operator,
 		Value:    expr,
 		Location: source.Span(start, expr.Range()),
@@ -700,6 +795,9 @@ func (p *parser) ParseAssignmentOperator() (*ast.AssignmentOperator, error) {
 			token.AssignSubtract)
 		return nil, newError(p.token.Location, "expected any of [%s], but found %s", types, p.token.Type)
 	}
+	if err := p.next(); err != nil {
+		return nil, err
+	}
 	return operator, nil
 }
 
@@ -713,7 +811,7 @@ func (p *parser) ParseReturn() (*ast.Return, error) {
 			Location: start,
 		}, nil
 	}
-	expr, err := p.ParseExpression()
+	expr, err := p.ParseExpression(Lowest)
 	if err != nil {
 		return nil, err
 	}
@@ -728,7 +826,7 @@ func (p *parser) ParseIf() (*ast.If, error) {
 	if err := p.tryConsume(token.If); err != nil {
 		return nil, err
 	}
-	expr, err := p.ParseExpression()
+	expr, err := p.ParseExpression(Lowest)
 	if err != nil {
 		return nil, err
 	}
@@ -752,7 +850,7 @@ func (p *parser) ParseIf() (*ast.If, error) {
 		if err := p.next(); err != nil {
 			return nil, err
 		}
-		expr, err := p.ParseExpression()
+		expr, err := p.ParseExpression(Lowest)
 		if err != nil {
 			return nil, err
 		}
@@ -791,10 +889,10 @@ func (p *parser) ParseIf() (*ast.If, error) {
 
 func (p *parser) ParseWhile() (*ast.While, error) {
 	start := p.token.Location
-	if err := p.tryConsume(token.If); err != nil {
+	if err := p.tryConsume(token.While); err != nil {
 		return nil, err
 	}
-	expr, err := p.ParseExpression()
+	expr, err := p.ParseExpression(Lowest)
 	if err != nil {
 		return nil, err
 	}
@@ -811,25 +909,6 @@ func (p *parser) ParseWhile() (*ast.While, error) {
 		Location:   source.Span(start, p.token.Location),
 	}
 	if err := p.tryConsume(token.EndWhile); err != nil {
-		return nil, err
-	}
-	return node, nil
-}
-
-func (p *parser) ParseParenthetical() (*ast.Parenthetical, error) {
-	start := p.token.Location
-	if err := p.tryConsume(token.LParen); err != nil {
-		return nil, err
-	}
-	expr, err := p.ParseExpression()
-	if err != nil {
-		return nil, err
-	}
-	node := &ast.Parenthetical{
-		Value:    expr,
-		Location: source.Span(start, p.token.Location),
-	}
-	if err := p.tryConsume(token.RParen); err != nil {
 		return nil, err
 	}
 	return node, nil
@@ -897,82 +976,480 @@ func (p *parser) ParseTypeLiteral() (*ast.TypeLiteral, error) {
 	}, nil
 }
 
-func (p *parser) ParseExpression() (ast.Expression, error) {
-	return nil, newError(p.token.Location, "ParseExpression unimplemented.")
+func (p *parser) ParseExpression(precedence int) (ast.Expression, error) {
+	prefix := p.prefix[p.token.Type]
+	if prefix == nil {
+		return nil, newError(p.token.Location, "expected any of [%s], but found %s", tokensTypesToString(keys(p.prefix)...), p.token.Type)
+	}
+	expr, err := prefix()
+	if err != nil {
+		return nil, err
+	}
+	if p.lookahead.Type != token.Newline && p.lookahead.Type != token.EOF && precedence < precedenceOf(p.lookahead.Type) {
+		infix := p.infix[p.token.Type]
+		if infix == nil {
+			return expr, nil
+		}
+		expr, err = infix(expr)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return expr, nil
 }
 
-func (p *parser) ParseReference() (ast.Reference, error) {
-	return nil, newError(p.token.Location, "ParseReference unimplemented.")
+func (p *parser) ParseBinary(left ast.Expression) (*ast.Binary, error) {
+	precedence := precedenceOf(p.token.Type)
+	operator, err := p.ParseBinaryOperator()
+	if err != nil {
+		return nil, err
+	}
+	right, err := p.ParseExpression(precedence)
+	if err != nil {
+		return nil, err
+	}
+	return &ast.Binary{
+		LeftOperand:  left,
+		Operator:     operator,
+		RightOperand: right,
+		Location:     source.Span(left.Range(), right.Range()),
+	}, nil
+}
+
+func (p *parser) ParseBinaryOperator() (*ast.BinaryOperator, error) {
+	operator := &ast.BinaryOperator{Location: p.token.Location}
+	switch p.token.Type {
+	case token.LogicalOr:
+		operator.Kind = ast.LogicalOr
+	case token.LogicalAnd:
+		operator.Kind = ast.LogicalAnd
+	case token.Equal:
+		operator.Kind = ast.Equal
+	case token.NotEqual:
+		operator.Kind = ast.NotEqual
+	case token.Greater:
+		operator.Kind = ast.Greater
+	case token.GreaterOrEqual:
+		operator.Kind = ast.GreaterOrEqual
+	case token.Less:
+		operator.Kind = ast.Less
+	case token.LessOrEqual:
+		operator.Kind = ast.LessOrEqual
+	case token.Add:
+		operator.Kind = ast.Add
+	case token.Subtract:
+		operator.Kind = ast.Subtract
+	case token.Multiply:
+		operator.Kind = ast.Multiply
+	case token.Divide:
+		operator.Kind = ast.Divide
+	case token.Modulo:
+		operator.Kind = ast.Modulo
+	default:
+		types := tokensTypesToString(
+			token.LogicalOr,
+			token.LogicalAnd,
+			token.Equal,
+			token.NotEqual,
+			token.Greater,
+			token.GreaterOrEqual,
+			token.Less,
+			token.LessOrEqual,
+			token.Add,
+			token.Subtract,
+			token.Divide,
+			token.Multiply,
+			token.Modulo,
+		)
+		return nil, newError(p.token.Location, "expected any of [%s], but found %s", types, p.token.Type)
+	}
+	if err := p.next(); err != nil {
+		return nil, err
+	}
+	return operator, nil
+}
+
+func (p *parser) ParseUnary() (ast.Expression, error) {
+	if p.token.Type == token.Subtract &&
+		(p.lookahead.Type == token.IntLiteral || p.lookahead.Type == token.FloatLiteral) {
+		return p.ParseLiteral()
+	}
+	operator, err := p.ParseUnaryOperator()
+	if err != nil {
+		return nil, err
+	}
+	expr, err := p.ParseExpression(Prefix)
+	if err != nil {
+		return nil, err
+	}
+	return &ast.Unary{
+		Operator: operator,
+		Operand:  expr,
+		Location: source.Span(operator.Location, expr.Range()),
+	}, nil
+}
+
+func (p *parser) ParseUnaryOperator() (*ast.UnaryOperator, error) {
+	operator := &ast.UnaryOperator{
+		Location: p.token.Location,
+	}
+	switch p.token.Type {
+	case token.Subtract:
+		operator.Kind = ast.Negate
+	case token.LogicalNot:
+		operator.Kind = ast.LogicalNot
+	default:
+		types := tokensTypesToString(token.Subtract, token.LogicalNot)
+		return nil, newError(p.token.Location, "expected any of [%s], but found %s", types, p.token.Type)
+	}
+	if err := p.next(); err != nil {
+		return nil, err
+	}
+	return operator, nil
+}
+
+func (p *parser) ParseCast(value ast.Expression) (*ast.Cast, error) {
+	operator := p.token
+	if err := p.tryConsume(token.As); err != nil {
+		return nil, err
+	}
+	typeLiteral, err := p.ParseTypeLiteral()
+	if err != nil {
+		return nil, err
+	}
+	return &ast.Cast{
+		Value:    value,
+		Operator: &ast.AsOperator{Location: operator.Location},
+		Type:     typeLiteral,
+		Location: source.Span(value.Range(), typeLiteral.Location),
+	}, nil
+}
+
+func (p *parser) ParseAccess(value ast.Expression) (*ast.Access, error) {
+	operator := p.token
+	if err := p.tryConsume(token.Dot); err != nil {
+		return nil, err
+	}
+	name, err := p.ParseIdentifier()
+	if err != nil {
+		return nil, err
+	}
+	return &ast.Access{
+		Value:    value,
+		Operator: &ast.AccessOperator{Location: operator.Location},
+		Name:     name,
+		Location: source.Span(value.Range(), name.Location),
+	}, nil
+}
+
+func (p *parser) ParseAccessOperator() (*ast.AccessOperator, error) {
+	operator := &ast.AccessOperator{
+		Location: p.token.Location,
+	}
+	if err := p.tryConsume(token.Dot); err != nil {
+		return nil, err
+	}
+	return operator, nil
+}
+
+func (p *parser) ParseIndex(array ast.Expression) (*ast.Index, error) {
+	open, err := p.ParseArrayOpenOperator()
+	if err != nil {
+		return nil, err
+	}
+	index, err := p.ParseExpression(Lowest)
+	if err != nil {
+		return nil, err
+	}
+	close, err := p.ParseArrayCloseOperator()
+	if err != nil {
+		return nil, err
+	}
+	return &ast.Index{
+		Value:         array,
+		OpenOperator:  open,
+		Index:         index,
+		CloseOperator: close,
+		Location:      source.Span(array.Range(), close.Location),
+	}, nil
+}
+
+func (p *parser) ParseCall(reciever ast.Expression) (*ast.Call, error) {
+	if err := p.tryConsume(token.LParen); err != nil {
+		return nil, err
+	}
+	args, err := p.ParseArgumentList()
+	if err != nil {
+		return nil, err
+	}
+	end := p.token.Location
+	if err := p.tryConsume(token.RParen); err != nil {
+		return nil, err
+	}
+	return &ast.Call{
+		Reciever:  reciever,
+		Arguments: args,
+		Location:  source.Span(reciever.Range(), end),
+	}, nil
+}
+
+func (p *parser) ParseArgumentList() ([]*ast.Argument, error) {
+	var args []*ast.Argument
+	for {
+		switch p.token.Type {
+		case token.Comma:
+			if err := p.next(); err != nil {
+				return nil, err
+			}
+		case token.RParen:
+			return args, nil
+		default:
+			arg, err := p.ParseArgument()
+			if err != nil {
+				return nil, err
+			}
+			args = append(args, arg)
+		}
+	}
+}
+
+func (p *parser) ParseArgument() (*ast.Argument, error) {
+	node := &ast.Argument{}
+	if p.token.Type == token.Identifier {
+		id, err := p.ParseIdentifier()
+		if err != nil {
+			return nil, err
+		}
+		assign := p.token
+		if err := p.tryConsume(token.Assign); err != nil {
+			return nil, err
+		}
+		node.Name = id
+		node.Operator = &ast.AssignmentOperator{
+			Kind:     ast.Assign,
+			Location: assign.Location,
+		}
+	}
+	value, err := p.ParseExpression(Lowest)
+	if err != nil {
+		return nil, err
+	}
+	node.Value = value
+	if node.Name != nil {
+		node.Location = source.Span(node.Name.Location, value.Range())
+	} else {
+		node.Location = value.Range()
+	}
+	return node, nil
+}
+
+func (p *parser) ParseArrayCreation() (*ast.ArrayCreation, error) {
+	new, err := p.ParseNewOperator()
+	if err != nil {
+		return nil, err
+	}
+	typeLiteral, err := p.ParseTypeLiteral()
+	if err != nil {
+		return nil, err
+	}
+	open, err := p.ParseArrayOpenOperator()
+	if err != nil {
+		return nil, err
+	}
+	size, err := p.ParseIntLiteral()
+	if err != nil {
+		return nil, err
+	}
+	if size.Value < 1 || size.Value > 128 {
+		return nil, newError(size.Range(), "expected array size to be an IntLiteral in range [1, 128], but found %d", size.Value)
+	}
+	close, err := p.ParseArrayCloseOperator()
+	if err != nil {
+		return nil, err
+	}
+	return &ast.ArrayCreation{
+		NewOperator:   new,
+		Type:          typeLiteral,
+		OpenOperator:  open,
+		Size:          size,
+		CloseOperator: close,
+		Location:      source.Span(new.Location, close.Location),
+	}, nil
+}
+
+func (p *parser) ParseNewOperator() (*ast.NewOperator, error) {
+	operator := &ast.NewOperator{
+		Location: p.token.Location,
+	}
+	if err := p.tryConsume(token.New); err != nil {
+		return nil, err
+	}
+	return operator, nil
+}
+
+func (p *parser) ParseArrayOpenOperator() (*ast.ArrayOpenOperator, error) {
+	operator := &ast.ArrayOpenOperator{
+		Location: p.token.Location,
+	}
+	if err := p.tryConsume(token.LBracket); err != nil {
+		return nil, err
+	}
+	return operator, nil
+}
+
+func (p *parser) ParseArrayCloseOperator() (*ast.ArrayCloseOperator, error) {
+	operator := &ast.ArrayCloseOperator{
+		Location: p.token.Location,
+	}
+	if err := p.tryConsume(token.RBracket); err != nil {
+		return nil, err
+	}
+	return operator, nil
+}
+
+func (p *parser) ParseParenthetical() (*ast.Parenthetical, error) {
+	start := p.token.Location
+	if err := p.tryConsume(token.LParen); err != nil {
+		return nil, err
+	}
+	expr, err := p.ParseExpression(Lowest)
+	if err != nil {
+		return nil, err
+	}
+	node := &ast.Parenthetical{
+		Value:    expr,
+		Location: source.Span(start, p.token.Location),
+	}
+	if err := p.tryConsume(token.RParen); err != nil {
+		return nil, err
+	}
+	return node, nil
 }
 
 func (p *parser) ParseLiteral() (ast.Literal, error) {
 	switch p.token.Type {
 	case token.Subtract:
+		// While this overlaps with a unary expression, we lump these together
+		// because there are some contexts where a literal is required which can
+		// include a sign, but where a Unary is not allowed.
 		sign := p.token
 		if err := p.next(); err != nil {
 			return nil, err
 		}
-		return p.ParseNumber(&sign)
+		switch p.token.Type {
+		case token.IntLiteral:
+			lit, err := p.ParseIntLiteral()
+			if err != nil {
+				return nil, err
+			}
+			lit.Location = source.Span(sign.Location, lit.Location)
+			lit.Value = -lit.Value
+			return lit, err
+		case token.FloatLiteral:
+			lit, err := p.ParseFloatLiteral()
+			if err != nil {
+				return nil, err
+			}
+			lit.Location = source.Span(sign.Location, lit.Location)
+			lit.Value = -lit.Value
+			return lit, err
+		default:
+			return nil, fmt.Errorf("expected IntLiteral or FloatLiteral, but found %s", p.token.Type)
+		}
 	case token.True, token.False:
-		return &ast.BoolLiteral{
-			Value:    p.token.Type == token.True,
-			Location: p.token.Location,
-		}, nil
-	case token.IntLiteral, token.FloatLiteral:
-		return p.ParseNumber(nil)
+		return p.ParseBoolLiteral()
+	case token.IntLiteral:
+		return p.ParseIntLiteral()
+	case token.FloatLiteral:
+		return p.ParseFloatLiteral()
 	case token.StringLiteral:
-		return &ast.StringLiteral{
-			Value:    string(p.token.Location.Text()[1 : p.token.Location.Length-1]),
-			Location: p.token.Location,
-		}, nil
+		return p.ParseStringLiteral()
 	case token.None:
-		return &ast.NoneLiteral{
-			Location: p.token.Location,
-		}, nil
+		return p.ParseNoneLiteral()
 	}
 	return nil, fmt.Errorf("expected True, False, None, Integer, Float, or String literal, but found %s", p.token.Type)
 }
 
-func (p *parser) ParseNumber(sign *token.Token) (ast.Literal, error) {
-	switch p.token.Type {
-	case token.IntLiteral:
-		tok := p.token
-		if err := p.tryConsume(token.IntLiteral); err != nil {
-			return nil, err
-		}
-		text := strings.ToLower(string(tok.Location.Text()))
-		val, err := strconv.ParseInt(text, 0, 32)
-		if err != nil {
-			return nil, newError(tok.Location, "failed to parse %q as an integer: %v", text, err)
-		}
-		srcRange := tok.Location
-		if sign != nil {
-			srcRange = source.Span(sign.Location, tok.Location)
-			val = -val
-		}
-		return &ast.IntLiteral{
-			Value:    int(val),
-			Location: srcRange,
-		}, nil
-	case token.FloatLiteral:
-		tok := p.token
-		if err := p.tryConsume(token.FloatLiteral); err != nil {
-			return nil, err
-		}
-		text := strings.ToLower(string(tok.Location.Text()))
-		val, err := strconv.ParseFloat(text, 32)
-		if err != nil {
-			return nil, newError(tok.Location, "failed to parse %q as a float: %v", text, err)
-		}
-		srcRange := tok.Location
-		if sign != nil {
-			srcRange = source.Span(sign.Location, tok.Location)
-			val = -val
-		}
-		return &ast.FloatLiteral{
-			Value:    float32(val),
-			Location: srcRange,
-		}, nil
+func (p *parser) ParseIntLiteral() (*ast.IntLiteral, error) {
+	tok := p.token
+	if err := p.tryConsume(token.IntLiteral); err != nil {
+		return nil, err
 	}
-	return nil, fmt.Errorf("expected Int or Float literal, but found %s", p.token.Type)
+	text := strings.ToLower(string(tok.Location.Text()))
+	val, err := strconv.ParseInt(text, 0, 32)
+	if err != nil {
+		return nil, newError(tok.Location, "failed to parse %q as an integer: %v", text, err)
+	}
+	return &ast.IntLiteral{
+		Value:    int(val),
+		Location: tok.Location,
+	}, nil
+}
+
+func (p *parser) ParseFloatLiteral() (*ast.FloatLiteral, error) {
+	tok := p.token
+	if err := p.tryConsume(token.FloatLiteral); err != nil {
+		return nil, err
+	}
+	text := strings.ToLower(string(tok.Location.Text()))
+	val, err := strconv.ParseFloat(text, 32)
+	if err != nil {
+		return nil, newError(tok.Location, "failed to parse %q as a float: %v", text, err)
+	}
+	return &ast.FloatLiteral{
+		Value:    float32(val),
+		Location: tok.Location,
+	}, nil
+}
+
+func (p *parser) ParseBoolLiteral() (*ast.BoolLiteral, error) {
+	tok := p.token
+	if err := p.tryConsume(token.True, token.False); err != nil {
+		return nil, err
+	}
+	return &ast.BoolLiteral{
+		Value:    tok.Type == token.True,
+		Location: tok.Location,
+	}, nil
+}
+
+func (p *parser) ParseStringLiteral() (*ast.StringLiteral, error) {
+	tok := p.token
+	if err := p.tryConsume(token.StringLiteral); err != nil {
+		return nil, err
+	}
+	return &ast.StringLiteral{
+		Value:    string(tok.Location.Text()[1 : tok.Location.Length-1]),
+		Location: tok.Location,
+	}, nil
+}
+
+func (p *parser) ParseNoneLiteral() (*ast.NoneLiteral, error) {
+	tok := p.token
+	if err := p.tryConsume(token.None); err != nil {
+		return nil, err
+	}
+	return &ast.NoneLiteral{
+		Location: tok.Location,
+	}, nil
+}
+
+func registerPrefix[T ast.Expression](p *parser, fn func() (T, error), types ...token.Type) {
+	for _, t := range types {
+		p.prefix[t] = func() (ast.Expression, error) { return fn() }
+	}
+}
+
+func registerInfix[T ast.Expression](p *parser, fn func(ast.Expression) (T, error), types ...token.Type) {
+	for _, t := range types {
+		p.infix[t] = func(expr ast.Expression) (ast.Expression, error) { return fn(expr) }
+	}
+}
+
+func keys[K comparable, V any](data map[K]V) []K {
+	keys := make([]K, 0, len(data))
+	for k := range data {
+		keys = append(keys, k)
+	}
+	return keys
 }

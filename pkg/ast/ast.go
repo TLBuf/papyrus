@@ -44,12 +44,6 @@ type Invokable interface {
 	invokable()
 }
 
-// Reference is a common interface for references to values.
-type Reference interface {
-	Expression
-	reference()
-}
-
 // LooseComment is a common interface for loose comments (i.e. non-doc
 // comments).
 type LooseComment interface {

@@ -76,7 +76,7 @@ var _ Node = (*AssignmentOperator)(nil)
 // property).
 type Assignment struct {
 	// Assignee is the reference to a variable to assign the value to.
-	Assignee Reference
+	Assignee Expression
 	// Operator defines the operator this assignment uses.
 	Operator *AssignmentOperator
 	// Value is the expression that defines the value to use in the assignment.

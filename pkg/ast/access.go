@@ -34,6 +34,4 @@ func (a *Access) Range() source.Range {
 
 func (*Access) expression() {}
 
-func (*Access) reference() {}
-
-var _ Reference = (*Access)(nil)
+var _ Expression = (*Access)(nil)

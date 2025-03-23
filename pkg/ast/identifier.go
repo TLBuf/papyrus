@@ -17,6 +17,4 @@ func (i *Identifier) Range() source.Range {
 
 func (*Identifier) expression() {}
 
-func (*Identifier) reference() {}
-
-var _ Reference = (*Identifier)(nil)
+var _ Expression = (*Identifier)(nil)

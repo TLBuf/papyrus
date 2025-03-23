@@ -4,8 +4,8 @@ import "github.com/TLBuf/papyrus/pkg/source"
 
 // Cast is an expression casts a value of some type to another.
 type Call struct {
-	// Function is the reference to the function being called.
-	Function Reference
+	// Reciever is the reference to the function being called.
+	Reciever Expression
 	// Arguments is the list of arguments being passed to the function being
 	// called.
 	Arguments []*Argument

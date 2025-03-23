@@ -24,6 +24,4 @@ func (i *Index) Range() source.Range {
 
 func (*Index) expression() {}
 
-func (*Index) reference() {}
-
-var _ Reference = (*Index)(nil)
+var _ Expression = (*Index)(nil)
