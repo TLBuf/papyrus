@@ -20,13 +20,13 @@ type Range struct {
 	ByteOffset int
 	// Length is the number of bytes in this range.
 	Length int
-	// StartLine is the 1-indexed line of start of the range in the file.
+	// StartLine is the 1-indexed line of the inclusive start of the range.
 	StartLine int
-	// StartColumn is the 1-indexed column start of the range in the file.
+	// StartColumn is the 1-indexed column of the inclusive start of the range.
 	StartColumn int
-	// EndLine is the 1-indexed line of end of the range in the file.
+	// EndLine is the 1-indexed line of the inclusive end of the range.
 	EndLine int
-	// EndColumn is the 1-indexed column end of the range in the file.
+	// EndColumn is the 1-indexed column of the inclusive end of the range.
 	EndColumn int
 	// PreambleLength is the number of bytes before the start of the range on the
 	// same line as StartLine.
