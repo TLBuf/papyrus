@@ -9,6 +9,8 @@ const (
 	MinimumSnippetWidth = 20
 	// MinimumSnippetHeight is the absolute minimum height of a Snippet's content.
 	MinimumSnippetHeight = 3
+	// DefaultTabWidth is the number of spaces substituted for tabs.
+	DefaultTabWidth = 2
 )
 
 // Snippet is a section of source code, formatted to fit in a specified number
@@ -22,6 +24,9 @@ type Snippet struct {
 	Start, End Indicator
 	// Lines are the lines of the source code clipped
 	Lines []Line
+	// Width and Height are the upper bounds on the number of runes wide and lines
+	// respectively in the Snippet.
+	Width, Height int
 }
 
 // Indicator describes a indicator of some piece of content.
@@ -47,26 +52,51 @@ type Chunk struct {
 	IsSource bool
 }
 
+type snippetOptions struct {
+	tabWidth int
+}
+
+// SnippetOption
+type SnippetOption func(*snippetOptions)
+
+// WithTabWidth returns a [SnippetOption] that overrides the [DefaultTabWidth].
+func WithTabWidth(w int) SnippetOption {
+	return func(opts *snippetOptions) {
+		opts.tabWidth = w
+	}
+}
+
 // Snippet returns the range formatted to fit in the given `width` and `height`.
 //
 // An error is returns if `width` is less than [MinimumSnippetWidth] or `height`
 // is less than [MinimumSnippetHeight].
-func (r Range) Snippet(width, height int) (Snippet, error) {
+func (r Range) Snippet(width, height int, opts ...SnippetOption) (Snippet, error) {
+	options := snippetOptions{
+		tabWidth: DefaultTabWidth,
+	}
+	for _, opt := range opts {
+		opt(&options)
+	}
 	if width < MinimumSnippetWidth {
 		return Snippet{}, fmt.Errorf("%d is less than minimum snippet width, %d", width, MinimumSnippetWidth)
 	}
 	if height < MinimumSnippetHeight {
 		return Snippet{}, fmt.Errorf("%d is less than minimum snippet height, %d", height, MinimumSnippetHeight)
 	}
+	var snippet Snippet
 	if r.StartLine == r.EndLine {
-		return formatSingleLineSnippet(r, width), nil
+		snippet = formatSingleLineSnippet(r, width, options.tabWidth)
+	} else {
+		snippet = formatMultiLineSnippet(r, width, height, options.tabWidth)
 	}
-	return formatMultiLineSnippet(r, width, height), nil
+	snippet.Width = width
+	snippet.Height = height
+	return snippet, nil
 }
 
-func formatSingleLineSnippet(r Range, width int) Snippet {
-	str := string(r.File.Text[r.ByteOffset-r.PreambleLength : r.ByteOffset+r.Length+r.PostambleLength])
-	chunks, start, end := fitLine([]rune(str), r.StartColumn, r.EndColumn, width)
+func formatSingleLineSnippet(r Range, width, tabWidth int) Snippet {
+	runes := textForSnippet(r)
+	chunks, start, end := fitLine(runes, r.StartColumn, r.EndColumn, width, tabWidth)
 	return Snippet{
 		Start: Indicator{Column: start},
 		End:   Indicator{Column: end},
@@ -74,17 +104,16 @@ func formatSingleLineSnippet(r Range, width int) Snippet {
 	}
 }
 
-func formatMultiLineSnippet(r Range, width, height int) Snippet {
-	str := string(r.File.Text[r.ByteOffset-r.PreambleLength : r.ByteOffset+r.Length+r.PostambleLength])
-	text := splitLines([]rune(str))
-	first, start, _ := fitLine(text[0], r.StartColumn, 0, width)
-	last, end, _ := fitLine(text[len(text)-1], r.EndColumn, 0, width)
+func formatMultiLineSnippet(r Range, width, height, tabWidth int) Snippet {
+	text := splitLines(textForSnippet(r))
+	first, start, _ := fitLine(text[0], r.StartColumn, 0, width, tabWidth)
+	last, end, _ := fitLine(text[len(text)-1], r.EndColumn, 0, width, tabWidth)
 	remaining := r.EndLine - r.StartLine - 1
 	available := max(0, height-3)
 	lines := []Line{{Number: r.StartLine, Chunks: first}}
 	if remaining <= available+1 {
 		for i := 0; i < remaining; i++ {
-			chunks, _, _ := fitLine(text[i+1], 0, 0, width)
+			chunks, _, _ := fitLine(text[i+1], 0, 0, width, tabWidth)
 			lines = append(lines, Line{Number: r.StartLine + i + 1, Chunks: chunks})
 		}
 		lines = append(lines, Line{Number: r.EndLine, Chunks: last})
@@ -94,16 +123,16 @@ func formatMultiLineSnippet(r Range, width, height int) Snippet {
 			Lines: lines,
 		}
 	}
-	heightA := remaining/2 + remaining%2
-	heightB := remaining / 2
+	heightA := available/2 + available%2
+	heightB := available / 2
 	for i := 0; i < heightA; i++ {
-		chunks, _, _ := fitLine(text[i+1], 0, 0, width)
+		chunks, _, _ := fitLine(text[i+1], 0, 0, width, tabWidth)
 		lines = append(lines, Line{Number: r.StartLine + i + 1, Chunks: chunks})
 	}
-	omitted := available - remaining
+	omitted := remaining - available
 	lines = append(lines, Line{Chunks: []Chunk{{Text: fmt.Sprintf("... %d lines ...", omitted)}}})
 	for i := 0; i < heightB; i++ {
-		chunks, _, _ := fitLine(text[i+omitted+1], 0, 0, width)
+		chunks, _, _ := fitLine(text[i+omitted+1], 0, 0, width, tabWidth)
 		lines = append(lines, Line{Number: r.StartLine + i + omitted + 1, Chunks: chunks})
 	}
 	lines = append(lines, Line{Number: r.EndLine, Chunks: last})
@@ -114,12 +143,16 @@ func formatMultiLineSnippet(r Range, width, height int) Snippet {
 	}
 }
 
+func textForSnippet(r Range) []rune {
+	return []rune(string(r.File.Text[r.ByteOffset-r.PreambleLength : r.ByteOffset+r.Length+r.PostambleLength]))
+}
+
 func splitLines(text []rune) [][]rune {
 	var lines [][]rune
 	s := -1
 	for i, r := range text {
 		if r == '\r' || r == '\n' || r == 0 {
-			if s > 0 {
+			if s >= 0 {
 				lines = append(lines, text[s:i])
 				s = -1
 			}
@@ -135,7 +168,8 @@ func splitLines(text []rune) [][]rune {
 	return lines
 }
 
-func fitLine(text []rune, start, end, width int) ([]Chunk, int, int) {
+func fitLine(text []rune, start, end, width, tabWidth int) ([]Chunk, int, int) {
+	text, start, end = substituteTabs(text, start, end, tabWidth)
 	if start <= 0 {
 		if len(text) < width {
 			return []Chunk{{Text: string(text), IsSource: true}}, 0, 0
@@ -241,4 +275,28 @@ func fitLineTwoPoints(text []rune, start, end, width int) ([]Chunk, int, int) {
 		end = widthA + widthB/2 + 6
 	}
 	return chunks, start, end
+}
+
+func substituteTabs(text []rune, start, end, tabWidth int) ([]rune, int, int) {
+	out := make([]rune, 0, len(text)*2)
+	newStart := start - 1
+	newEnd := end - 1
+	offset := 0
+	for i, r := range text {
+		if r == '\t' {
+			for i := 0; i < tabWidth; i++ {
+				out = append(out, ' ')
+			}
+			offset += tabWidth - 1
+		} else {
+			out = append(out, r)
+		}
+		if i == start-1 {
+			newStart += offset + 1
+		}
+		if i == end-1 {
+			newEnd += offset + 1
+		}
+	}
+	return out, newStart, newEnd
 }
