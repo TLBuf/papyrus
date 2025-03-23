@@ -108,13 +108,23 @@ func (p *parser) tryConsume(t token.Type, alts ...token.Type) error {
 		}
 	}
 	if len(alts) > 0 {
-		strs := make([]string, len(alts))
-		for i, alt := range alts {
-			strs[i] = alt.String()
-		}
-		return newError(p.token.Location, "expected any of [%s, %s], but found %s", t, strings.Join(strs, ", "), p.token.Type)
+		return newError(p.token.Location, "expected any of [%s, %s], but found %s", t, tokensTypesToString(alts...), p.token.Type)
 	}
 	return newError(p.token.Location, "expected %s, but found %s", t, p.token.Type)
+}
+
+func tokensTypesToString(types ...token.Type) string {
+	if len(types) == 0 {
+		return ""
+	}
+	if len(types) == 1 {
+		return types[0].String()
+	}
+	strs := make([]string, len(types))
+	for i, t := range types {
+		strs[i] = t.String()
+	}
+	return strings.Join(strs, ", ")
 }
 
 // consumeNewlines advances the token position through the as many newlines as
@@ -641,6 +651,58 @@ func (p *parser) ParseFunctionVariable() (*ast.FunctionVariable, error) {
 	}, nil
 }
 
+func (p *parser) ParseAssignStatement() (*ast.Assignment, error) {
+	start := p.token.Location
+	reference, err := p.ParseReference()
+	if err != nil {
+		return nil, err
+	}
+	operator, err := p.ParseAssignmentOperator()
+	if err != nil {
+		return nil, err
+	}
+	expr, err := p.ParseExpression()
+	if err != nil {
+		return nil, err
+	}
+	return &ast.Assignment{
+		Assignee:    reference,
+		Operator:    operator,
+		Value:       expr,
+		SourceRange: source.Span(start, expr.Range()),
+	}, nil
+}
+
+func (p *parser) ParseAssignmentOperator() (*ast.AssignmentOperator, error) {
+	operator := &ast.AssignmentOperator{
+		SourceRange: p.token.Location,
+	}
+	switch p.token.Type {
+	case token.Assign:
+		operator.Kind = ast.Assign
+	case token.AssignAdd:
+		operator.Kind = ast.AssignAdd
+	case token.AssignDivide:
+		operator.Kind = ast.AssignDivide
+	case token.AssignModulo:
+		operator.Kind = ast.AssignModulo
+	case token.AssignMultiply:
+		operator.Kind = ast.AssignMultiply
+	case token.AssignSubtract:
+		operator.Kind = ast.AssignSubtract
+	default:
+		types := tokensTypesToString(
+			token.Assign,
+			token.AssignAdd,
+			token.AssignDivide,
+			token.AssignModulo,
+			token.AssignMultiply,
+			token.AssignSubtract)
+		return nil, newError(p.token.Location, "expected any of [%s], but found %s", types, p.token.Type)
+	}
+	return operator, nil
+}
+
 func (p *parser) ParseReturn() (*ast.Return, error) {
 	start := p.token.Location
 	if err := p.tryConsume(token.Return); err != nil {
@@ -837,6 +899,10 @@ func (p *parser) ParseTypeLiteral() (*ast.TypeLiteral, error) {
 
 func (p *parser) ParseExpression() (ast.Expression, error) {
 	return nil, newError(p.token.Location, "ParseExpression unimplemented.")
+}
+
+func (p *parser) ParseReference() (ast.Reference, error) {
+	return nil, newError(p.token.Location, "ParseReference unimplemented.")
 }
 
 func (p *parser) ParseLiteral() (ast.Literal, error) {
