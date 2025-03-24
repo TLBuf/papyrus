@@ -296,20 +296,17 @@ func (p *parser) ParseScriptStatement() (ast.ScriptStatement, error) {
 	case token.Auto, token.State:
 		stmt, err = p.ParseState()
 	case token.Function:
-		stmt, err = p.ParseFunction(nil)
+		stmt, err = p.ParseFunction()
 	case token.Bool, token.Float, token.Int, token.String, token.Identifier:
-		var typeLiteral *ast.TypeLiteral
-		typeLiteral, err = p.ParseTypeLiteral()
-		if err != nil {
-			return nil, err
-		}
-		switch p.token.Type {
-		case token.Identifier:
-			stmt, err = p.ParseScriptVariable(typeLiteral)
+		switch p.lookahead.Type {
 		case token.Property:
-			stmt, err = p.ParseProperty(typeLiteral)
+			stmt, err = p.ParseProperty()
 		case token.Function:
-			stmt, err = p.ParseFunction(typeLiteral)
+			stmt, err = p.ParseFunction()
+		case token.Identifier:
+			stmt, err = p.ParseScriptVariable()
+		default:
+			err = fmt.Errorf("expected Import, Event, State, Function, Property, or a variable definition, but found %s", start.Type)
 		}
 	default:
 		err = fmt.Errorf("expected Import, Event, State, Function, Property, or a variable definition, but found %s", start.Type)
@@ -429,18 +426,8 @@ func (p *parser) ParseInvokable() (ast.Invokable, error) {
 	switch p.token.Type {
 	case token.Event:
 		stmt, err = p.ParseEvent()
-	case token.Function:
-		stmt, err = p.ParseFunction(nil)
-	case token.Bool, token.Float, token.Int, token.String, token.Identifier:
-		var typeLiteral *ast.TypeLiteral
-		typeLiteral, err = p.ParseTypeLiteral()
-		if err != nil {
-			return nil, err
-		}
-		switch p.token.Type {
-		case token.Function:
-			stmt, err = p.ParseFunction(typeLiteral)
-		}
+	case token.Function, token.Bool, token.Float, token.Int, token.String, token.Identifier:
+		stmt, err = p.ParseFunction()
 	default:
 		err = fmt.Errorf("expected Event or Function, but found %s", start.Type)
 	}
@@ -520,18 +507,23 @@ func (p *parser) ParseEvent() (*ast.Event, error) {
 	}
 	node.Statements = stmts
 	node.Location = source.Span(start, p.token.Location)
-	if err := p.next(); err != nil {
+	if err := p.tryConsume(token.EndEvent); err != nil {
 		return nil, err
 	}
 	return node, p.tryConsume(token.Newline, token.EOF)
 }
 
-func (p *parser) ParseFunction(returnType *ast.TypeLiteral) (*ast.Function, error) {
+func (p *parser) ParseFunction() (*ast.Function, error) {
 	start := p.token.Location
-	if returnType != nil {
-		start = returnType.Location
+	var returnType *ast.TypeLiteral
+	var err error
+	if p.token.Type != token.Function {
+		returnType, err = p.ParseTypeLiteral()
+		if err != nil {
+			return nil, err
+		}
 	}
-	if err := p.next(); err != nil {
+	if err := p.tryConsume(token.Function); err != nil {
 		return nil, err
 	}
 	name, err := p.ParseIdentifier()
@@ -722,7 +714,6 @@ func (p *parser) ParseFunctionStatement() (ast.FunctionStatement, error) {
 }
 
 func (p *parser) ParseFunctionVariable() (*ast.FunctionVariable, error) {
-	start := p.token.Location
 	typeLiteral, err := p.ParseTypeLiteral()
 	if err != nil {
 		return nil, err
@@ -742,7 +733,7 @@ func (p *parser) ParseFunctionVariable() (*ast.FunctionVariable, error) {
 		Type:     typeLiteral,
 		Name:     name,
 		Value:    expr,
-		Location: source.Span(start, expr.Range()),
+		Location: source.Span(typeLiteral.Location, expr.Range()),
 	}, nil
 }
 
@@ -914,12 +905,202 @@ func (p *parser) ParseWhile() (*ast.While, error) {
 	return node, nil
 }
 
-func (p *parser) ParseProperty(propertyType *ast.TypeLiteral) (*ast.Property, error) {
-	return nil, newError(p.token.Location, "ParseProperty unimplemented.")
+func (p *parser) ParseProperty() (*ast.Property, error) {
+	typeLiteral, err := p.ParseTypeLiteral()
+	if err != nil {
+		return nil, err
+	}
+	if err := p.tryConsume(token.Property); err != nil {
+		return nil, err
+	}
+	name, err := p.ParseIdentifier()
+	if err != nil {
+		return nil, err
+	}
+	end := name.Range()
+	node := &ast.Property{
+		Type: typeLiteral,
+		Name: name,
+	}
+	if p.token.Type == token.Assign {
+		if err := p.tryConsume(token.Assign); err != nil {
+			return nil, err
+		}
+		node.Value, err = p.ParseLiteral()
+		if err != nil {
+			return nil, err
+		}
+		end = node.Value.Range()
+	}
+	if p.token.Type == token.Auto {
+		node.IsAuto = true
+		end = p.token.Location
+		if err := p.tryConsume(token.Auto); err != nil {
+			return nil, err
+		}
+	} else if p.token.Type == token.AutoReadOnly {
+		if node.Value == nil {
+			return nil, newError(p.token.Location, "expected value to be defined for AutoReadOnly property")
+		}
+		node.IsAuto = true
+		node.IsReadOnly = true
+		end = p.token.Location
+		if err := p.tryConsume(token.Auto); err != nil {
+			return nil, err
+		}
+	}
+	if node.IsAuto {
+		for p.token.Type == token.Hidden || p.token.Type == token.Conditional {
+			end = p.token.Location
+			if p.token.Type == token.Hidden {
+				node.IsHidden = true
+			} else {
+				node.IsConditional = true
+			}
+			if err := p.tryConsume(token.Hidden, token.Conditional); err != nil {
+				return nil, err
+			}
+		}
+		node.Location = source.Span(typeLiteral.Location, end)
+		return node, nil
+	}
+	// Full Property
+	for p.token.Type == token.Hidden {
+		if err := p.tryConsume(token.Hidden); err != nil {
+			return nil, err
+		}
+	}
+	if err := p.tryConsume(token.Newline); err != nil {
+		return nil, err
+	}
+	if err := p.consumeNewlines(); err != nil {
+		return nil, err
+	}
+	first, err := p.ParseFunction()
+	if err != nil {
+		return nil, err
+	}
+	if err := p.consumeNewlines(); err != nil {
+		return nil, err
+	}
+	var second *ast.Function
+	if p.token.Type != token.EndProperty {
+		second, err = p.ParseFunction()
+		if err != nil {
+			return nil, err
+		}
+		if err := p.consumeNewlines(); err != nil {
+			return nil, err
+		}
+	}
+	if first.Name.Text == "get" {
+		if first.ReturnType == nil {
+			return nil, newError(first.Name.Location, "expected '%s' to have a return type of %s, but found none", first.Name.Range().Text(), node.Type.Location.Text())
+		}
+		if first.ReturnType.Type != node.Type.Type {
+			return nil, newError(first.ReturnType.Location, "expected '%s' to have a return type of %s, but found %s", first.Name.Range().Text(), node.Type.Location.Text(), first.ReturnType.Range().Text())
+		}
+		if len(first.Parameters) != 0 {
+			loc := source.Span(first.Parameters[0].Location, first.Parameters[len(first.Parameters)-1].Location)
+			return nil, newError(loc, "expected '%s' to have no parameters, but found %d", first.Name.Range().Text(), len(first.Parameters))
+		}
+		node.Get = first
+	} else if first.Name.Text == "set" {
+		if first.ReturnType != nil {
+			return nil, newError(first.ReturnType.Location, "expected '%s' to have no return type, but found %s", first.Name.Range().Text(), first.ReturnType.Location.Text())
+		}
+		if len(first.Parameters) == 0 {
+			return nil, newError(first.Name.Location, "expected '%s' to have one parameter, but found none", first.Name.Range().Text())
+		}
+		if len(first.Parameters) > 1 {
+			loc := source.Span(first.Parameters[0].Location, first.Parameters[len(first.Parameters)-1].Location)
+			return nil, newError(loc, "expected '%s' to have one parameter, but found %d", first.Name.Range().Text(), len(first.Parameters))
+		}
+		if first.Parameters[0].Type.Type != node.Type.Type {
+			return nil, newError(first.ReturnType.Location, "expected '%s' to have a parameter of type %s, but found %s", first.Name.Range().Text(), node.Type.Location.Text(), first.Parameters[0].Type.Location.Text())
+		}
+		node.Set = first
+	} else {
+		return nil, newError(first.Range(), "expected 'Get' or 'Set' function for property, but found '%s'", first.Name.Range().Text())
+	}
+	if second != nil {
+		if second.Name.Text == "get" {
+			if node.Get != nil {
+				return nil, newError(second.Location, "expected exactly one 'Get' function, but found two")
+			}
+			if second.ReturnType == nil {
+				return nil, newError(second.Name.Location, "expected '%s' to have a return type of %s, but found none", second.Name.Range().Text(), node.Type.Location.Text())
+			}
+			if second.ReturnType.Type != node.Type.Type {
+				return nil, newError(second.ReturnType.Location, "expected '%s' to have a return type of %s, but found %s", second.Name.Range().Text(), node.Type.Location.Text(), second.ReturnType.Range().Text())
+			}
+			if len(second.Parameters) != 0 {
+				loc := source.Span(second.Parameters[0].Location, second.Parameters[len(second.Parameters)-1].Location)
+				return nil, newError(loc, "expected '%s' to have no parameters, but found %d", second.Name.Range().Text(), len(second.Parameters))
+			}
+			node.Get = second
+		} else if second.Name.Text == "set" {
+			if node.Set != nil {
+				return nil, newError(second.Location, "expected exactly one 'Set' function, but found two")
+			}
+			if second.ReturnType != nil {
+				return nil, newError(second.ReturnType.Location, "expected '%s' to have no return type, but found %s", second.Name.Range().Text(), second.ReturnType.Location.Text())
+			}
+			if len(second.Parameters) == 0 {
+				return nil, newError(second.Name.Location, "expected '%s' to have one parameter, but found none", second.Name.Range().Text())
+			}
+			if len(second.Parameters) > 1 {
+				loc := source.Span(second.Parameters[0].Location, second.Parameters[len(second.Parameters)-1].Location)
+				return nil, newError(loc, "expected '%s' to have one parameter, but found %d", second.Name.Range().Text(), len(second.Parameters))
+			}
+			if second.Parameters[0].Type.Type != node.Type.Type {
+				return nil, newError(second.ReturnType.Location, "expected '%s' to have a parameter of type %s, but found %s", second.Name.Range().Text(), node.Type.Location.Text(), second.Parameters[0].Type.Location.Text())
+			}
+			node.Set = second
+		} else {
+			return nil, newError(second.Range(), "expected 'Get' or 'Set' function for property, but found '%s'", second.Name.Range().Text())
+		}
+	}
+	node.Location = source.Span(typeLiteral.Location, p.token.Location)
+	if err := p.tryConsume(token.EndProperty); err != nil {
+		return nil, err
+	}
+	return node, p.tryConsume(token.Newline, token.EOF)
 }
 
-func (p *parser) ParseScriptVariable(variableType *ast.TypeLiteral) (*ast.ScriptVariable, error) {
-	return nil, newError(p.token.Location, "ParseScriptVariable unimplemented.")
+func (p *parser) ParseScriptVariable() (*ast.ScriptVariable, error) {
+	typeLiteral, err := p.ParseTypeLiteral()
+	if err != nil {
+		return nil, err
+	}
+	name, err := p.ParseIdentifier()
+	if err != nil {
+		return nil, err
+	}
+	end := name.Location
+	node := &ast.ScriptVariable{
+		Type: typeLiteral,
+		Name: name,
+	}
+	if p.token.Type != token.Assign {
+		if err := p.tryConsume(token.Assign); err != nil {
+			return nil, err
+		}
+		node.Value, err = p.ParseLiteral()
+		if err != nil {
+			return nil, err
+		}
+		end = node.Value.Range()
+	}
+	for p.token.Type == token.Conditional {
+		end = p.token.Location
+		node.IsConditional = true
+		if err := p.next(); err != nil {
+			return nil, err
+		}
+	}
+	node.Location = source.Span(typeLiteral.Location, end)
+	return node, p.tryConsume(token.Newline, token.EOF)
 }
 
 func (p *parser) ParseIdentifier() (*ast.Identifier, error) {

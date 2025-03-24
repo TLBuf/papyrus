@@ -7,12 +7,10 @@ import "github.com/TLBuf/papyrus/pkg/source"
 // Properties are like variables but which can be accessed in the editor and
 // referenced by the engine.
 type Property struct {
-	// Name is the name of the event.
+	// Name is the name of the property.
 	Name *Identifier
 	// Type is the type of this property.
 	Type *TypeLiteral
-	// Parameters is the list of parameters this event defines in order.
-	Parameters []Parameter
 	// IsHidden defines whether this is a hidden property (i.e. it doesn't appear
 	// in the editor).
 	IsHidden bool
@@ -24,7 +22,7 @@ type Property struct {
 	IsAuto bool
 	// IsReadOnly defines whether this property is marked read-only.
 	IsReadOnly bool
-	// Comment is the optional documentation comment for this event.
+	// Comment is the optional documentation comment for this property.
 	Comment *DocComment
 	// Value is the literal that defines the initial value of the property. This
 	// is nil if IsAuto is false.
