@@ -7,14 +7,15 @@ import (
 
 // TypeLiteral represents a literal type name in source.
 type TypeLiteral struct {
+	Trivia
 	// Type is the type the literal represents.
 	Type types.Type
 	// Location is the source range of the node.
-	Location source.Range
+	Location source.Location
 }
 
-// Range returns the source range of the node.
-func (t *TypeLiteral) Range() source.Range {
+// SourceLocation returns the source location of the node.
+func (t *TypeLiteral) SourceLocation() source.Location {
 	return t.Location
 }
 

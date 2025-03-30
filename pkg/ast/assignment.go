@@ -59,14 +59,15 @@ var AssignmentOperatorKindNames = map[AssignmentOperatorKind]string{
 
 // AssignmentOperator represents an assignment operator.
 type AssignmentOperator struct {
+	Trivia
 	// Kind is the type of assignment operator.
 	Kind AssignmentOperatorKind
 	// Location is the source range of the node.
-	Location source.Range
+	Location source.Location
 }
 
-// Range returns the source range of the node.
-func (o *AssignmentOperator) Range() source.Range {
+// SourceLocation returns the source location of the node.
+func (o *AssignmentOperator) SourceLocation() source.Location {
 	return o.Location
 }
 
@@ -75,6 +76,7 @@ var _ Node = (*AssignmentOperator)(nil)
 // Assignment is a statement that assigns a new value to a variable (or
 // property).
 type Assignment struct {
+	Trivia
 	// Assignee is the reference to a variable to assign the value to.
 	Assignee Expression
 	// Operator defines the operator this assignment uses.
@@ -82,11 +84,11 @@ type Assignment struct {
 	// Value is the expression that defines the value to use in the assignment.
 	Value Expression
 	// Location is the source range of the node.
-	Location source.Range
+	Location source.Location
 }
 
-// Range returns the source range of the node.
-func (a *Assignment) Range() source.Range {
+// SourceLocation returns the source location of the node.
+func (a *Assignment) SourceLocation() source.Location {
 	return a.Location
 }
 

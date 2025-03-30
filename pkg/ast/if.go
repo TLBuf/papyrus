@@ -15,7 +15,7 @@ type If struct {
 	// condition and all alternative conditionals are false, i.e. Else.
 	Alternative []FunctionStatement
 	// Location is the source range of the node.
-	Location source.Range
+	Location source.Location
 }
 
 // ConditionalBlock is a list of statements that may be conditionally executed.
@@ -27,8 +27,8 @@ type ConditionalBlock struct {
 	Statements []FunctionStatement
 }
 
-// Range returns the source range of the node.
-func (i *If) Range() source.Range {
+// SourceLocation returns the source location of the node.
+func (i *If) SourceLocation() source.Location {
 	return i.Location
 }
 

@@ -4,14 +4,15 @@ import "github.com/TLBuf/papyrus/pkg/source"
 
 // Identifier represents an arbitrary identifier.
 type Identifier struct {
+	Trivia
 	// Text is the normalized text of the identifier.
 	Text string
 	// Location is the source range of the node.
-	Location source.Range
+	Location source.Location
 }
 
-// Range returns the source range of the node.
-func (i *Identifier) Range() source.Range {
+// SourceLocation returns the source location of the node.
+func (i *Identifier) SourceLocation() source.Location {
 	return i.Location
 }
 

@@ -7,6 +7,7 @@ import "github.com/TLBuf/papyrus/pkg/source"
 // Properties are like variables but which can be accessed in the editor and
 // referenced by the engine.
 type Property struct {
+	Trivia
 	// Name is the name of the property.
 	Name *Identifier
 	// Type is the type of this property.
@@ -44,11 +45,11 @@ type Property struct {
 	// type as this property's type, and returns nothing.
 	Set *Function
 	// Location is the source range of the node.
-	Location source.Range
+	Location source.Location
 }
 
-// Range returns the source range of the node.
-func (p *Property) Range() source.Range {
+// SourceLocation returns the source location of the node.
+func (p *Property) SourceLocation() source.Location {
 	return p.Location
 }
 

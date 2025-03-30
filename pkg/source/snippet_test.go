@@ -15,12 +15,12 @@ var file = &source.File{
 func TestSnippet(t *testing.T) {
 	tests := []struct {
 		name     string
-		location source.Range
+		location source.Location
 		want     source.Snippet
 	}{
 		{
 			"point_single_line_fits",
-			source.Range{
+			source.Location{
 				File:            &source.File{Text: []byte("1234567890\r\n")},
 				ByteOffset:      2,
 				Length:          1,
@@ -43,7 +43,7 @@ func TestSnippet(t *testing.T) {
 		},
 		{
 			"point_single_line_tabs",
-			source.Range{
+			source.Location{
 				File:            &source.File{Text: []byte("123\t4567890\r\n")},
 				ByteOffset:      2,
 				Length:          3,
@@ -66,7 +66,7 @@ func TestSnippet(t *testing.T) {
 		},
 		{
 			"point_single_line_first_half",
-			source.Range{
+			source.Location{
 				File:            file,
 				ByteOffset:      42,
 				Length:          1,
@@ -90,7 +90,7 @@ func TestSnippet(t *testing.T) {
 		},
 		{
 			"point_single_line_second_half",
-			source.Range{
+			source.Location{
 				File:            file,
 				ByteOffset:      75,
 				Length:          1,
@@ -114,7 +114,7 @@ func TestSnippet(t *testing.T) {
 		},
 		{
 			"point_single_line_middle",
-			source.Range{
+			source.Location{
 				File:            file,
 				ByteOffset:      60,
 				Length:          1,
@@ -139,7 +139,7 @@ func TestSnippet(t *testing.T) {
 		},
 		{
 			"range_single_line_fits",
-			source.Range{
+			source.Location{
 				File:            &source.File{Text: []byte("1234567890\r\n")},
 				ByteOffset:      2,
 				Length:          5,
@@ -162,7 +162,7 @@ func TestSnippet(t *testing.T) {
 		},
 		{
 			"range_single_line_first_half",
-			source.Range{
+			source.Location{
 				File:            file,
 				ByteOffset:      42,
 				Length:          5,
@@ -186,7 +186,7 @@ func TestSnippet(t *testing.T) {
 		},
 		{
 			"range_single_line_second_half",
-			source.Range{
+			source.Location{
 				File:            file,
 				ByteOffset:      71,
 				Length:          5,
@@ -210,7 +210,7 @@ func TestSnippet(t *testing.T) {
 		},
 		{
 			"range_single_line_middle",
-			source.Range{
+			source.Location{
 				File:            file,
 				ByteOffset:      59,
 				Length:          3,
@@ -235,7 +235,7 @@ func TestSnippet(t *testing.T) {
 		},
 		{
 			"range_single_line_middle_and_end",
-			source.Range{
+			source.Location{
 				File:            file,
 				ByteOffset:      44,
 				Length:          18,
@@ -261,7 +261,7 @@ func TestSnippet(t *testing.T) {
 		},
 		{
 			"range_single_line_middle_and_start",
-			source.Range{
+			source.Location{
 				File:            file,
 				ByteOffset:      56,
 				Length:          18,
@@ -287,7 +287,7 @@ func TestSnippet(t *testing.T) {
 		},
 		{
 			"range_single_line_start_middle_end",
-			source.Range{
+			source.Location{
 				File:            file,
 				ByteOffset:      50,
 				Length:          18,
@@ -314,7 +314,7 @@ func TestSnippet(t *testing.T) {
 		},
 		{
 			"range_single_line_start_middle_end",
-			source.Range{
+			source.Location{
 				File:            file,
 				ByteOffset:      56,
 				Length:          7,
@@ -339,7 +339,7 @@ func TestSnippet(t *testing.T) {
 		},
 		{
 			"range_multi_line",
-			source.Range{
+			source.Location{
 				File:            file,
 				ByteOffset:      2,
 				Length:          201,

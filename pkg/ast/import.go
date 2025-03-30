@@ -9,14 +9,15 @@ import (
 // These are used to bring identifiers available within one script into the
 // scope of another script.
 type Import struct {
+	Trivia
 	// Name is the name of the script being imported.
 	Name *Identifier
 	// Location is the source range of the node.
-	Location source.Range
+	Location source.Location
 }
 
-// Range returns the source range of the node.
-func (i *Import) Range() source.Range {
+// SourceLocation returns the source location of the node.
+func (i *Import) SourceLocation() source.Location {
 	return i.Location
 }
 

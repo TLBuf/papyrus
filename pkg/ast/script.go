@@ -5,6 +5,7 @@ import "github.com/TLBuf/papyrus/pkg/source"
 
 // Script represents a single Papyrus script file.
 type Script struct {
+	Trivia
 	// Name is the name of script.
 	Name *Identifier
 	// Extends is the name of the script this one extends from or nil if this
@@ -22,11 +23,11 @@ type Script struct {
 	// script.
 	Statements []ScriptStatement
 	// Location is the source range of the node.
-	Location source.Range
+	Location source.Location
 }
 
-// Range returns the source range of the node.
-func (s *Script) Range() source.Range {
+// SourceLocation returns the source location of the node.
+func (s *Script) SourceLocation() source.Location {
 	return s.Location
 }
 

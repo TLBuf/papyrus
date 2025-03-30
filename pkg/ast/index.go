@@ -4,6 +4,7 @@ import "github.com/TLBuf/papyrus/pkg/source"
 
 // Index represents the access of a specific element in an array.
 type Index struct {
+	Trivia
 	// Value is the expression that defines the array to reference.
 	Value Expression
 	// OpenOperator is the open bracket.
@@ -14,11 +15,11 @@ type Index struct {
 	// CloseOperator is the close bracket.
 	CloseOperator *ArrayCloseOperator
 	// Location is the source range of the node.
-	Location source.Range
+	Location source.Location
 }
 
-// Range returns the source range of the node.
-func (i *Index) Range() source.Range {
+// SourceLocation returns the source location of the node.
+func (i *Index) SourceLocation() source.Location {
 	return i.Location
 }
 

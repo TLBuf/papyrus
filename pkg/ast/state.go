@@ -7,6 +7,7 @@ import "github.com/TLBuf/papyrus/pkg/source"
 // States define which implementation of functions and events are run at a given
 // time.
 type State struct {
+	Trivia
 	// Name is the name of the variable.
 	Name *Identifier
 	// IsAuto
@@ -14,11 +15,11 @@ type State struct {
 	// Invokables is the list of functions and events defined for this state.
 	Invokables []Invokable
 	// Location is the source range of the node.
-	Location source.Range
+	Location source.Location
 }
 
-// Range returns the source range of the node.
-func (s *State) Range() source.Range {
+// SourceLocation returns the source location of the node.
+func (s *State) SourceLocation() source.Location {
 	return s.Location
 }
 

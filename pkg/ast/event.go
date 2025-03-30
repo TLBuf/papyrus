@@ -6,6 +6,7 @@ import "github.com/TLBuf/papyrus/pkg/source"
 //
 // Events are like functions that are predefined by the engine.
 type Event struct {
+	Trivia
 	// Name is the name of the event.
 	Name *Identifier
 	// Parameters is the list of parameters this event defines in order.
@@ -19,11 +20,11 @@ type Event struct {
 	// the event.
 	Statements []FunctionStatement
 	// Location is the source range of the node.
-	Location source.Range
+	Location source.Location
 }
 
-// Range returns the source range of the node.
-func (e *Event) Range() source.Range {
+// SourceLocation returns the source location of the node.
+func (e *Event) SourceLocation() source.Location {
 	return e.Location
 }
 

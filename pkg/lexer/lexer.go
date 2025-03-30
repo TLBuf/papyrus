@@ -9,6 +9,21 @@ import (
 	"github.com/TLBuf/papyrus/pkg/token"
 )
 
+// mode records what state the lexer is currently in (i.e. is it processing a
+// block comment or just lexing normally).
+type mode int
+
+const (
+	// Normal token lexing.
+	normal mode = iota
+	// Line comment lexing.
+	commentLine
+	// Block comment lexing.
+	commentBlock
+	// Doc comment lexing.
+	commentDoc
+)
+
 // Lexer provides the ability to lex a Papyrus script.
 type Lexer struct {
 	file            *source.File
@@ -19,6 +34,8 @@ type Lexer struct {
 	line            int
 	lineStartOffset int
 	lineEndOffset   int
+	mode            mode
+	terminal        token.Token
 }
 
 // New returns a [*Lexer] initialized for the given text.
@@ -40,11 +57,26 @@ func New(file *source.File) (*Lexer, error) {
 //
 // Returns an [Error] if the input could not be lexed as a token.
 func (l *Lexer) NextToken() (token.Token, error) {
-	tok, err := l.nextToken()
-	if err != nil || tok.Type == token.Newline || tok.Type == token.EOF {
+	var tok token.Token
+	var err error
+	switch l.mode {
+	case normal:
+		tok, err = l.nextToken()
+	case commentLine:
+		tok, err = l.commentLine()
+	case commentBlock:
+		tok, err = l.commentBlock()
+	case commentDoc:
+		tok, err = l.commentDoc()
+	default:
+		err = fmt.Errorf("Lexer in unknown lexing mode: %d", l.mode)
+	}
+	if err != nil || tok.Kind == token.Newline || tok.Kind == token.EOF {
 		return tok, err
 	}
-	tok.Location.PostambleLength = l.lineEndOffset - tok.Location.ByteOffset - tok.Location.Length
+	if l.terminal.Kind != token.Newline {
+		tok.Location.PostambleLength = l.lineEndOffset - tok.Location.ByteOffset - tok.Location.Length
+	}
 	return tok, err
 }
 
@@ -56,18 +88,18 @@ func (l *Lexer) nextToken() (token.Token, error) {
 	switch l.character {
 	case 0:
 		tok = token.Token{
-			Type:     token.EOF,
+			Kind:     token.EOF,
 			Location: l.here(),
 		}
 		tok.Location.Length = 0
 	case '(':
-		tok = l.newToken(token.LParen)
+		tok = l.newToken(token.ParenthesisOpen)
 	case ')':
-		tok = l.newToken(token.RParen)
+		tok = l.newToken(token.ParenthesisClose)
 	case '[':
-		tok = l.newToken(token.LBracket)
+		tok = l.newToken(token.BracketOpen)
 	case ']':
-		tok = l.newToken(token.RBracket)
+		tok = l.newToken(token.BracketClose)
 	case ',':
 		tok = l.newToken(token.Comma)
 	case '.':
@@ -93,7 +125,7 @@ func (l *Lexer) nextToken() (token.Token, error) {
 		if err != nil {
 			return tok, err
 		}
-		if tok.Type != token.Newline {
+		if tok.Kind != token.Newline {
 			return l.newTokenAt(token.Illegal, start), newError(tok.Location, "expected a newline immediately after '/'")
 		}
 		return l.NextToken()
@@ -114,7 +146,7 @@ func (l *Lexer) nextToken() (token.Token, error) {
 		if l.character == '=' {
 			tok = l.newTokenFrom(token.AssignAdd, start)
 		}
-		return l.newTokenAt(token.Add, start), nil
+		return l.newTokenAt(token.Plus, start), nil
 	case '-':
 		start := l.here()
 		if err := l.readChar(); err != nil {
@@ -123,7 +155,7 @@ func (l *Lexer) nextToken() (token.Token, error) {
 		if l.character == '=' {
 			tok = l.newTokenFrom(token.AssignSubtract, start)
 		}
-		return l.newTokenAt(token.Subtract, start), nil
+		return l.newTokenAt(token.Minus, start), nil
 	case '*':
 		start := l.here()
 		if err := l.readChar(); err != nil {
@@ -185,6 +217,7 @@ func (l *Lexer) nextToken() (token.Token, error) {
 		}
 		if l.character == '|' {
 			tok = l.newTokenFrom(token.LogicalOr, start)
+			break
 		}
 		return l.newTokenAt(token.Illegal, start), newError(tok.Location, "'|' is not a valid operator")
 	case '&':
@@ -194,10 +227,28 @@ func (l *Lexer) nextToken() (token.Token, error) {
 		}
 		if l.character == '&' {
 			tok = l.newTokenFrom(token.LogicalAnd, start)
+			break
 		}
 		return l.newTokenAt(token.Illegal, start), newError(tok.Location, "'&' is not a valid operator")
-	case '{', ';':
-		return l.readComment()
+	case '{':
+		tok = l.newToken(token.BraceOpen)
+		if err := l.readChar(); err != nil {
+			return l.newToken(token.Illegal), err
+		}
+		l.mode = commentDoc
+		return tok, nil
+	case ';':
+		start := l.here()
+		if err := l.readChar(); err != nil {
+			return l.newToken(token.Illegal), err
+		}
+		if l.character == '/' {
+			l.mode = commentBlock
+			tok = l.newTokenFrom(token.BlockCommentOpen, start)
+			break
+		}
+		l.mode = commentLine
+		return l.newTokenAt(token.Semicolon, start), nil
 	case '"':
 		return l.readString()
 	default:
@@ -219,29 +270,29 @@ func (l *Lexer) nextToken() (token.Token, error) {
 	return tok, nil
 }
 
-func (l *Lexer) newToken(t token.Type) token.Token {
+func (l *Lexer) newToken(t token.Kind) token.Token {
 	return token.Token{
-		Type:     t,
+		Kind:     t,
 		Location: l.here(),
 	}
 }
 
-func (l *Lexer) newTokenAt(t token.Type, at source.Range) token.Token {
+func (l *Lexer) newTokenAt(t token.Kind, at source.Location) token.Token {
 	return token.Token{
-		Type:     t,
+		Kind:     t,
 		Location: at,
 	}
 }
 
-func (l *Lexer) newTokenFrom(t token.Type, from source.Range) token.Token {
+func (l *Lexer) newTokenFrom(t token.Kind, from source.Location) token.Token {
 	return token.Token{
-		Type:     t,
+		Kind:     t,
 		Location: source.Span(from, l.here()),
 	}
 }
 
-func (l *Lexer) here() source.Range {
-	return source.Range{
+func (l *Lexer) here() source.Location {
+	return source.Location{
 		File:           l.file,
 		ByteOffset:     l.position,
 		Length:         l.next - l.position,
@@ -289,7 +340,7 @@ func (l *Lexer) readNumber() (token.Token, error) {
 		}
 		tok := l.newTokenAt(token.IntLiteral, source.Span(start, end))
 		if l.file.Text[l.position-1] == 'x' || l.file.Text[l.position-1] == 'X' {
-			tok.Type = token.Illegal
+			tok.Kind = token.Illegal
 			return tok, newError(tok.Location, "expected a digit to follow the %s in a hex int literal", string(l.file.Text[l.position-1]))
 		}
 		return tok, nil
@@ -307,11 +358,11 @@ func (l *Lexer) readNumber() (token.Token, error) {
 	tok := l.newTokenAt(token.IntLiteral, source.Span(start, end))
 	if l.file.Text[l.position-1] == '.' {
 		// Number ends with a dot?
-		tok.Type = token.Illegal
+		tok.Kind = token.Illegal
 		return tok, newError(tok.Location, "expected a digit to follow the dot in a float literal")
 	}
 	if isFloat {
-		tok.Type = token.FloatLiteral
+		tok.Kind = token.FloatLiteral
 	}
 	return tok, nil
 }
@@ -347,7 +398,7 @@ func (l *Lexer) readString() (token.Token, error) {
 	}
 	tok := l.newTokenFrom(token.StringLiteral, start)
 	if l.character == 0 {
-		tok.Type = token.Illegal
+		tok.Kind = token.Illegal
 		return tok, newError(tok.Location, "reached end of file while reading string literal")
 	}
 	if err := l.readChar(); err != nil {
@@ -356,68 +407,121 @@ func (l *Lexer) readString() (token.Token, error) {
 	return tok, nil
 }
 
-func (l *Lexer) readComment() (token.Token, error) {
+// commentLine handles lexing in the commentLine mode.
+func (l *Lexer) commentLine() (token.Token, error) {
+	if l.terminal.Kind == token.Newline || l.terminal.Kind == token.EOF {
+		// Already hit the terminal token, clean up, and return it.
+		terminal := l.terminal
+		l.terminal = token.Token{}
+		l.mode = normal
+		return terminal, nil
+	}
 	start := l.here()
-	if l.character == '{' {
-		// Doc comment
-		for l.character != 0 && l.character != '}' {
+	var end source.Location
+	for {
+		terminal := l.here()
+		if l.character != 0 && l.character != '\r' && l.character != '\n' {
+			end = terminal
+			if err := l.readChar(); err != nil {
+				return l.newToken(token.Illegal), err
+			}
+			continue
+		}
+		if l.character == '\r' {
+			// Maybe the end?
 			if err := l.readChar(); err != nil {
 				return l.newToken(token.Illegal), err
 			}
 		}
-		if l.character == 0 {
-			tok := l.newTokenFrom(token.Illegal, start)
-			return tok, newError(tok.Location, "reached end of file while reading doc comment")
-		}
-		tok := l.newTokenFrom(token.DocComment, start)
-		if err := l.readChar(); err != nil {
-			return l.newToken(token.Illegal), err
-		}
-		return tok, nil
-	}
-	if err := l.readChar(); err != nil {
-		return l.newToken(token.Illegal), err
-	}
-	if l.character == '/' {
-		// Block comment
-		if err := l.readChar(); err != nil {
-			return l.newToken(token.Illegal), err
-		}
-		for {
+		if l.character == '\n' || l.character == 0 {
+			// We've read as much conent as there is and hit the close token.
+			comment := l.newTokenAt(token.Comment, source.Span(start, end))
+			l.terminal = l.newTokenFrom(token.Newline, terminal)
 			if l.character == 0 {
-				break
+				l.terminal.Kind = token.EOF
+				return comment, nil
 			}
-			if l.character == '/' {
+			if err := l.readChar(); err != nil {
+				return l.newToken(token.Illegal), err
+			}
+			return comment, nil
+		}
+	}
+}
+
+// commentBlock handles lexing in the commentBlock mode.
+func (l *Lexer) commentBlock() (token.Token, error) {
+	if l.terminal.Kind == token.BlockCommentClose {
+		// Already hit the terminal token, clean up, and return it.
+		terminal := l.terminal
+		l.terminal = token.Token{}
+		l.mode = normal
+		return terminal, nil
+	}
+	start := l.here()
+	var end source.Location
+	for l.character != 0 {
+		if l.character == '/' {
+			terminal := l.here()
+			// Maybe the end?
+			if err := l.readChar(); err != nil {
+				return l.newToken(token.Illegal), err
+			}
+			if l.character == 0 {
+				break // Unexpected EOF
+			}
+			if l.character == ';' {
+				// We've read as much conent as there is and hit the close token.
+				comment := l.newTokenAt(token.Comment, source.Span(start, end))
+				l.terminal = l.newTokenFrom(token.BlockCommentClose, terminal)
 				if err := l.readChar(); err != nil {
 					return l.newToken(token.Illegal), err
 				}
-				if l.character == ';' {
-					break
-				}
+				// Do NOT flip the mode yet, we need to come back for the terminal.
+				return comment, nil
 			}
-			if err := l.readChar(); err != nil {
-				return l.newToken(token.Illegal), err
-			}
+			// False alarm, keep reading.
 		}
-		if l.character == 0 {
-			tok := l.newTokenFrom(token.Illegal, start)
-			return tok, newError(tok.Location, "reached end of file while reading block comment")
-		}
-		tok := l.newTokenFrom(token.BlockComment, start)
-		if err := l.readChar(); err != nil {
-			return l.newToken(token.Illegal), err
-		}
-		return tok, nil
-	}
-	// Line comment
-	var end source.Range
-	for l.character != 0 && l.character != '\n' && l.character != '\r' {
 		end = l.here()
 		if err := l.readChar(); err != nil {
 			return l.newToken(token.Illegal), err
 		}
 	}
-	return l.newTokenAt(token.LineComment, source.Span(start, end)), nil
+	l.mode = normal
+	tok := l.newTokenFrom(token.Illegal, start)
+	return tok, newError(tok.Location, "reached end of file while reading block comment")
+}
+
+// commentDoc handles lexing in the commentDoc mode.
+func (l *Lexer) commentDoc() (token.Token, error) {
+	if l.terminal.Kind == token.BraceClose {
+		// Already hit the terminal token, clean up, and return it.
+		terminal := l.terminal
+		l.terminal = token.Token{}
+		l.mode = normal
+		return terminal, nil
+	}
+	start := l.here()
+	var end source.Location
+	for l.character != 0 && l.character != '}' {
+		end = l.here()
+		if err := l.readChar(); err != nil {
+			return l.newToken(token.Illegal), err
+		}
+	}
+	if l.character == 0 {
+		l.mode = normal
+		tok := l.newTokenFrom(token.Illegal, start)
+		return tok, newError(tok.Location, "reached end of file while reading doc comment")
+	}
+	// We've read as much conent as there is and hit the close token.
+	comment := l.newTokenAt(token.Comment, source.Span(start, end))
+	l.terminal = l.newToken(token.BraceClose)
+	if err := l.readChar(); err != nil {
+		return l.newToken(token.Illegal), err
+	}
+	// Do NOT flip the mode yet, we need to come back for the terminal.
+	return comment, nil
 }
 
 func (l *Lexer) skipWhitespace() error {

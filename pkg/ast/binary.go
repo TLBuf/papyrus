@@ -62,14 +62,15 @@ var BinaryOperatorKindNames = map[BinaryOperatorKind]string{
 
 // BinaryOperator represents a binary operator.
 type BinaryOperator struct {
+	Trivia
 	// Kind is the type of binary operator.
 	Kind BinaryOperatorKind
 	// Location is the source range of the node.
-	Location source.Range
+	Location source.Location
 }
 
-// Range returns the source range of the node.
-func (o *BinaryOperator) Range() source.Range {
+// SourceLocation returns the source location of the node.
+func (o *BinaryOperator) SourceLocation() source.Location {
 	return o.Location
 }
 
@@ -77,6 +78,7 @@ var _ Node = (*BinaryOperator)(nil)
 
 // Binary is an expression that computes a value from two operands.
 type Binary struct {
+	Trivia
 	// LeftOperand is the operand on the left of the operator.
 	LeftOperand Expression
 	// Operator defines the operator this binary expression uses.
@@ -84,11 +86,11 @@ type Binary struct {
 	// RightOperand is the operand on the right of the operator.
 	RightOperand Expression
 	// Location is the source range of the node.
-	Location source.Range
+	Location source.Location
 }
 
-// Range returns the source range of the node.
-func (b *Binary) Range() source.Range {
+// SourceLocation returns the source location of the node.
+func (b *Binary) SourceLocation() source.Location {
 	return b.Location
 }
 

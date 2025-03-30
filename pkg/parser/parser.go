@@ -50,8 +50,8 @@ func (p *Parser) Parse(file *source.File) (*ast.Script, error) {
 	prsr := &parser{
 		l:                 lex,
 		keepLooseComments: p.keepLooseComments,
-		prefix:            make(map[token.Type]prefixParser),
-		infix:             make(map[token.Type]infixParser),
+		prefix:            make(map[token.Kind]prefixParser),
+		infix:             make(map[token.Kind]infixParser),
 	}
 
 	registerPrefix(prsr, prsr.ParseBoolLiteral, token.True, token.False)
@@ -59,9 +59,9 @@ func (p *Parser) Parse(file *source.File) (*ast.Script, error) {
 	registerPrefix(prsr, prsr.ParseIdentifier, token.Identifier)
 	registerPrefix(prsr, prsr.ParseIntLiteral, token.IntLiteral)
 	registerPrefix(prsr, prsr.ParseNoneLiteral, token.None)
-	registerPrefix(prsr, prsr.ParseParenthetical, token.LParen)
+	registerPrefix(prsr, prsr.ParseParenthetical, token.ParenthesisOpen)
 	registerPrefix(prsr, prsr.ParseStringLiteral, token.StringLiteral)
-	registerPrefix(prsr, prsr.ParseUnary, token.Subtract, token.LogicalNot)
+	registerPrefix(prsr, prsr.ParseUnary, token.Minus, token.LogicalNot)
 
 	registerInfix(prsr, prsr.ParseAccess, token.Dot)
 	registerInfix(prsr, prsr.ParseBinary,
@@ -73,14 +73,14 @@ func (p *Parser) Parse(file *source.File) (*ast.Script, error) {
 		token.GreaterOrEqual,
 		token.Less,
 		token.LessOrEqual,
-		token.Add,
-		token.Subtract,
+		token.Plus,
+		token.Minus,
 		token.Divide,
 		token.Multiply,
 		token.Modulo)
-	registerInfix(prsr, prsr.ParseCall, token.LParen)
+	registerInfix(prsr, prsr.ParseCall, token.ParenthesisOpen)
 	registerInfix(prsr, prsr.ParseCast, token.As)
-	registerInfix(prsr, prsr.ParseIndex, token.LBracket)
+	registerInfix(prsr, prsr.ParseIndex, token.BracketOpen)
 
 	if err := prsr.next(); err != nil {
 		return nil, err
@@ -98,13 +98,13 @@ type parser struct {
 	lookahead token.Token
 
 	keepLooseComments bool
-	looseComments     []token.Token
+	looseComments     []ast.LooseComment
 
 	recovery bool
 	errors   []ast.Error
 
-	prefix map[token.Type]prefixParser
-	infix  map[token.Type]infixParser
+	prefix map[token.Kind]prefixParser
+	infix  map[token.Kind]infixParser
 }
 
 const (
@@ -122,27 +122,27 @@ const (
 	Index          // x[y]
 )
 
-var precedences = map[token.Type]int{
-	token.LogicalOr:      LogicalOr,
-	token.LogicalAnd:     LogicalAnd,
-	token.Equal:          Comparison,
-	token.NotEqual:       Comparison,
-	token.Greater:        Comparison,
-	token.GreaterOrEqual: Comparison,
-	token.Less:           Comparison,
-	token.LessOrEqual:    Comparison,
-	token.Add:            Additive,
-	token.Subtract:       Additive,
-	token.Multiply:       Multiplicitive,
-	token.Divide:         Multiplicitive,
-	token.Modulo:         Multiplicitive,
-	token.As:             Cast,
-	token.Dot:            Access,
-	token.LParen:         Call,
-	token.LBracket:       Index,
+var precedences = map[token.Kind]int{
+	token.LogicalOr:       LogicalOr,
+	token.LogicalAnd:      LogicalAnd,
+	token.Equal:           Comparison,
+	token.NotEqual:        Comparison,
+	token.Greater:         Comparison,
+	token.GreaterOrEqual:  Comparison,
+	token.Less:            Comparison,
+	token.LessOrEqual:     Comparison,
+	token.Plus:            Additive,
+	token.Minus:           Additive,
+	token.Multiply:        Multiplicitive,
+	token.Divide:          Multiplicitive,
+	token.Modulo:          Multiplicitive,
+	token.As:              Cast,
+	token.Dot:             Access,
+	token.ParenthesisOpen: Call,
+	token.BracketOpen:     Index,
 }
 
-func precedenceOf(t token.Type) int {
+func precedenceOf(t token.Kind) int {
 	if p, ok := precedences[t]; ok {
 		return p
 	}
@@ -168,33 +168,45 @@ func (p *parser) next() error {
 	p.lookahead = t
 	// Consume loose comments immediately so the rest of the
 	// parser never has to deal with them directly.
-	if p.token.Type == token.LineComment || p.token.Type == token.BlockComment {
-		if p.keepLooseComments {
-			p.looseComments = append(p.looseComments, p.token)
+	if p.token.Kind == token.Semicolon {
+		tok, err := p.ParseLineComment()
+		if err != nil {
+			return err
 		}
-		return p.next()
+		if p.keepLooseComments {
+			p.looseComments = append(p.looseComments, tok)
+		}
+	}
+	if p.token.Kind == token.BlockCommentOpen {
+		tok, err := p.ParseBlockComment()
+		if err != nil {
+			return err
+		}
+		if p.keepLooseComments {
+			p.looseComments = append(p.looseComments, tok)
+		}
 	}
 	return nil
 }
 
 // tryConsume advances the token position if the current token matches the given
 // token type or returns an error.
-func (p *parser) tryConsume(t token.Type, alts ...token.Type) error {
-	if p.token.Type == t {
+func (p *parser) tryConsume(t token.Kind, alts ...token.Kind) error {
+	if p.token.Kind == t {
 		return p.next()
 	}
 	for _, t := range alts {
-		if p.token.Type == t {
+		if p.token.Kind == t {
 			return p.next()
 		}
 	}
 	if len(alts) > 0 {
-		return newError(p.token.Location, "expected any of [%s, %s], but found %s", t, tokensTypesToString(alts...), p.token.Type)
+		return newError(p.token.Location, "expected any of [%s, %s], but found %s", t, tokensTypesToString(alts...), p.token.Kind)
 	}
-	return newError(p.token.Location, "expected %s, but found %s", t, p.token.Type)
+	return newError(p.token.Location, "expected %s, but found %s", t, p.token.Kind)
 }
 
-func tokensTypesToString(types ...token.Type) string {
+func tokensTypesToString(types ...token.Kind) string {
 	if len(types) == 0 {
 		return ""
 	}
@@ -211,7 +223,7 @@ func tokensTypesToString(types ...token.Type) string {
 // consumeNewlines advances the token position through the as many newlines as
 // possible until a non-newline token is found.
 func (p *parser) consumeNewlines() error {
-	for p.token.Type == token.Newline {
+	for p.token.Kind == token.Newline {
 		if err := p.next(); err != nil {
 			return err
 		}
@@ -219,9 +231,59 @@ func (p *parser) consumeNewlines() error {
 	return nil
 }
 
+func (p *parser) ParseDocComment() (*ast.DocComment, error) {
+	comment := &ast.DocComment{
+		Open: p.token,
+	}
+	if err := p.tryConsume(token.BraceOpen); err != nil {
+		return nil, err
+	}
+	comment.Text = p.token
+	if err := p.tryConsume(token.Comment); err != nil {
+		return nil, err
+	}
+	comment.Close = p.token
+	if err := p.tryConsume(token.BraceClose); err != nil {
+		return nil, err
+	}
+	return comment, nil
+}
+
+func (p *parser) ParseBlockComment() (*ast.BlockComment, error) {
+	comment := &ast.BlockComment{
+		Open: p.token,
+	}
+	if err := p.tryConsume(token.BlockCommentOpen); err != nil {
+		return nil, err
+	}
+	comment.Text = p.token
+	if err := p.tryConsume(token.Comment); err != nil {
+		return nil, err
+	}
+	comment.Close = p.token
+	if err := p.tryConsume(token.BlockCommentClose); err != nil {
+		return nil, err
+	}
+	return comment, nil
+}
+
+func (p *parser) ParseLineComment() (*ast.LineComment, error) {
+	comment := &ast.LineComment{
+		Semicolon: p.token,
+	}
+	if err := p.tryConsume(token.Semicolon); err != nil {
+		return nil, err
+	}
+	comment.Text = p.token
+	if err := p.tryConsume(token.Comment); err != nil {
+		return nil, err
+	}
+	return comment, nil
+}
+
 func (p *parser) ParseScript() (*ast.Script, error) {
 	script := &ast.Script{
-		Location: source.Range{
+		Location: source.Location{
 			File:        p.token.Location.File,
 			Length:      len(p.token.Location.File.Text),
 			StartLine:   1,
@@ -231,16 +293,14 @@ func (p *parser) ParseScript() (*ast.Script, error) {
 	if err := p.ParseScriptHeader(script); err != nil {
 		return nil, err
 	}
-	if p.token.Type == token.DocComment {
-		script.Comment = &ast.DocComment{
-			Text:     string(p.token.Location.Text()),
-			Location: p.token.Location,
-		}
-		if err := p.next(); err != nil {
+	if p.token.Kind == token.BraceOpen {
+		comment, err := p.ParseDocComment()
+		if err != nil {
 			return nil, err
 		}
+		script.Comment = comment
 	}
-	for p.token.Type != token.EOF {
+	for p.token.Kind != token.EOF {
 		if err := p.consumeNewlines(); err != nil {
 			return nil, err
 		}
@@ -263,7 +323,7 @@ func (p *parser) ParseScriptHeader(script *ast.Script) error {
 	if script.Name, err = p.ParseIdentifier(); err != nil {
 		return err
 	}
-	if p.token.Type == token.Extends {
+	if p.token.Kind == token.Extends {
 		if err := p.next(); err != nil {
 			return err
 		}
@@ -271,8 +331,8 @@ func (p *parser) ParseScriptHeader(script *ast.Script) error {
 			return err
 		}
 	}
-	for p.token.Type == token.Hidden || p.token.Type == token.Conditional {
-		if p.token.Type == token.Hidden {
+	for p.token.Kind == token.Hidden || p.token.Kind == token.Conditional {
+		if p.token.Kind == token.Hidden {
 			script.IsHidden = true
 		} else {
 			script.IsConditional = true
@@ -288,7 +348,7 @@ func (p *parser) ParseScriptStatement() (ast.ScriptStatement, error) {
 	start := p.token
 	var stmt ast.ScriptStatement
 	var err error
-	switch p.token.Type {
+	switch p.token.Kind {
 	case token.Import:
 		stmt, err = p.ParseImport()
 	case token.Event:
@@ -298,7 +358,7 @@ func (p *parser) ParseScriptStatement() (ast.ScriptStatement, error) {
 	case token.Function:
 		stmt, err = p.ParseFunction()
 	case token.Bool, token.Float, token.Int, token.String, token.Identifier:
-		switch p.lookahead.Type {
+		switch p.lookahead.Kind {
 		case token.Property:
 			stmt, err = p.ParseProperty()
 		case token.Function:
@@ -306,10 +366,10 @@ func (p *parser) ParseScriptStatement() (ast.ScriptStatement, error) {
 		case token.Identifier:
 			stmt, err = p.ParseScriptVariable()
 		default:
-			err = fmt.Errorf("expected Import, Event, State, Function, Property, or a variable definition, but found %s", start.Type)
+			err = fmt.Errorf("expected Import, Event, State, Function, Property, or a variable definition, but found %s", start.Kind)
 		}
 	default:
-		err = fmt.Errorf("expected Import, Event, State, Function, Property, or a variable definition, but found %s", start.Type)
+		err = fmt.Errorf("expected Import, Event, State, Function, Property, or a variable definition, but found %s", start.Kind)
 	}
 	if err == nil {
 		return stmt, nil
@@ -338,7 +398,7 @@ func (p *parser) ParseScriptStatement() (ast.ScriptStatement, error) {
 
 func (p *parser) recoverScriptStatement() error {
 	for {
-		switch p.lookahead.Type {
+		switch p.lookahead.Kind {
 		case token.EOF:
 			// Hit end of file, give up.
 			return nil
@@ -371,7 +431,7 @@ func (p *parser) ParseImport() (*ast.Import, error) {
 
 func (p *parser) ParseState() (ast.ScriptStatement, error) {
 	start := p.token.Location
-	isAuto := p.token.Type == token.Auto
+	isAuto := p.token.Kind == token.Auto
 	if isAuto {
 		if err := p.next(); err != nil {
 			return nil, err
@@ -388,8 +448,8 @@ func (p *parser) ParseState() (ast.ScriptStatement, error) {
 		Name:   name,
 		IsAuto: isAuto,
 	}
-	for p.token.Type != token.EndState {
-		if p.token.Type == token.EOF {
+	for p.token.Kind != token.EndState {
+		if p.token.Kind == token.EOF {
 			// State was never closed, proactively create a
 			errStmt := &ast.ErrorScriptStatement{
 				Message:  fmt.Sprintf("hit end of file while parsing state %q, did you forget %s?", name.Location.Text(), token.EndState),
@@ -401,7 +461,7 @@ func (p *parser) ParseState() (ast.ScriptStatement, error) {
 		if err := p.consumeNewlines(); err != nil {
 			return nil, err
 		}
-		if p.token.Type == token.EndState {
+		if p.token.Kind == token.EndState {
 			break
 		}
 		stmt, err := p.ParseInvokable()
@@ -423,13 +483,13 @@ func (p *parser) ParseInvokable() (ast.Invokable, error) {
 	start := p.token
 	var stmt ast.Invokable
 	var err error
-	switch p.token.Type {
+	switch p.token.Kind {
 	case token.Event:
 		stmt, err = p.ParseEvent()
 	case token.Function, token.Bool, token.Float, token.Int, token.String, token.Identifier:
 		stmt, err = p.ParseFunction()
 	default:
-		err = fmt.Errorf("expected Event or Function, but found %s", start.Type)
+		err = fmt.Errorf("expected Event or Function, but found %s", start.Kind)
 	}
 	if err == nil {
 		return stmt, nil
@@ -458,7 +518,7 @@ func (p *parser) ParseInvokable() (ast.Invokable, error) {
 
 func (p *parser) recoverInvokable() error {
 	for {
-		switch p.lookahead.Type {
+		switch p.lookahead.Kind {
 		case token.EOF:
 			// Hit end of file, give up.
 			return nil
@@ -490,16 +550,30 @@ func (p *parser) ParseEvent() (*ast.Event, error) {
 		return nil, err
 	}
 	node.Parameters = params
-	if p.token.Type == token.Native {
+	end := p.token.Location
+	if p.token.Kind == token.Native {
 		if err := p.next(); err != nil {
 			return nil, err
 		}
 		node.IsNative = true
-		node.Location = source.Span(start, p.token.Location)
+	}
+	if p.token.Kind == token.Newline && p.lookahead.Kind == token.BraceOpen {
+		if err := p.next(); err != nil {
+			return nil, err
+		}
+		comment, err := p.ParseDocComment()
+		if err != nil {
+			return nil, err
+		}
+		node.Comment = comment
+		end = comment.Close.SourceLocation()
+	}
+	if node.IsNative {
+		node.Location = source.Span(start, end)
 		if err := p.consumeNewlines(); err != nil {
 			return nil, err
 		}
-		return node, err
+		return node, nil
 	}
 	stmts, err := p.ParseFunctionStatementBlock(token.EndEvent)
 	if err != nil {
@@ -517,7 +591,7 @@ func (p *parser) ParseFunction() (*ast.Function, error) {
 	start := p.token.Location
 	var returnType *ast.TypeLiteral
 	var err error
-	if p.token.Type != token.Function {
+	if p.token.Kind != token.Function {
 		returnType, err = p.ParseTypeLiteral()
 		if err != nil {
 			return nil, err
@@ -539,9 +613,9 @@ func (p *parser) ParseFunction() (*ast.Function, error) {
 		return nil, err
 	}
 	node.Parameters = params
-	var end source.Range
-	for p.token.Type == token.Native || p.token.Type == token.Global {
-		if p.token.Type == token.Native {
+	var end source.Location
+	for p.token.Kind == token.Native || p.token.Kind == token.Global {
+		if p.token.Kind == token.Native {
 			node.IsNative = true
 		} else {
 			node.IsGlobal = true
@@ -551,21 +625,15 @@ func (p *parser) ParseFunction() (*ast.Function, error) {
 			return nil, err
 		}
 	}
-	if err := p.consumeNewlines(); err != nil {
-		return nil, err
-	}
-	if p.token.Type == token.DocComment {
-		node.Comment = &ast.DocComment{
-			Text:     string(p.token.Location.Text()[1 : p.token.Location.Length-1]),
-			Location: p.token.Location,
-		}
-		end = p.token.Location
+	if p.token.Kind == token.Newline && p.lookahead.Kind == token.BraceOpen {
 		if err := p.next(); err != nil {
 			return nil, err
 		}
-		if err := p.consumeNewlines(); err != nil {
+		comment, err := p.ParseDocComment()
+		if err != nil {
 			return nil, err
 		}
+		node.Comment = comment
 	}
 	if node.IsNative {
 		node.Location = source.Span(start, end)
@@ -584,17 +652,17 @@ func (p *parser) ParseFunction() (*ast.Function, error) {
 }
 
 func (p *parser) ParseParameterList() ([]*ast.Parameter, error) {
-	if err := p.tryConsume(token.LParen); err != nil {
+	if err := p.tryConsume(token.ParenthesisOpen); err != nil {
 		return nil, err
 	}
 	var params []*ast.Parameter
 	for {
-		switch p.token.Type {
+		switch p.token.Kind {
 		case token.Comma:
 			if err := p.next(); err != nil {
 				return nil, err
 			}
-		case token.RParen:
+		case token.ParenthesisClose:
 			if err := p.next(); err != nil {
 				return nil, err
 			}
@@ -624,7 +692,7 @@ func (p *parser) ParseParameter() (*ast.Parameter, error) {
 		Name: name,
 	}
 	node.Location = source.Span(start, name.Location)
-	if p.token.Type == token.Assign {
+	if p.token.Kind == token.Assign {
 		// Has default.
 		if err := p.next(); err != nil {
 			return nil, err
@@ -634,13 +702,13 @@ func (p *parser) ParseParameter() (*ast.Parameter, error) {
 			return nil, err
 		}
 		node.Value = literal
-		node.Location = source.Span(start, literal.Range())
+		node.Location = source.Span(start, literal.SourceLocation())
 	}
 	return node, nil
 }
 
-func (p *parser) ParseFunctionStatementBlock(terminals ...token.Type) ([]ast.FunctionStatement, error) {
-	terms := make(map[token.Type]struct{})
+func (p *parser) ParseFunctionStatementBlock(terminals ...token.Kind) ([]ast.FunctionStatement, error) {
+	terms := make(map[token.Kind]struct{})
 	for _, t := range terminals {
 		terms[t] = struct{}{}
 	}
@@ -649,7 +717,7 @@ func (p *parser) ParseFunctionStatementBlock(terminals ...token.Type) ([]ast.Fun
 		if err := p.consumeNewlines(); err != nil {
 			return nil, err
 		}
-		if _, ok := terms[p.token.Type]; ok {
+		if _, ok := terms[p.token.Kind]; ok {
 			return stmts, nil
 		}
 		start := p.token.Location
@@ -680,7 +748,7 @@ func (p *parser) ParseFunctionStatementBlock(terminals ...token.Type) ([]ast.Fun
 
 func (p *parser) recoverFunctionStatement() error {
 	for {
-		switch p.lookahead.Type {
+		switch p.lookahead.Kind {
 		case token.EOF:
 			// Hit end of file, give up.
 			return nil
@@ -696,7 +764,7 @@ func (p *parser) recoverFunctionStatement() error {
 }
 
 func (p *parser) ParseFunctionStatement() (ast.FunctionStatement, error) {
-	switch p.token.Type {
+	switch p.token.Kind {
 	case token.Return:
 		return p.ParseReturn()
 	case token.If:
@@ -706,7 +774,7 @@ func (p *parser) ParseFunctionStatement() (ast.FunctionStatement, error) {
 	case token.Bool, token.Int, token.Float, token.String:
 		return p.ParseFunctionVariable()
 	case token.Identifier:
-		if p.lookahead.Type == token.Identifier { // Object type.
+		if p.lookahead.Kind == token.Identifier { // Object type.
 			return p.ParseFunctionVariable()
 		}
 	}
@@ -733,7 +801,7 @@ func (p *parser) ParseFunctionVariable() (*ast.FunctionVariable, error) {
 		Type:     typeLiteral,
 		Name:     name,
 		Value:    expr,
-		Location: source.Span(typeLiteral.Location, expr.Range()),
+		Location: source.Span(typeLiteral.Location, expr.SourceLocation()),
 	}, nil
 }
 
@@ -755,7 +823,7 @@ func (p *parser) ParseAssignment() (*ast.Assignment, error) {
 		Assignee: assignee,
 		Operator: operator,
 		Value:    expr,
-		Location: source.Span(start, expr.Range()),
+		Location: source.Span(start, expr.SourceLocation()),
 	}, nil
 }
 
@@ -763,7 +831,7 @@ func (p *parser) ParseAssignmentOperator() (*ast.AssignmentOperator, error) {
 	operator := &ast.AssignmentOperator{
 		Location: p.token.Location,
 	}
-	switch p.token.Type {
+	switch p.token.Kind {
 	case token.Assign:
 		operator.Kind = ast.Assign
 	case token.AssignAdd:
@@ -784,7 +852,7 @@ func (p *parser) ParseAssignmentOperator() (*ast.AssignmentOperator, error) {
 			token.AssignModulo,
 			token.AssignMultiply,
 			token.AssignSubtract)
-		return nil, newError(p.token.Location, "expected any of [%s], but found %s", types, p.token.Type)
+		return nil, newError(p.token.Location, "expected any of [%s], but found %s", types, p.token.Kind)
 	}
 	if err := p.next(); err != nil {
 		return nil, err
@@ -797,7 +865,7 @@ func (p *parser) ParseReturn() (*ast.Return, error) {
 	if err := p.tryConsume(token.Return); err != nil {
 		return nil, err
 	}
-	if p.token.Type == token.Newline {
+	if p.token.Kind == token.Newline {
 		return &ast.Return{
 			Location: start,
 		}, nil
@@ -808,7 +876,7 @@ func (p *parser) ParseReturn() (*ast.Return, error) {
 	}
 	return &ast.Return{
 		Value:    expr,
-		Location: source.Span(start, expr.Range()),
+		Location: source.Span(start, expr.SourceLocation()),
 	}, nil
 }
 
@@ -835,7 +903,7 @@ func (p *parser) ParseIf() (*ast.If, error) {
 		},
 	}
 	for {
-		if p.token.Type != token.ElseIf {
+		if p.token.Kind != token.ElseIf {
 			break
 		}
 		if err := p.next(); err != nil {
@@ -858,7 +926,7 @@ func (p *parser) ParseIf() (*ast.If, error) {
 		}
 		node.AlternativeConditionals = append(node.AlternativeConditionals, block)
 	}
-	if p.token.Type == token.Else {
+	if p.token.Kind == token.Else {
 		if err := p.next(); err != nil {
 			return nil, err
 		}
@@ -917,12 +985,12 @@ func (p *parser) ParseProperty() (*ast.Property, error) {
 	if err != nil {
 		return nil, err
 	}
-	end := name.Range()
+	end := name.SourceLocation()
 	node := &ast.Property{
 		Type: typeLiteral,
 		Name: name,
 	}
-	if p.token.Type == token.Assign {
+	if p.token.Kind == token.Assign {
 		if err := p.tryConsume(token.Assign); err != nil {
 			return nil, err
 		}
@@ -930,15 +998,15 @@ func (p *parser) ParseProperty() (*ast.Property, error) {
 		if err != nil {
 			return nil, err
 		}
-		end = node.Value.Range()
+		end = node.Value.SourceLocation()
 	}
-	if p.token.Type == token.Auto {
+	if p.token.Kind == token.Auto {
 		node.IsAuto = true
 		end = p.token.Location
 		if err := p.tryConsume(token.Auto); err != nil {
 			return nil, err
 		}
-	} else if p.token.Type == token.AutoReadOnly {
+	} else if p.token.Kind == token.AutoReadOnly {
 		if node.Value == nil {
 			return nil, newError(p.token.Location, "expected value to be defined for AutoReadOnly property")
 		}
@@ -950,9 +1018,9 @@ func (p *parser) ParseProperty() (*ast.Property, error) {
 		}
 	}
 	if node.IsAuto {
-		for p.token.Type == token.Hidden || p.token.Type == token.Conditional {
+		for p.token.Kind == token.Hidden || p.token.Kind == token.Conditional {
 			end = p.token.Location
-			if p.token.Type == token.Hidden {
+			if p.token.Kind == token.Hidden {
 				node.IsHidden = true
 			} else {
 				node.IsConditional = true
@@ -961,17 +1029,38 @@ func (p *parser) ParseProperty() (*ast.Property, error) {
 				return nil, err
 			}
 		}
+		if p.token.Kind == token.Newline && p.lookahead.Kind == token.BraceOpen {
+			if err := p.next(); err != nil {
+				return nil, err
+			}
+			comment, err := p.ParseDocComment()
+			if err != nil {
+				return nil, err
+			}
+			node.Comment = comment
+			end = comment.Close.SourceLocation()
+		}
 		node.Location = source.Span(typeLiteral.Location, end)
 		return node, nil
 	}
 	// Full Property
-	for p.token.Type == token.Hidden {
+	for p.token.Kind == token.Hidden {
 		if err := p.tryConsume(token.Hidden); err != nil {
 			return nil, err
 		}
 	}
 	if err := p.tryConsume(token.Newline); err != nil {
 		return nil, err
+	}
+	if p.token.Kind == token.BraceOpen {
+		if err := p.next(); err != nil {
+			return nil, err
+		}
+		comment, err := p.ParseDocComment()
+		if err != nil {
+			return nil, err
+		}
+		node.Comment = comment
 	}
 	if err := p.consumeNewlines(); err != nil {
 		return nil, err
@@ -984,7 +1073,7 @@ func (p *parser) ParseProperty() (*ast.Property, error) {
 		return nil, err
 	}
 	var second *ast.Function
-	if p.token.Type != token.EndProperty {
+	if p.token.Kind != token.EndProperty {
 		second, err = p.ParseFunction()
 		if err != nil {
 			return nil, err
@@ -995,33 +1084,33 @@ func (p *parser) ParseProperty() (*ast.Property, error) {
 	}
 	if first.Name.Text == "get" {
 		if first.ReturnType == nil {
-			return nil, newError(first.Name.Location, "expected '%s' to have a return type of %s, but found none", first.Name.Range().Text(), node.Type.Location.Text())
+			return nil, newError(first.Name.Location, "expected '%s' to have a return type of %s, but found none", first.Name.SourceLocation().Text(), node.Type.Location.Text())
 		}
 		if first.ReturnType.Type != node.Type.Type {
-			return nil, newError(first.ReturnType.Location, "expected '%s' to have a return type of %s, but found %s", first.Name.Range().Text(), node.Type.Location.Text(), first.ReturnType.Range().Text())
+			return nil, newError(first.ReturnType.Location, "expected '%s' to have a return type of %s, but found %s", first.Name.SourceLocation().Text(), node.Type.Location.Text(), first.ReturnType.SourceLocation().Text())
 		}
 		if len(first.Parameters) != 0 {
 			loc := source.Span(first.Parameters[0].Location, first.Parameters[len(first.Parameters)-1].Location)
-			return nil, newError(loc, "expected '%s' to have no parameters, but found %d", first.Name.Range().Text(), len(first.Parameters))
+			return nil, newError(loc, "expected '%s' to have no parameters, but found %d", first.Name.SourceLocation().Text(), len(first.Parameters))
 		}
 		node.Get = first
 	} else if first.Name.Text == "set" {
 		if first.ReturnType != nil {
-			return nil, newError(first.ReturnType.Location, "expected '%s' to have no return type, but found %s", first.Name.Range().Text(), first.ReturnType.Location.Text())
+			return nil, newError(first.ReturnType.Location, "expected '%s' to have no return type, but found %s", first.Name.SourceLocation().Text(), first.ReturnType.Location.Text())
 		}
 		if len(first.Parameters) == 0 {
-			return nil, newError(first.Name.Location, "expected '%s' to have one parameter, but found none", first.Name.Range().Text())
+			return nil, newError(first.Name.Location, "expected '%s' to have one parameter, but found none", first.Name.SourceLocation().Text())
 		}
 		if len(first.Parameters) > 1 {
 			loc := source.Span(first.Parameters[0].Location, first.Parameters[len(first.Parameters)-1].Location)
-			return nil, newError(loc, "expected '%s' to have one parameter, but found %d", first.Name.Range().Text(), len(first.Parameters))
+			return nil, newError(loc, "expected '%s' to have one parameter, but found %d", first.Name.SourceLocation().Text(), len(first.Parameters))
 		}
 		if first.Parameters[0].Type.Type != node.Type.Type {
-			return nil, newError(first.ReturnType.Location, "expected '%s' to have a parameter of type %s, but found %s", first.Name.Range().Text(), node.Type.Location.Text(), first.Parameters[0].Type.Location.Text())
+			return nil, newError(first.ReturnType.Location, "expected '%s' to have a parameter of type %s, but found %s", first.Name.SourceLocation().Text(), node.Type.Location.Text(), first.Parameters[0].Type.Location.Text())
 		}
 		node.Set = first
 	} else {
-		return nil, newError(first.Range(), "expected 'Get' or 'Set' function for property, but found '%s'", first.Name.Range().Text())
+		return nil, newError(first.SourceLocation(), "expected 'Get' or 'Set' function for property, but found '%s'", first.Name.SourceLocation().Text())
 	}
 	if second != nil {
 		if second.Name.Text == "get" {
@@ -1029,14 +1118,14 @@ func (p *parser) ParseProperty() (*ast.Property, error) {
 				return nil, newError(second.Location, "expected exactly one 'Get' function, but found two")
 			}
 			if second.ReturnType == nil {
-				return nil, newError(second.Name.Location, "expected '%s' to have a return type of %s, but found none", second.Name.Range().Text(), node.Type.Location.Text())
+				return nil, newError(second.Name.Location, "expected '%s' to have a return type of %s, but found none", second.Name.SourceLocation().Text(), node.Type.Location.Text())
 			}
 			if second.ReturnType.Type != node.Type.Type {
-				return nil, newError(second.ReturnType.Location, "expected '%s' to have a return type of %s, but found %s", second.Name.Range().Text(), node.Type.Location.Text(), second.ReturnType.Range().Text())
+				return nil, newError(second.ReturnType.Location, "expected '%s' to have a return type of %s, but found %s", second.Name.SourceLocation().Text(), node.Type.Location.Text(), second.ReturnType.SourceLocation().Text())
 			}
 			if len(second.Parameters) != 0 {
 				loc := source.Span(second.Parameters[0].Location, second.Parameters[len(second.Parameters)-1].Location)
-				return nil, newError(loc, "expected '%s' to have no parameters, but found %d", second.Name.Range().Text(), len(second.Parameters))
+				return nil, newError(loc, "expected '%s' to have no parameters, but found %d", second.Name.SourceLocation().Text(), len(second.Parameters))
 			}
 			node.Get = second
 		} else if second.Name.Text == "set" {
@@ -1044,21 +1133,21 @@ func (p *parser) ParseProperty() (*ast.Property, error) {
 				return nil, newError(second.Location, "expected exactly one 'Set' function, but found two")
 			}
 			if second.ReturnType != nil {
-				return nil, newError(second.ReturnType.Location, "expected '%s' to have no return type, but found %s", second.Name.Range().Text(), second.ReturnType.Location.Text())
+				return nil, newError(second.ReturnType.Location, "expected '%s' to have no return type, but found %s", second.Name.SourceLocation().Text(), second.ReturnType.Location.Text())
 			}
 			if len(second.Parameters) == 0 {
-				return nil, newError(second.Name.Location, "expected '%s' to have one parameter, but found none", second.Name.Range().Text())
+				return nil, newError(second.Name.Location, "expected '%s' to have one parameter, but found none", second.Name.SourceLocation().Text())
 			}
 			if len(second.Parameters) > 1 {
 				loc := source.Span(second.Parameters[0].Location, second.Parameters[len(second.Parameters)-1].Location)
-				return nil, newError(loc, "expected '%s' to have one parameter, but found %d", second.Name.Range().Text(), len(second.Parameters))
+				return nil, newError(loc, "expected '%s' to have one parameter, but found %d", second.Name.SourceLocation().Text(), len(second.Parameters))
 			}
 			if second.Parameters[0].Type.Type != node.Type.Type {
-				return nil, newError(second.ReturnType.Location, "expected '%s' to have a parameter of type %s, but found %s", second.Name.Range().Text(), node.Type.Location.Text(), second.Parameters[0].Type.Location.Text())
+				return nil, newError(second.ReturnType.Location, "expected '%s' to have a parameter of type %s, but found %s", second.Name.SourceLocation().Text(), node.Type.Location.Text(), second.Parameters[0].Type.Location.Text())
 			}
 			node.Set = second
 		} else {
-			return nil, newError(second.Range(), "expected 'Get' or 'Set' function for property, but found '%s'", second.Name.Range().Text())
+			return nil, newError(second.SourceLocation(), "expected 'Get' or 'Set' function for property, but found '%s'", second.Name.SourceLocation().Text())
 		}
 	}
 	node.Location = source.Span(typeLiteral.Location, p.token.Location)
@@ -1082,7 +1171,7 @@ func (p *parser) ParseScriptVariable() (*ast.ScriptVariable, error) {
 		Type: typeLiteral,
 		Name: name,
 	}
-	if p.token.Type != token.Assign {
+	if p.token.Kind != token.Assign {
 		if err := p.tryConsume(token.Assign); err != nil {
 			return nil, err
 		}
@@ -1090,9 +1179,9 @@ func (p *parser) ParseScriptVariable() (*ast.ScriptVariable, error) {
 		if err != nil {
 			return nil, err
 		}
-		end = node.Value.Range()
+		end = node.Value.SourceLocation()
 	}
-	for p.token.Type == token.Conditional {
+	for p.token.Kind == token.Conditional {
 		end = p.token.Location
 		node.IsConditional = true
 		if err := p.next(); err != nil {
@@ -1117,7 +1206,7 @@ func (p *parser) ParseIdentifier() (*ast.Identifier, error) {
 func (p *parser) ParseTypeLiteral() (*ast.TypeLiteral, error) {
 	start := p.token.Location
 	var scalar types.Scalar
-	switch p.token.Type {
+	switch p.token.Kind {
 	case token.Bool:
 		scalar = types.Bool{}
 	case token.Int:
@@ -1131,12 +1220,12 @@ func (p *parser) ParseTypeLiteral() (*ast.TypeLiteral, error) {
 			Name: string(bytes.ToLower(p.token.Location.Text())),
 		}
 	default:
-		return nil, newError(p.token.Location, "expected Bool, Int, Float, String, or an identifier, but found %s", p.token.Type)
+		return nil, newError(p.token.Location, "expected Bool, Int, Float, String, or an identifier, but found %s", p.token.Kind)
 	}
 	if err := p.next(); err != nil {
 		return nil, err
 	}
-	if p.token.Type != token.LBracket {
+	if p.token.Kind != token.BracketOpen {
 		return &ast.TypeLiteral{
 			Type:     scalar,
 			Location: start,
@@ -1146,7 +1235,7 @@ func (p *parser) ParseTypeLiteral() (*ast.TypeLiteral, error) {
 		return nil, err
 	}
 	end := p.token.Location
-	if err := p.tryConsume(token.RBracket); err != nil {
+	if err := p.tryConsume(token.BracketClose); err != nil {
 		return nil, err
 	}
 	return &ast.TypeLiteral{
@@ -1158,16 +1247,16 @@ func (p *parser) ParseTypeLiteral() (*ast.TypeLiteral, error) {
 }
 
 func (p *parser) ParseExpression(precedence int) (ast.Expression, error) {
-	prefix := p.prefix[p.token.Type]
+	prefix := p.prefix[p.token.Kind]
 	if prefix == nil {
-		return nil, newError(p.token.Location, "expected any of [%s], but found %s", tokensTypesToString(keys(p.prefix)...), p.token.Type)
+		return nil, newError(p.token.Location, "expected any of [%s], but found %s", tokensTypesToString(keys(p.prefix)...), p.token.Kind)
 	}
 	expr, err := prefix()
 	if err != nil {
 		return nil, err
 	}
-	if p.lookahead.Type != token.Newline && p.lookahead.Type != token.EOF && precedence < precedenceOf(p.lookahead.Type) {
-		infix := p.infix[p.token.Type]
+	if p.lookahead.Kind != token.Newline && p.lookahead.Kind != token.EOF && precedence < precedenceOf(p.lookahead.Kind) {
+		infix := p.infix[p.token.Kind]
 		if infix == nil {
 			return expr, nil
 		}
@@ -1180,7 +1269,7 @@ func (p *parser) ParseExpression(precedence int) (ast.Expression, error) {
 }
 
 func (p *parser) ParseBinary(left ast.Expression) (*ast.Binary, error) {
-	precedence := precedenceOf(p.token.Type)
+	precedence := precedenceOf(p.token.Kind)
 	operator, err := p.ParseBinaryOperator()
 	if err != nil {
 		return nil, err
@@ -1193,13 +1282,13 @@ func (p *parser) ParseBinary(left ast.Expression) (*ast.Binary, error) {
 		LeftOperand:  left,
 		Operator:     operator,
 		RightOperand: right,
-		Location:     source.Span(left.Range(), right.Range()),
+		Location:     source.Span(left.SourceLocation(), right.SourceLocation()),
 	}, nil
 }
 
 func (p *parser) ParseBinaryOperator() (*ast.BinaryOperator, error) {
 	operator := &ast.BinaryOperator{Location: p.token.Location}
-	switch p.token.Type {
+	switch p.token.Kind {
 	case token.LogicalOr:
 		operator.Kind = ast.LogicalOr
 	case token.LogicalAnd:
@@ -1216,9 +1305,9 @@ func (p *parser) ParseBinaryOperator() (*ast.BinaryOperator, error) {
 		operator.Kind = ast.Less
 	case token.LessOrEqual:
 		operator.Kind = ast.LessOrEqual
-	case token.Add:
+	case token.Plus:
 		operator.Kind = ast.Add
-	case token.Subtract:
+	case token.Minus:
 		operator.Kind = ast.Subtract
 	case token.Multiply:
 		operator.Kind = ast.Multiply
@@ -1236,13 +1325,13 @@ func (p *parser) ParseBinaryOperator() (*ast.BinaryOperator, error) {
 			token.GreaterOrEqual,
 			token.Less,
 			token.LessOrEqual,
-			token.Add,
-			token.Subtract,
+			token.Plus,
+			token.Minus,
 			token.Divide,
 			token.Multiply,
 			token.Modulo,
 		)
-		return nil, newError(p.token.Location, "expected any of [%s], but found %s", types, p.token.Type)
+		return nil, newError(p.token.Location, "expected any of [%s], but found %s", types, p.token.Kind)
 	}
 	if err := p.next(); err != nil {
 		return nil, err
@@ -1251,8 +1340,8 @@ func (p *parser) ParseBinaryOperator() (*ast.BinaryOperator, error) {
 }
 
 func (p *parser) ParseUnary() (ast.Expression, error) {
-	if p.token.Type == token.Subtract &&
-		(p.lookahead.Type == token.IntLiteral || p.lookahead.Type == token.FloatLiteral) {
+	if p.token.Kind == token.Minus &&
+		(p.lookahead.Kind == token.IntLiteral || p.lookahead.Kind == token.FloatLiteral) {
 		return p.ParseLiteral()
 	}
 	operator, err := p.ParseUnaryOperator()
@@ -1266,7 +1355,7 @@ func (p *parser) ParseUnary() (ast.Expression, error) {
 	return &ast.Unary{
 		Operator: operator,
 		Operand:  expr,
-		Location: source.Span(operator.Location, expr.Range()),
+		Location: source.Span(operator.Location, expr.SourceLocation()),
 	}, nil
 }
 
@@ -1274,14 +1363,14 @@ func (p *parser) ParseUnaryOperator() (*ast.UnaryOperator, error) {
 	operator := &ast.UnaryOperator{
 		Location: p.token.Location,
 	}
-	switch p.token.Type {
-	case token.Subtract:
+	switch p.token.Kind {
+	case token.Minus:
 		operator.Kind = ast.Negate
 	case token.LogicalNot:
 		operator.Kind = ast.LogicalNot
 	default:
-		types := tokensTypesToString(token.Subtract, token.LogicalNot)
-		return nil, newError(p.token.Location, "expected any of [%s], but found %s", types, p.token.Type)
+		types := tokensTypesToString(token.Minus, token.LogicalNot)
+		return nil, newError(p.token.Location, "expected any of [%s], but found %s", types, p.token.Kind)
 	}
 	if err := p.next(); err != nil {
 		return nil, err
@@ -1302,7 +1391,7 @@ func (p *parser) ParseCast(value ast.Expression) (*ast.Cast, error) {
 		Value:    value,
 		Operator: &ast.AsOperator{Location: operator.Location},
 		Type:     typeLiteral,
-		Location: source.Span(value.Range(), typeLiteral.Location),
+		Location: source.Span(value.SourceLocation(), typeLiteral.Location),
 	}, nil
 }
 
@@ -1319,7 +1408,7 @@ func (p *parser) ParseAccess(value ast.Expression) (*ast.Access, error) {
 		Value:    value,
 		Operator: &ast.AccessOperator{Location: operator.Location},
 		Name:     name,
-		Location: source.Span(value.Range(), name.Location),
+		Location: source.Span(value.SourceLocation(), name.Location),
 	}, nil
 }
 
@@ -1351,12 +1440,12 @@ func (p *parser) ParseIndex(array ast.Expression) (*ast.Index, error) {
 		OpenOperator:  open,
 		Index:         index,
 		CloseOperator: close,
-		Location:      source.Span(array.Range(), close.Location),
+		Location:      source.Span(array.SourceLocation(), close.Location),
 	}, nil
 }
 
 func (p *parser) ParseCall(reciever ast.Expression) (*ast.Call, error) {
-	if err := p.tryConsume(token.LParen); err != nil {
+	if err := p.tryConsume(token.ParenthesisOpen); err != nil {
 		return nil, err
 	}
 	args, err := p.ParseArgumentList()
@@ -1364,25 +1453,25 @@ func (p *parser) ParseCall(reciever ast.Expression) (*ast.Call, error) {
 		return nil, err
 	}
 	end := p.token.Location
-	if err := p.tryConsume(token.RParen); err != nil {
+	if err := p.tryConsume(token.ParenthesisClose); err != nil {
 		return nil, err
 	}
 	return &ast.Call{
 		Reciever:  reciever,
 		Arguments: args,
-		Location:  source.Span(reciever.Range(), end),
+		Location:  source.Span(reciever.SourceLocation(), end),
 	}, nil
 }
 
 func (p *parser) ParseArgumentList() ([]*ast.Argument, error) {
 	var args []*ast.Argument
 	for {
-		switch p.token.Type {
+		switch p.token.Kind {
 		case token.Comma:
 			if err := p.next(); err != nil {
 				return nil, err
 			}
-		case token.RParen:
+		case token.ParenthesisClose:
 			return args, nil
 		default:
 			arg, err := p.ParseArgument()
@@ -1396,7 +1485,7 @@ func (p *parser) ParseArgumentList() ([]*ast.Argument, error) {
 
 func (p *parser) ParseArgument() (*ast.Argument, error) {
 	node := &ast.Argument{}
-	if p.token.Type == token.Identifier {
+	if p.token.Kind == token.Identifier {
 		id, err := p.ParseIdentifier()
 		if err != nil {
 			return nil, err
@@ -1417,9 +1506,9 @@ func (p *parser) ParseArgument() (*ast.Argument, error) {
 	}
 	node.Value = value
 	if node.Name != nil {
-		node.Location = source.Span(node.Name.Location, value.Range())
+		node.Location = source.Span(node.Name.Location, value.SourceLocation())
 	} else {
-		node.Location = value.Range()
+		node.Location = value.SourceLocation()
 	}
 	return node, nil
 }
@@ -1442,7 +1531,7 @@ func (p *parser) ParseArrayCreation() (*ast.ArrayCreation, error) {
 		return nil, err
 	}
 	if size.Value < 1 || size.Value > 128 {
-		return nil, newError(size.Range(), "expected array size to be an IntLiteral in range [1, 128], but found %d", size.Value)
+		return nil, newError(size.SourceLocation(), "expected array size to be an IntLiteral in range [1, 128], but found %d", size.Value)
 	}
 	close, err := p.ParseArrayCloseOperator()
 	if err != nil {
@@ -1472,7 +1561,7 @@ func (p *parser) ParseArrayOpenOperator() (*ast.ArrayOpenOperator, error) {
 	operator := &ast.ArrayOpenOperator{
 		Location: p.token.Location,
 	}
-	if err := p.tryConsume(token.LBracket); err != nil {
+	if err := p.tryConsume(token.BracketOpen); err != nil {
 		return nil, err
 	}
 	return operator, nil
@@ -1482,7 +1571,7 @@ func (p *parser) ParseArrayCloseOperator() (*ast.ArrayCloseOperator, error) {
 	operator := &ast.ArrayCloseOperator{
 		Location: p.token.Location,
 	}
-	if err := p.tryConsume(token.RBracket); err != nil {
+	if err := p.tryConsume(token.BracketClose); err != nil {
 		return nil, err
 	}
 	return operator, nil
@@ -1490,7 +1579,7 @@ func (p *parser) ParseArrayCloseOperator() (*ast.ArrayCloseOperator, error) {
 
 func (p *parser) ParseParenthetical() (*ast.Parenthetical, error) {
 	start := p.token.Location
-	if err := p.tryConsume(token.LParen); err != nil {
+	if err := p.tryConsume(token.ParenthesisOpen); err != nil {
 		return nil, err
 	}
 	expr, err := p.ParseExpression(Lowest)
@@ -1501,15 +1590,15 @@ func (p *parser) ParseParenthetical() (*ast.Parenthetical, error) {
 		Value:    expr,
 		Location: source.Span(start, p.token.Location),
 	}
-	if err := p.tryConsume(token.RParen); err != nil {
+	if err := p.tryConsume(token.ParenthesisClose); err != nil {
 		return nil, err
 	}
 	return node, nil
 }
 
 func (p *parser) ParseLiteral() (ast.Literal, error) {
-	switch p.token.Type {
-	case token.Subtract:
+	switch p.token.Kind {
+	case token.Minus:
 		// While this overlaps with a unary expression, we lump these together
 		// because there are some contexts where a literal is required which can
 		// include a sign, but where a Unary is not allowed.
@@ -1517,7 +1606,7 @@ func (p *parser) ParseLiteral() (ast.Literal, error) {
 		if err := p.next(); err != nil {
 			return nil, err
 		}
-		switch p.token.Type {
+		switch p.token.Kind {
 		case token.IntLiteral:
 			lit, err := p.ParseIntLiteral()
 			if err != nil {
@@ -1535,7 +1624,7 @@ func (p *parser) ParseLiteral() (ast.Literal, error) {
 			lit.Value = -lit.Value
 			return lit, err
 		default:
-			return nil, fmt.Errorf("expected IntLiteral or FloatLiteral, but found %s", p.token.Type)
+			return nil, fmt.Errorf("expected IntLiteral or FloatLiteral, but found %s", p.token.Kind)
 		}
 	case token.True, token.False:
 		return p.ParseBoolLiteral()
@@ -1548,7 +1637,7 @@ func (p *parser) ParseLiteral() (ast.Literal, error) {
 	case token.None:
 		return p.ParseNoneLiteral()
 	}
-	return nil, fmt.Errorf("expected True, False, None, Integer, Float, or String literal, but found %s", p.token.Type)
+	return nil, fmt.Errorf("expected True, False, None, Integer, Float, or String literal, but found %s", p.token.Kind)
 }
 
 func (p *parser) ParseIntLiteral() (*ast.IntLiteral, error) {
@@ -1589,7 +1678,7 @@ func (p *parser) ParseBoolLiteral() (*ast.BoolLiteral, error) {
 		return nil, err
 	}
 	return &ast.BoolLiteral{
-		Value:    tok.Type == token.True,
+		Value:    tok.Kind == token.True,
 		Location: tok.Location,
 	}, nil
 }
@@ -1615,13 +1704,13 @@ func (p *parser) ParseNoneLiteral() (*ast.NoneLiteral, error) {
 	}, nil
 }
 
-func registerPrefix[T ast.Expression](p *parser, fn func() (T, error), types ...token.Type) {
+func registerPrefix[T ast.Expression](p *parser, fn func() (T, error), types ...token.Kind) {
 	for _, t := range types {
 		p.prefix[t] = func() (ast.Expression, error) { return fn() }
 	}
 }
 
-func registerInfix[T ast.Expression](p *parser, fn func(ast.Expression) (T, error), types ...token.Type) {
+func registerInfix[T ast.Expression](p *parser, fn func(ast.Expression) (T, error), types ...token.Kind) {
 	for _, t := range types {
 		p.infix[t] = func(expr ast.Expression) (ast.Expression, error) { return fn(expr) }
 	}

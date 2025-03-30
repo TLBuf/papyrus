@@ -22,12 +22,12 @@ func TestHeader(t *testing.T) {
 			want: &ast.Script{
 				Name: &ast.Identifier{
 					Text: "foo",
-					Location: source.Range{
+					Location: source.Location{
 						ByteOffset: 11,
 						Length:     3,
 					},
 				},
-				Location: source.Range{
+				Location: source.Location{
 					ByteOffset: 0,
 					Length:     14,
 				},
@@ -39,19 +39,19 @@ func TestHeader(t *testing.T) {
 			want: &ast.Script{
 				Name: &ast.Identifier{
 					Text: "foo",
-					Location: source.Range{
+					Location: source.Location{
 						ByteOffset: 11,
 						Length:     3,
 					},
 				},
 				Extends: &ast.Identifier{
 					Text: "bar",
-					Location: source.Range{
+					Location: source.Location{
 						ByteOffset: 23,
 						Length:     3,
 					},
 				},
-				Location: source.Range{
+				Location: source.Location{
 					ByteOffset: 0,
 					Length:     26,
 				},
@@ -63,13 +63,13 @@ func TestHeader(t *testing.T) {
 			want: &ast.Script{
 				Name: &ast.Identifier{
 					Text: "foo",
-					Location: source.Range{
+					Location: source.Location{
 						ByteOffset: 11,
 						Length:     3,
 					},
 				},
 				IsHidden: true,
-				Location: source.Range{
+				Location: source.Location{
 					ByteOffset: 0,
 					Length:     21,
 				},
@@ -81,13 +81,13 @@ func TestHeader(t *testing.T) {
 			want: &ast.Script{
 				Name: &ast.Identifier{
 					Text: "foo",
-					Location: source.Range{
+					Location: source.Location{
 						ByteOffset: 11,
 						Length:     3,
 					},
 				},
 				IsConditional: true,
-				Location: source.Range{
+				Location: source.Location{
 					ByteOffset: 0,
 					Length:     26,
 				},
@@ -99,14 +99,14 @@ func TestHeader(t *testing.T) {
 			want: &ast.Script{
 				Name: &ast.Identifier{
 					Text: "foo",
-					Location: source.Range{
+					Location: source.Location{
 						ByteOffset: 11,
 						Length:     3,
 					},
 				},
 				IsHidden:      true,
 				IsConditional: true,
-				Location: source.Range{
+				Location: source.Location{
 					ByteOffset: 0,
 					Length:     33,
 				},
@@ -118,14 +118,14 @@ func TestHeader(t *testing.T) {
 			want: &ast.Script{
 				Name: &ast.Identifier{
 					Text: "foo",
-					Location: source.Range{
+					Location: source.Location{
 						ByteOffset: 11,
 						Length:     3,
 					},
 				},
 				IsHidden:      true,
 				IsConditional: true,
-				Location: source.Range{
+				Location: source.Location{
 					ByteOffset: 0,
 					Length:     33,
 				},
@@ -137,14 +137,14 @@ func TestHeader(t *testing.T) {
 			want: &ast.Script{
 				Name: &ast.Identifier{
 					Text: "foo",
-					Location: source.Range{
+					Location: source.Location{
 						ByteOffset: 11,
 						Length:     3,
 					},
 				},
 				IsHidden:      true,
 				IsConditional: true,
-				Location: source.Range{
+				Location: source.Location{
 					ByteOffset: 0,
 					Length:     52,
 				},
@@ -156,21 +156,21 @@ func TestHeader(t *testing.T) {
 			want: &ast.Script{
 				Name: &ast.Identifier{
 					Text: "foo",
-					Location: source.Range{
+					Location: source.Location{
 						ByteOffset: 11,
 						Length:     3,
 					},
 				},
 				Extends: &ast.Identifier{
 					Text: "bar",
-					Location: source.Range{
+					Location: source.Location{
 						ByteOffset: 23,
 						Length:     3,
 					},
 				},
 				IsHidden:      true,
 				IsConditional: true,
-				Location: source.Range{
+				Location: source.Location{
 					ByteOffset: 0,
 					Length:     64,
 				},
@@ -183,7 +183,7 @@ func TestHeader(t *testing.T) {
 			want: &ast.Script{
 				Name: &ast.Identifier{
 					Text: "foo",
-					Location: source.Range{
+					Location: source.Location{
 						ByteOffset: 11,
 						Length:     3,
 					},
@@ -192,18 +192,18 @@ func TestHeader(t *testing.T) {
 					&ast.Import{
 						Name: &ast.Identifier{
 							Text: "bar",
-							Location: source.Range{
+							Location: source.Location{
 								ByteOffset: 25,
 								Length:     3,
 							},
 						},
-						Location: source.Range{
+						Location: source.Location{
 							ByteOffset: 18,
 							Length:     10,
 						},
 					},
 				},
-				Location: source.Range{
+				Location: source.Location{
 					ByteOffset: 0,
 					Length:     28,
 				},
@@ -217,7 +217,7 @@ func TestHeader(t *testing.T) {
 			want: &ast.Script{
 				Name: &ast.Identifier{
 					Text: "foo",
-					Location: source.Range{
+					Location: source.Location{
 						ByteOffset: 11,
 						Length:     3,
 					},
@@ -226,19 +226,19 @@ func TestHeader(t *testing.T) {
 					&ast.State{
 						Name: &ast.Identifier{
 							Text: "bar",
-							Location: source.Range{
+							Location: source.Location{
 								ByteOffset: 24,
 								Length:     3,
 							},
 						},
 						IsAuto: false,
-						Location: source.Range{
+						Location: source.Location{
 							ByteOffset: 18,
 							Length:     21,
 						},
 					},
 				},
-				Location: source.Range{
+				Location: source.Location{
 					ByteOffset: 0,
 					Length:     39,
 				},
@@ -252,7 +252,7 @@ func TestHeader(t *testing.T) {
 			want: &ast.Script{
 				Name: &ast.Identifier{
 					Text: "foo",
-					Location: source.Range{
+					Location: source.Location{
 						ByteOffset: 11,
 						Length:     3,
 					},
@@ -261,19 +261,19 @@ func TestHeader(t *testing.T) {
 					&ast.State{
 						Name: &ast.Identifier{
 							Text: "bar",
-							Location: source.Range{
+							Location: source.Location{
 								ByteOffset: 29,
 								Length:     3,
 							},
 						},
 						IsAuto: true,
-						Location: source.Range{
+						Location: source.Location{
 							ByteOffset: 18,
 							Length:     26,
 						},
 					},
 				},
-				Location: source.Range{
+				Location: source.Location{
 					ByteOffset: 0,
 					Length:     44,
 				},
@@ -303,5 +303,5 @@ func TestHeader(t *testing.T) {
 var ignoreFields = []cmp.Option{
 	// lexer_test pretty thoroughly covers these fields, if the
 	// byte offset and length match, that's sufficent for this test.
-	cmpopts.IgnoreFields(source.Range{}, "File", "StartLine", "StartColumn", "EndLine", "EndColumn", "PreambleLength", "PostambleLength"),
+	cmpopts.IgnoreFields(source.Location{}, "File", "StartLine", "StartColumn", "EndLine", "EndColumn", "PreambleLength", "PostambleLength"),
 }

@@ -3,12 +3,13 @@ package ast
 
 import (
 	"github.com/TLBuf/papyrus/pkg/source"
+	"github.com/TLBuf/papyrus/pkg/token"
 )
 
 // Node is a common interfface for all AST nodes.
 type Node interface {
-	// Range returns the source range of the node.
-	Range() source.Range
+	// SourceLocation returns the source location of the node.
+	SourceLocation() source.Location
 }
 
 // ScriptStatement is a common interface for all script statement nodes.
@@ -57,4 +58,29 @@ type Error interface {
 	Node
 	// Message returns a human-readable message describing the error encountered.
 	ErrorMessage() string
+}
+
+// Token is a single lexed token.
+type Token interface {
+	// TokenKind returns the [token.Kind] of the token.
+	TokenKind() token.Kind
+	// SourceLocation returns the source location of the node.
+	SourceLocation() source.Location
+}
+
+// Trivia contains supplemental information that has no semantic meaning, but
+// which humans may find useful (i.e. comments).
+type Trivia struct {
+	// LeadingComments are the loose comments that appear on the lines immediately
+	// before the node.
+	LeadingComments []LooseComment
+	// PrefixComments are the loose comments that appear before the node, but on
+	// the same line as the node.
+	PrefixComments []LooseComment
+	// SuffixComments are the loose comments that appear after the node, but on
+	// the same line as the node.
+	SuffixComments []LooseComment
+	// TrailingComments are the loose comments that appear on the lines immedately
+	// after the node, but which are not assocaited with another node.
+	TrailingComments []LooseComment
 }

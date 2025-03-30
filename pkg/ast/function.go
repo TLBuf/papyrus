@@ -4,6 +4,7 @@ import "github.com/TLBuf/papyrus/pkg/source"
 
 // Function defines a Papyrus function.
 type Function struct {
+	Trivia
 	// Name is the name of the function.
 	Name *Identifier
 	// ReturnType is the type of value this function returns or nil if it doesn't
@@ -23,11 +24,11 @@ type Function struct {
 	// the function.
 	Statements []FunctionStatement
 	// Location is the source range of the node.
-	Location source.Range
+	Location source.Location
 }
 
-// Range returns the source range of the node.
-func (f *Function) Range() source.Range {
+// SourceLocation returns the source location of the node.
+func (f *Function) SourceLocation() source.Location {
 	return f.Location
 }
 
