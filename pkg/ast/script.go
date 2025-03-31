@@ -6,19 +6,34 @@ import "github.com/TLBuf/papyrus/pkg/source"
 // Script represents a single Papyrus script file.
 type Script struct {
 	Trivia
+	// Keyword is the ScriptName keyword token that starts the script.
+	Keyword Token
 	// Name is the name of script.
 	Name *Identifier
-	// Extends is the name of the script this one extends from or nil if this
+	// Extends is the Extends token that indicates this script extends another.
+	//
+	// If this is non-nil, [Parent] will also be non-nil (and vice versa).
+	Extends Token
+	// Parent is the name of the script this one extends from or nil if this
 	// script doesn't extend another.
-	Extends *Identifier
+	Parent *Identifier
 	// Comment is the documentation comment for this script.
 	Comment *DocComment
-	// IsHidden defines whether this is a hidden script (i.e. it doesn't appear in
-	// the editor).
-	IsHidden bool
-	// IsConditional defines whether this is a conditional script (i.e. its
-	// properties can referenced in conditions).
-	IsConditional bool
+	// Hidden are the Hidden tokens that define that this script is hidden (i.e.
+	// it doesn't appear in the editor) or empty if this script is not hidden.
+	//
+	// Errata: This being multiple values is due to the offical Papyrus parser
+	// accepting any number of flag tokens. They are all included here for
+	// completeness, but only one is required to consider the script hidden.
+	Hidden []Token
+	// Conditional are the Conditional tokens that define that this script is
+	// conditional (i.e. conditional properties it defines can appear in
+	// conditions) or empty if this script is not conditional.
+	//
+	// Errata: This being multiple values is due to the offical Papyrus parser
+	// accepting any number of flag tokens. They are all included here for
+	// completeness, but only one is required to consider the script conditional.
+	Conditional []Token
 	// Statements is the list of statements that constitute the body of the
 	// script.
 	Statements []ScriptStatement

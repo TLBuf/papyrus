@@ -62,10 +62,9 @@ type Error interface {
 
 // Token is a single lexed token.
 type Token interface {
+	Node
 	// TokenKind returns the [token.Kind] of the token.
 	TokenKind() token.Kind
-	// SourceLocation returns the source location of the node.
-	SourceLocation() source.Location
 }
 
 // Trivia contains supplemental information that has no semantic meaning, but

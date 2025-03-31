@@ -5,8 +5,10 @@ import "github.com/TLBuf/papyrus/pkg/source"
 // Identifier represents an arbitrary identifier.
 type Identifier struct {
 	Trivia
-	// Text is the normalized text of the identifier.
-	Text string
+	// Text is the Identifier token.
+	Text Token
+	// Normalized is the normalized text of the identifier.
+	Normalized string
 	// Location is the source range of the node.
 	Location source.Location
 }

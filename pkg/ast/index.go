@@ -7,13 +7,13 @@ type Index struct {
 	Trivia
 	// Value is the expression that defines the array to reference.
 	Value Expression
-	// OpenOperator is the open bracket.
-	OpenOperator *ArrayOpenOperator
+	// Open is the open bracket token.
+	Open Token
 	// Index is the expression that defines the index of the element to reference
 	// in the array.
 	Index Expression
-	// CloseOperator is the close bracket.
-	CloseOperator *ArrayCloseOperator
+	// Close is the close bracket token.
+	Close Token
 	// Location is the source range of the node.
 	Location source.Location
 }

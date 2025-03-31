@@ -10,6 +10,8 @@ import (
 // scope of another script.
 type Import struct {
 	Trivia
+	// Keyword is the Import keyword token that starts the statement.
+	Keyword Token
 	// Name is the name of the script being imported.
 	Name *Identifier
 	// Location is the source range of the node.

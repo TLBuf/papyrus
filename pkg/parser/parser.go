@@ -232,57 +232,58 @@ func (p *parser) consumeNewlines() error {
 }
 
 func (p *parser) ParseDocComment() (*ast.DocComment, error) {
-	comment := &ast.DocComment{
+	node := &ast.DocComment{
 		Open: p.token,
 	}
 	if err := p.tryConsume(token.BraceOpen); err != nil {
 		return nil, err
 	}
-	comment.Text = p.token
+	node.Text = p.token
 	if err := p.tryConsume(token.Comment); err != nil {
 		return nil, err
 	}
-	comment.Close = p.token
+	node.Close = p.token
 	if err := p.tryConsume(token.BraceClose); err != nil {
 		return nil, err
 	}
-	return comment, nil
+	return node, nil
 }
 
 func (p *parser) ParseBlockComment() (*ast.BlockComment, error) {
-	comment := &ast.BlockComment{
+	node := &ast.BlockComment{
 		Open: p.token,
 	}
 	if err := p.tryConsume(token.BlockCommentOpen); err != nil {
 		return nil, err
 	}
-	comment.Text = p.token
+	node.Text = p.token
 	if err := p.tryConsume(token.Comment); err != nil {
 		return nil, err
 	}
-	comment.Close = p.token
+	node.Close = p.token
 	if err := p.tryConsume(token.BlockCommentClose); err != nil {
 		return nil, err
 	}
-	return comment, nil
+	return node, nil
 }
 
 func (p *parser) ParseLineComment() (*ast.LineComment, error) {
-	comment := &ast.LineComment{
+	node := &ast.LineComment{
 		Semicolon: p.token,
 	}
 	if err := p.tryConsume(token.Semicolon); err != nil {
 		return nil, err
 	}
-	comment.Text = p.token
+	node.Text = p.token
 	if err := p.tryConsume(token.Comment); err != nil {
 		return nil, err
 	}
-	return comment, nil
+	return node, nil
 }
 
 func (p *parser) ParseScript() (*ast.Script, error) {
-	script := &ast.Script{
+	var err error
+	node := &ast.Script{
 		Location: source.Location{
 			File:        p.token.Location.File,
 			Length:      len(p.token.Location.File.Text),
@@ -290,15 +291,40 @@ func (p *parser) ParseScript() (*ast.Script, error) {
 			StartColumn: 1,
 		},
 	}
-	if err := p.ParseScriptHeader(script); err != nil {
+	node.Keyword = p.token
+	if err := p.tryConsume(token.ScriptName); err != nil {
+		return nil, err
+	}
+	if node.Name, err = p.ParseIdentifier(); err != nil {
+		return nil, err
+	}
+	if p.token.Kind == token.Extends {
+		node.Extends = p.token
+		if err := p.next(); err != nil {
+			return nil, err
+		}
+		if node.Parent, err = p.ParseIdentifier(); err != nil {
+			return nil, err
+		}
+	}
+	for p.token.Kind == token.Hidden || p.token.Kind == token.Conditional {
+		if p.token.Kind == token.Hidden {
+			node.Hidden = append(node.Hidden, p.token)
+		} else {
+			node.Conditional = append(node.Conditional, p.token)
+		}
+		if err := p.next(); err != nil {
+			return nil, err
+		}
+	}
+	if err := p.tryConsume(token.Newline, token.EOF); err != nil {
 		return nil, err
 	}
 	if p.token.Kind == token.BraceOpen {
-		comment, err := p.ParseDocComment()
+		node.Comment, err = p.ParseDocComment()
 		if err != nil {
 			return nil, err
 		}
-		script.Comment = comment
 	}
 	for p.token.Kind != token.EOF {
 		if err := p.consumeNewlines(); err != nil {
@@ -309,39 +335,10 @@ func (p *parser) ParseScript() (*ast.Script, error) {
 			return nil, err
 		}
 		if stmt != nil {
-			script.Statements = append(script.Statements, stmt)
+			node.Statements = append(node.Statements, stmt)
 		}
 	}
-	return script, nil
-}
-
-func (p *parser) ParseScriptHeader(script *ast.Script) error {
-	if err := p.tryConsume(token.ScriptName); err != nil {
-		return err
-	}
-	var err error
-	if script.Name, err = p.ParseIdentifier(); err != nil {
-		return err
-	}
-	if p.token.Kind == token.Extends {
-		if err := p.next(); err != nil {
-			return err
-		}
-		if script.Extends, err = p.ParseIdentifier(); err != nil {
-			return err
-		}
-	}
-	for p.token.Kind == token.Hidden || p.token.Kind == token.Conditional {
-		if p.token.Kind == token.Hidden {
-			script.IsHidden = true
-		} else {
-			script.IsConditional = true
-		}
-		if err := p.next(); err != nil {
-			return err
-		}
-	}
-	return p.tryConsume(token.Newline, token.EOF)
+	return node, nil
 }
 
 func (p *parser) ParseScriptStatement() (ast.ScriptStatement, error) {
@@ -414,45 +411,44 @@ func (p *parser) recoverScriptStatement() error {
 }
 
 func (p *parser) ParseImport() (*ast.Import, error) {
-	start := p.token.Location
-	if err := p.next(); err != nil {
+	var err error
+	node := &ast.Import{
+		Keyword: p.token,
+	}
+	if err := p.tryConsume(token.Import); err != nil {
 		return nil, err
 	}
-	ident, err := p.ParseIdentifier()
+	node.Name, err = p.ParseIdentifier()
 	if err != nil {
 		return nil, err
 	}
-	node := &ast.Import{
-		Name:     ident,
-		Location: source.Span(start, ident.Location),
-	}
+	node.Location = source.Span(node.Keyword.SourceLocation(), node.Name.Location)
 	return node, p.tryConsume(token.Newline, token.EOF)
 }
 
 func (p *parser) ParseState() (ast.ScriptStatement, error) {
+	var err error
+	node := &ast.State{}
 	start := p.token.Location
-	isAuto := p.token.Kind == token.Auto
-	if isAuto {
+	if p.token.Kind == token.Auto {
+		node.Auto = p.token
 		if err := p.next(); err != nil {
 			return nil, err
 		}
 	}
-	if err := p.next(); err != nil {
+	node.Keyword = p.token
+	if err := p.tryConsume(token.State); err != nil {
 		return nil, err
 	}
-	name, err := p.ParseIdentifier()
+	node.Name, err = p.ParseIdentifier()
 	if err != nil {
 		return nil, err
-	}
-	node := &ast.State{
-		Name:   name,
-		IsAuto: isAuto,
 	}
 	for p.token.Kind != token.EndState {
 		if p.token.Kind == token.EOF {
 			// State was never closed, proactively create a
 			errStmt := &ast.ErrorScriptStatement{
-				Message:  fmt.Sprintf("hit end of file while parsing state %q, did you forget %s?", name.Location.Text(), token.EndState),
+				Message:  fmt.Sprintf("hit end of file while parsing state %q, did you forget %s?", node.Name.Location.Text(), token.EndState),
 				Location: source.Span(start, p.token.Location),
 			}
 			p.errors = append(p.errors, errStmt)
@@ -473,7 +469,8 @@ func (p *parser) ParseState() (ast.ScriptStatement, error) {
 		}
 	}
 	node.Location = source.Span(start, p.token.Location)
-	if err := p.next(); err != nil {
+	node.EndKeyword = p.token
+	if err := p.tryConsume(token.EndState); err != nil {
 		return nil, err
 	}
 	return node, p.tryConsume(token.Newline, token.EOF)
@@ -534,53 +531,51 @@ func (p *parser) recoverInvokable() error {
 }
 
 func (p *parser) ParseEvent() (*ast.Event, error) {
-	start := p.token.Location
-	if err := p.next(); err != nil {
-		return nil, err
-	}
-	name, err := p.ParseIdentifier()
-	if err != nil {
-		return nil, err
-	}
+	var err error
 	node := &ast.Event{
-		Name: name,
+		Keyword: p.token,
 	}
-	params, err := p.ParseParameterList()
+	if err := p.tryConsume(token.Event); err != nil {
+		return nil, err
+	}
+	node.Name, err = p.ParseIdentifier()
 	if err != nil {
 		return nil, err
 	}
-	node.Parameters = params
+	node.Open, node.Parameters, node.Close, err = p.ParseParameterList()
+	if err != nil {
+		return nil, err
+	}
 	end := p.token.Location
 	if p.token.Kind == token.Native {
+		node.Native = p.token
 		if err := p.next(); err != nil {
 			return nil, err
 		}
-		node.IsNative = true
 	}
 	if p.token.Kind == token.Newline && p.lookahead.Kind == token.BraceOpen {
 		if err := p.next(); err != nil {
 			return nil, err
 		}
-		comment, err := p.ParseDocComment()
+		node.Comment, err = p.ParseDocComment()
 		if err != nil {
 			return nil, err
 		}
-		node.Comment = comment
-		end = comment.Close.SourceLocation()
+		end = node.Comment.Close.SourceLocation()
 	}
-	if node.IsNative {
-		node.Location = source.Span(start, end)
+	if node.Native != nil {
+		node.Location = source.Span(node.Keyword.SourceLocation(), end)
 		if err := p.consumeNewlines(); err != nil {
 			return nil, err
 		}
 		return node, nil
 	}
-	stmts, err := p.ParseFunctionStatementBlock(token.EndEvent)
+	node.Statements, err = p.ParseFunctionStatementBlock(token.EndEvent)
 	if err != nil {
 		return nil, err
 	}
-	node.Statements = stmts
-	node.Location = source.Span(start, p.token.Location)
+	node.Location = source.Span(node.Keyword.SourceLocation(), p.token.Location)
+	node.EndKeyword = p.token
 	if err := p.tryConsume(token.EndEvent); err != nil {
 		return nil, err
 	}
@@ -588,37 +583,33 @@ func (p *parser) ParseEvent() (*ast.Event, error) {
 }
 
 func (p *parser) ParseFunction() (*ast.Function, error) {
-	start := p.token.Location
-	var returnType *ast.TypeLiteral
 	var err error
+	node := &ast.Function{}
+	from := p.token.Location
 	if p.token.Kind != token.Function {
-		returnType, err = p.ParseTypeLiteral()
+		node.ReturnType, err = p.ParseTypeLiteral()
 		if err != nil {
 			return nil, err
 		}
 	}
+	node.Keyword = p.token
 	if err := p.tryConsume(token.Function); err != nil {
 		return nil, err
 	}
-	name, err := p.ParseIdentifier()
+	node.Name, err = p.ParseIdentifier()
 	if err != nil {
 		return nil, err
 	}
-	node := &ast.Function{
-		Name:       name,
-		ReturnType: returnType,
-	}
-	params, err := p.ParseParameterList()
+	node.Open, node.Parameters, node.Close, err = p.ParseParameterList()
 	if err != nil {
 		return nil, err
 	}
-	node.Parameters = params
 	var end source.Location
 	for p.token.Kind == token.Native || p.token.Kind == token.Global {
 		if p.token.Kind == token.Native {
-			node.IsNative = true
+			node.Native = append(node.Native, p.token)
 		} else {
-			node.IsGlobal = true
+			node.Global = append(node.Global, p.token)
 		}
 		end = p.token.Location
 		if err := p.next(); err != nil {
@@ -629,48 +620,49 @@ func (p *parser) ParseFunction() (*ast.Function, error) {
 		if err := p.next(); err != nil {
 			return nil, err
 		}
-		comment, err := p.ParseDocComment()
+		node.Comment, err = p.ParseDocComment()
 		if err != nil {
 			return nil, err
 		}
-		node.Comment = comment
 	}
-	if node.IsNative {
-		node.Location = source.Span(start, end)
+	if len(node.Native) > 0 {
+		node.Location = source.Span(from, end)
 		return node, nil
 	}
-	stmts, err := p.ParseFunctionStatementBlock(token.EndFunction)
+	node.Statements, err = p.ParseFunctionStatementBlock(token.EndFunction)
 	if err != nil {
 		return nil, err
 	}
-	node.Statements = stmts
-	node.Location = source.Span(start, p.token.Location)
-	if err := p.next(); err != nil {
+	node.Location = source.Span(from, p.token.Location)
+	node.EndKeyword = p.token
+	if err := p.tryConsume(token.EndFunction); err != nil {
 		return nil, err
 	}
 	return node, p.tryConsume(token.Newline, token.EOF)
 }
 
-func (p *parser) ParseParameterList() ([]*ast.Parameter, error) {
+func (p *parser) ParseParameterList() (ast.Token, []*ast.Parameter, ast.Token, error) {
+	open := p.token
 	if err := p.tryConsume(token.ParenthesisOpen); err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 	var params []*ast.Parameter
 	for {
 		switch p.token.Kind {
 		case token.Comma:
 			if err := p.next(); err != nil {
-				return nil, err
+				return nil, nil, nil, err
 			}
 		case token.ParenthesisClose:
+			close := p.token
 			if err := p.next(); err != nil {
-				return nil, err
+				return nil, nil, nil, err
 			}
-			return params, nil
+			return open, params, close, nil
 		default:
 			param, err := p.ParseParameter()
 			if err != nil {
-				return nil, err
+				return nil, nil, nil, err
 			}
 			params = append(params, param)
 		}
@@ -678,31 +670,28 @@ func (p *parser) ParseParameterList() ([]*ast.Parameter, error) {
 }
 
 func (p *parser) ParseParameter() (*ast.Parameter, error) {
-	start := p.token.Location
-	typeLiteral, err := p.ParseTypeLiteral()
+	var err error
+	node := &ast.Parameter{}
+	node.Type, err = p.ParseTypeLiteral()
 	if err != nil {
 		return nil, err
 	}
-	name, err := p.ParseIdentifier()
+	node.Name, err = p.ParseIdentifier()
 	if err != nil {
 		return nil, err
 	}
-	node := &ast.Parameter{
-		Type: typeLiteral,
-		Name: name,
-	}
-	node.Location = source.Span(start, name.Location)
+	node.Location = source.Span(node.Type.Location, node.Name.Location)
 	if p.token.Kind == token.Assign {
 		// Has default.
-		if err := p.next(); err != nil {
+		node.Operator = p.token
+		if err := p.tryConsume(token.Assign); err != nil {
 			return nil, err
 		}
-		literal, err := p.ParseLiteral()
+		node.Value, err = p.ParseLiteral()
 		if err != nil {
 			return nil, err
 		}
-		node.Value = literal
-		node.Location = source.Span(start, literal.SourceLocation())
+		node.Location = source.Span(node.Location, node.Value.SourceLocation())
 	}
 	return node, nil
 }
@@ -782,27 +771,30 @@ func (p *parser) ParseFunctionStatement() (ast.FunctionStatement, error) {
 }
 
 func (p *parser) ParseFunctionVariable() (*ast.FunctionVariable, error) {
-	typeLiteral, err := p.ParseTypeLiteral()
+	var err error
+	node := &ast.FunctionVariable{}
+	node.Type, err = p.ParseTypeLiteral()
 	if err != nil {
 		return nil, err
 	}
-	name, err := p.ParseIdentifier()
+	node.Name, err = p.ParseIdentifier()
 	if err != nil {
 		return nil, err
 	}
-	if err := p.tryConsume(token.Assign); err != nil {
-		return nil, err
+	end := node.Name.Location
+	if p.token.Kind == token.Assign {
+		node.Operator = p.token
+		if err := p.tryConsume(token.Assign); err != nil {
+			return nil, err
+		}
+		node.Value, err = p.ParseLiteral()
+		if err != nil {
+			return nil, err
+		}
+		end = node.Value.SourceLocation()
 	}
-	expr, err := p.ParseExpression(Lowest)
-	if err != nil {
-		return nil, err
-	}
-	return &ast.FunctionVariable{
-		Type:     typeLiteral,
-		Name:     name,
-		Value:    expr,
-		Location: source.Span(typeLiteral.Location, expr.SourceLocation()),
-	}, nil
+	node.Location = source.Span(node.Type.Location, end)
+	return node, nil
 }
 
 func (p *parser) ParseAssignment() (*ast.Assignment, error) {
@@ -811,8 +803,14 @@ func (p *parser) ParseAssignment() (*ast.Assignment, error) {
 	if err != nil {
 		return nil, err
 	}
-	operator, err := p.ParseAssignmentOperator()
-	if err != nil {
+	operator := p.token
+	if err := p.tryConsume(
+		token.Assign,
+		token.AssignAdd,
+		token.AssignDivide,
+		token.AssignModulo,
+		token.AssignMultiply,
+		token.AssignSubtract); err != nil {
 		return nil, err
 	}
 	expr, err := p.ParseExpression(Lowest)
@@ -827,119 +825,93 @@ func (p *parser) ParseAssignment() (*ast.Assignment, error) {
 	}, nil
 }
 
-func (p *parser) ParseAssignmentOperator() (*ast.AssignmentOperator, error) {
-	operator := &ast.AssignmentOperator{
+func (p *parser) ParseReturn() (*ast.Return, error) {
+	var err error
+	node := &ast.Return{
+		Keyword:  p.token,
 		Location: p.token.Location,
 	}
-	switch p.token.Kind {
-	case token.Assign:
-		operator.Kind = ast.Assign
-	case token.AssignAdd:
-		operator.Kind = ast.AssignAdd
-	case token.AssignDivide:
-		operator.Kind = ast.AssignDivide
-	case token.AssignModulo:
-		operator.Kind = ast.AssignModulo
-	case token.AssignMultiply:
-		operator.Kind = ast.AssignMultiply
-	case token.AssignSubtract:
-		operator.Kind = ast.AssignSubtract
-	default:
-		types := tokensTypesToString(
-			token.Assign,
-			token.AssignAdd,
-			token.AssignDivide,
-			token.AssignModulo,
-			token.AssignMultiply,
-			token.AssignSubtract)
-		return nil, newError(p.token.Location, "expected any of [%s], but found %s", types, p.token.Kind)
-	}
-	if err := p.next(); err != nil {
-		return nil, err
-	}
-	return operator, nil
-}
-
-func (p *parser) ParseReturn() (*ast.Return, error) {
-	start := p.token.Location
 	if err := p.tryConsume(token.Return); err != nil {
 		return nil, err
 	}
 	if p.token.Kind == token.Newline {
-		return &ast.Return{
-			Location: start,
-		}, nil
+		return node, nil
 	}
-	expr, err := p.ParseExpression(Lowest)
+	node.Value, err = p.ParseExpression(Lowest)
 	if err != nil {
 		return nil, err
 	}
-	return &ast.Return{
-		Value:    expr,
-		Location: source.Span(start, expr.SourceLocation()),
-	}, nil
+	node.Location = source.Span(node.Location, node.Value.SourceLocation())
+	return node, nil
 }
 
 func (p *parser) ParseIf() (*ast.If, error) {
-	start := p.token.Location
+	var err error
+	node := &ast.If{
+		Keyword: p.token,
+	}
 	if err := p.tryConsume(token.If); err != nil {
 		return nil, err
 	}
-	expr, err := p.ParseExpression(Lowest)
+	node.Condition, err = p.ParseExpression(Lowest)
 	if err != nil {
 		return nil, err
 	}
 	if err := p.consumeNewlines(); err != nil {
 		return nil, err
 	}
-	stmts, err := p.ParseFunctionStatementBlock(token.EndIf, token.Else, token.ElseIf)
+	node.Statements, err = p.ParseFunctionStatementBlock(token.EndIf, token.Else, token.ElseIf)
 	if err != nil {
 		return nil, err
 	}
-	node := &ast.If{
-		Conditional: ast.ConditionalBlock{
-			Condition:  expr,
-			Statements: stmts,
-		},
-	}
-	for {
-		if p.token.Kind != token.ElseIf {
-			break
+	for p.token.Kind == token.ElseIf {
+		block := &ast.ElseIf{
+			Keyword: p.token,
 		}
-		if err := p.next(); err != nil {
+		if err := p.tryConsume(token.ElseIf); err != nil {
 			return nil, err
 		}
-		expr, err := p.ParseExpression(Lowest)
+		block.Condition, err = p.ParseExpression(Lowest)
 		if err != nil {
 			return nil, err
 		}
+		end := block.Condition.SourceLocation()
 		if err := p.consumeNewlines(); err != nil {
 			return nil, err
 		}
-		stmts, err := p.ParseFunctionStatementBlock(token.EndIf, token.Else, token.ElseIf)
+		block.Statements, err = p.ParseFunctionStatementBlock(token.EndIf, token.Else, token.ElseIf)
 		if err != nil {
 			return nil, err
 		}
-		block := ast.ConditionalBlock{
-			Condition:  expr,
-			Statements: stmts,
+		if len(block.Statements) > 0 {
+			end = block.Statements[len(block.Statements)-1].SourceLocation()
 		}
-		node.AlternativeConditionals = append(node.AlternativeConditionals, block)
+		block.Location = source.Span(block.Keyword.SourceLocation(), end)
+		node.ElseIfs = append(node.ElseIfs, block)
 	}
 	if p.token.Kind == token.Else {
-		if err := p.next(); err != nil {
+		block := &ast.Else{
+			Keyword: p.token,
+		}
+		if err := p.tryConsume(token.Else); err != nil {
 			return nil, err
 		}
 		if err := p.consumeNewlines(); err != nil {
 			return nil, err
 		}
-		stmts, err := p.ParseFunctionStatementBlock(token.EndIf)
+		end := block.Keyword.SourceLocation()
+		block.Statements, err = p.ParseFunctionStatementBlock(token.EndIf)
 		if err != nil {
 			return nil, err
 		}
-		node.Alternative = stmts
+		if len(block.Statements) > 0 {
+			end = block.Statements[len(block.Statements)-1].SourceLocation()
+		}
+		node.Location = source.Span(block.Keyword.SourceLocation(), end)
+		node.Else = block
 	}
-	node.Location = source.Span(start, p.token.Location)
+	node.Location = source.Span(node.Keyword.SourceLocation(), p.token.Location)
+	node.EndKeyword = p.token
 	if err := p.tryConsume(token.EndIf); err != nil {
 		return nil, err
 	}
@@ -947,26 +919,26 @@ func (p *parser) ParseIf() (*ast.If, error) {
 }
 
 func (p *parser) ParseWhile() (*ast.While, error) {
-	start := p.token.Location
+	var err error
+	node := &ast.While{
+		Keyword: p.token,
+	}
 	if err := p.tryConsume(token.While); err != nil {
 		return nil, err
 	}
-	expr, err := p.ParseExpression(Lowest)
+	node.Condition, err = p.ParseExpression(Lowest)
 	if err != nil {
 		return nil, err
 	}
 	if err := p.consumeNewlines(); err != nil {
 		return nil, err
 	}
-	stmts, err := p.ParseFunctionStatementBlock(token.EndWhile)
+	node.Statements, err = p.ParseFunctionStatementBlock(token.EndWhile)
 	if err != nil {
 		return nil, err
 	}
-	node := &ast.While{
-		Condition:  expr,
-		Statements: stmts,
-		Location:   source.Span(start, p.token.Location),
-	}
+	node.Location = source.Span(node.Keyword.SourceLocation(), p.token.Location)
+	node.EndKeyword = p.token
 	if err := p.tryConsume(token.EndWhile); err != nil {
 		return nil, err
 	}
@@ -974,22 +946,21 @@ func (p *parser) ParseWhile() (*ast.While, error) {
 }
 
 func (p *parser) ParseProperty() (*ast.Property, error) {
-	typeLiteral, err := p.ParseTypeLiteral()
+	var err error
+	node := &ast.Property{}
+	node.Type, err = p.ParseTypeLiteral()
 	if err != nil {
 		return nil, err
 	}
+	node.Keyword = p.token
 	if err := p.tryConsume(token.Property); err != nil {
 		return nil, err
 	}
-	name, err := p.ParseIdentifier()
+	node.Name, err = p.ParseIdentifier()
 	if err != nil {
 		return nil, err
 	}
-	end := name.SourceLocation()
-	node := &ast.Property{
-		Type: typeLiteral,
-		Name: name,
-	}
+	end := node.Name.Location
 	if p.token.Kind == token.Assign {
 		if err := p.tryConsume(token.Assign); err != nil {
 			return nil, err
@@ -1001,7 +972,7 @@ func (p *parser) ParseProperty() (*ast.Property, error) {
 		end = node.Value.SourceLocation()
 	}
 	if p.token.Kind == token.Auto {
-		node.IsAuto = true
+		node.Auto = p.token
 		end = p.token.Location
 		if err := p.tryConsume(token.Auto); err != nil {
 			return nil, err
@@ -1010,20 +981,19 @@ func (p *parser) ParseProperty() (*ast.Property, error) {
 		if node.Value == nil {
 			return nil, newError(p.token.Location, "expected value to be defined for AutoReadOnly property")
 		}
-		node.IsAuto = true
-		node.IsReadOnly = true
+		node.AutoReadOnly = p.token
 		end = p.token.Location
 		if err := p.tryConsume(token.Auto); err != nil {
 			return nil, err
 		}
 	}
-	if node.IsAuto {
+	if node.Auto != nil || node.AutoReadOnly != nil {
 		for p.token.Kind == token.Hidden || p.token.Kind == token.Conditional {
 			end = p.token.Location
 			if p.token.Kind == token.Hidden {
-				node.IsHidden = true
+				node.Hidden = append(node.Hidden, p.token)
 			} else {
-				node.IsConditional = true
+				node.Conditional = append(node.Conditional, p.token)
 			}
 			if err := p.tryConsume(token.Hidden, token.Conditional); err != nil {
 				return nil, err
@@ -1033,18 +1003,18 @@ func (p *parser) ParseProperty() (*ast.Property, error) {
 			if err := p.next(); err != nil {
 				return nil, err
 			}
-			comment, err := p.ParseDocComment()
+			node.Comment, err = p.ParseDocComment()
 			if err != nil {
 				return nil, err
 			}
-			node.Comment = comment
-			end = comment.Close.SourceLocation()
+			end = node.Comment.Close.SourceLocation()
 		}
-		node.Location = source.Span(typeLiteral.Location, end)
+		node.Location = source.Span(node.Type.Location, end)
 		return node, nil
 	}
 	// Full Property
 	for p.token.Kind == token.Hidden {
+		node.Hidden = append(node.Hidden, p.token)
 		if err := p.tryConsume(token.Hidden); err != nil {
 			return nil, err
 		}
@@ -1082,7 +1052,7 @@ func (p *parser) ParseProperty() (*ast.Property, error) {
 			return nil, err
 		}
 	}
-	if first.Name.Text == "get" {
+	if first.Name.Normalized == "get" {
 		if first.ReturnType == nil {
 			return nil, newError(first.Name.Location, "expected '%s' to have a return type of %s, but found none", first.Name.SourceLocation().Text(), node.Type.Location.Text())
 		}
@@ -1094,7 +1064,7 @@ func (p *parser) ParseProperty() (*ast.Property, error) {
 			return nil, newError(loc, "expected '%s' to have no parameters, but found %d", first.Name.SourceLocation().Text(), len(first.Parameters))
 		}
 		node.Get = first
-	} else if first.Name.Text == "set" {
+	} else if first.Name.Normalized == "set" {
 		if first.ReturnType != nil {
 			return nil, newError(first.ReturnType.Location, "expected '%s' to have no return type, but found %s", first.Name.SourceLocation().Text(), first.ReturnType.Location.Text())
 		}
@@ -1113,7 +1083,7 @@ func (p *parser) ParseProperty() (*ast.Property, error) {
 		return nil, newError(first.SourceLocation(), "expected 'Get' or 'Set' function for property, but found '%s'", first.Name.SourceLocation().Text())
 	}
 	if second != nil {
-		if second.Name.Text == "get" {
+		if second.Name.Normalized == "get" {
 			if node.Get != nil {
 				return nil, newError(second.Location, "expected exactly one 'Get' function, but found two")
 			}
@@ -1128,7 +1098,7 @@ func (p *parser) ParseProperty() (*ast.Property, error) {
 				return nil, newError(loc, "expected '%s' to have no parameters, but found %d", second.Name.SourceLocation().Text(), len(second.Parameters))
 			}
 			node.Get = second
-		} else if second.Name.Text == "set" {
+		} else if second.Name.Normalized == "set" {
 			if node.Set != nil {
 				return nil, newError(second.Location, "expected exactly one 'Set' function, but found two")
 			}
@@ -1150,7 +1120,8 @@ func (p *parser) ParseProperty() (*ast.Property, error) {
 			return nil, newError(second.SourceLocation(), "expected 'Get' or 'Set' function for property, but found '%s'", second.Name.SourceLocation().Text())
 		}
 	}
-	node.Location = source.Span(typeLiteral.Location, p.token.Location)
+	node.Location = source.Span(node.Type.Location, p.token.Location)
+	node.EndKeyword = p.token
 	if err := p.tryConsume(token.EndProperty); err != nil {
 		return nil, err
 	}
@@ -1158,20 +1129,19 @@ func (p *parser) ParseProperty() (*ast.Property, error) {
 }
 
 func (p *parser) ParseScriptVariable() (*ast.ScriptVariable, error) {
-	typeLiteral, err := p.ParseTypeLiteral()
+	var err error
+	node := &ast.ScriptVariable{}
+	node.Type, err = p.ParseTypeLiteral()
 	if err != nil {
 		return nil, err
 	}
-	name, err := p.ParseIdentifier()
+	node.Name, err = p.ParseIdentifier()
 	if err != nil {
 		return nil, err
 	}
-	end := name.Location
-	node := &ast.ScriptVariable{
-		Type: typeLiteral,
-		Name: name,
-	}
-	if p.token.Kind != token.Assign {
+	end := node.Name.Location
+	if p.token.Kind == token.Assign {
+		node.Operator = p.token
 		if err := p.tryConsume(token.Assign); err != nil {
 			return nil, err
 		}
@@ -1183,28 +1153,35 @@ func (p *parser) ParseScriptVariable() (*ast.ScriptVariable, error) {
 	}
 	for p.token.Kind == token.Conditional {
 		end = p.token.Location
-		node.IsConditional = true
+		node.Conditional = append(node.Conditional, p.token)
 		if err := p.next(); err != nil {
 			return nil, err
 		}
 	}
-	node.Location = source.Span(typeLiteral.Location, end)
-	return node, p.tryConsume(token.Newline, token.EOF)
+	node.Location = source.Span(node.Type.Location, end)
+	if err := p.tryConsume(token.Newline, token.EOF); err != nil {
+		return nil, err
+	}
+	return node, nil
 }
 
 func (p *parser) ParseIdentifier() (*ast.Identifier, error) {
-	rng := p.token.Location
+	node := &ast.Identifier{
+		Text:       p.token,
+		Normalized: string(bytes.ToLower(p.token.Location.Text())),
+		Location:   p.token.Location,
+	}
 	if err := p.tryConsume(token.Identifier); err != nil {
 		return nil, err
 	}
-	return &ast.Identifier{
-		Text:     string(bytes.ToLower(rng.Text())),
-		Location: rng,
-	}, nil
+	return node, nil
 }
 
 func (p *parser) ParseTypeLiteral() (*ast.TypeLiteral, error) {
-	start := p.token.Location
+	node := &ast.TypeLiteral{
+		Text:     p.token,
+		Location: p.token.Location,
+	}
 	var scalar types.Scalar
 	switch p.token.Kind {
 	case token.Bool:
@@ -1226,15 +1203,13 @@ func (p *parser) ParseTypeLiteral() (*ast.TypeLiteral, error) {
 		return nil, err
 	}
 	if p.token.Kind != token.BracketOpen {
-		return &ast.TypeLiteral{
-			Type:     scalar,
-			Location: start,
-		}, nil
+		return node, nil
 	}
-	if err := p.next(); err != nil {
+	node.Open = p.token
+	if err := p.tryConsume(token.BracketOpen); err != nil {
 		return nil, err
 	}
-	end := p.token.Location
+	node.Close = p.token
 	if err := p.tryConsume(token.BracketClose); err != nil {
 		return nil, err
 	}
@@ -1242,7 +1217,7 @@ func (p *parser) ParseTypeLiteral() (*ast.TypeLiteral, error) {
 		Type: types.Array{
 			ElementType: scalar,
 		},
-		Location: source.Span(start, end),
+		Location: source.Span(node.Location, node.Close.SourceLocation()),
 	}, nil
 }
 
@@ -1270,8 +1245,21 @@ func (p *parser) ParseExpression(precedence int) (ast.Expression, error) {
 
 func (p *parser) ParseBinary(left ast.Expression) (*ast.Binary, error) {
 	precedence := precedenceOf(p.token.Kind)
-	operator, err := p.ParseBinaryOperator()
-	if err != nil {
+	operator := p.token
+	if err := p.tryConsume(
+		token.LogicalOr,
+		token.LogicalAnd,
+		token.Equal,
+		token.NotEqual,
+		token.Greater,
+		token.GreaterOrEqual,
+		token.Less,
+		token.LessOrEqual,
+		token.Plus,
+		token.Minus,
+		token.Divide,
+		token.Multiply,
+		token.Modulo); err != nil {
 		return nil, err
 	}
 	right, err := p.ParseExpression(precedence)
@@ -1286,96 +1274,24 @@ func (p *parser) ParseBinary(left ast.Expression) (*ast.Binary, error) {
 	}, nil
 }
 
-func (p *parser) ParseBinaryOperator() (*ast.BinaryOperator, error) {
-	operator := &ast.BinaryOperator{Location: p.token.Location}
-	switch p.token.Kind {
-	case token.LogicalOr:
-		operator.Kind = ast.LogicalOr
-	case token.LogicalAnd:
-		operator.Kind = ast.LogicalAnd
-	case token.Equal:
-		operator.Kind = ast.Equal
-	case token.NotEqual:
-		operator.Kind = ast.NotEqual
-	case token.Greater:
-		operator.Kind = ast.Greater
-	case token.GreaterOrEqual:
-		operator.Kind = ast.GreaterOrEqual
-	case token.Less:
-		operator.Kind = ast.Less
-	case token.LessOrEqual:
-		operator.Kind = ast.LessOrEqual
-	case token.Plus:
-		operator.Kind = ast.Add
-	case token.Minus:
-		operator.Kind = ast.Subtract
-	case token.Multiply:
-		operator.Kind = ast.Multiply
-	case token.Divide:
-		operator.Kind = ast.Divide
-	case token.Modulo:
-		operator.Kind = ast.Modulo
-	default:
-		types := tokensTypesToString(
-			token.LogicalOr,
-			token.LogicalAnd,
-			token.Equal,
-			token.NotEqual,
-			token.Greater,
-			token.GreaterOrEqual,
-			token.Less,
-			token.LessOrEqual,
-			token.Plus,
-			token.Minus,
-			token.Divide,
-			token.Multiply,
-			token.Modulo,
-		)
-		return nil, newError(p.token.Location, "expected any of [%s], but found %s", types, p.token.Kind)
-	}
-	if err := p.next(); err != nil {
-		return nil, err
-	}
-	return operator, nil
-}
-
 func (p *parser) ParseUnary() (ast.Expression, error) {
 	if p.token.Kind == token.Minus &&
 		(p.lookahead.Kind == token.IntLiteral || p.lookahead.Kind == token.FloatLiteral) {
 		return p.ParseLiteral()
 	}
-	operator, err := p.ParseUnaryOperator()
+	var err error
+	node := &ast.Unary{
+		Operator: p.token,
+	}
+	if err := p.tryConsume(token.Minus, token.LogicalNot); err != nil {
+		return nil, err
+	}
+	node.Operand, err = p.ParseExpression(Prefix)
 	if err != nil {
 		return nil, err
 	}
-	expr, err := p.ParseExpression(Prefix)
-	if err != nil {
-		return nil, err
-	}
-	return &ast.Unary{
-		Operator: operator,
-		Operand:  expr,
-		Location: source.Span(operator.Location, expr.SourceLocation()),
-	}, nil
-}
-
-func (p *parser) ParseUnaryOperator() (*ast.UnaryOperator, error) {
-	operator := &ast.UnaryOperator{
-		Location: p.token.Location,
-	}
-	switch p.token.Kind {
-	case token.Minus:
-		operator.Kind = ast.Negate
-	case token.LogicalNot:
-		operator.Kind = ast.LogicalNot
-	default:
-		types := tokensTypesToString(token.Minus, token.LogicalNot)
-		return nil, newError(p.token.Location, "expected any of [%s], but found %s", types, p.token.Kind)
-	}
-	if err := p.next(); err != nil {
-		return nil, err
-	}
-	return operator, nil
+	node.Location = source.Span(node.Operator.SourceLocation(), node.Operand.SourceLocation())
+	return node, nil
 }
 
 func (p *parser) ParseCast(value ast.Expression) (*ast.Cast, error) {
@@ -1389,7 +1305,7 @@ func (p *parser) ParseCast(value ast.Expression) (*ast.Cast, error) {
 	}
 	return &ast.Cast{
 		Value:    value,
-		Operator: &ast.AsOperator{Location: operator.Location},
+		Operator: operator,
 		Type:     typeLiteral,
 		Location: source.Span(value.SourceLocation(), typeLiteral.Location),
 	}, nil
@@ -1406,45 +1322,36 @@ func (p *parser) ParseAccess(value ast.Expression) (*ast.Access, error) {
 	}
 	return &ast.Access{
 		Value:    value,
-		Operator: &ast.AccessOperator{Location: operator.Location},
+		Operator: operator,
 		Name:     name,
 		Location: source.Span(value.SourceLocation(), name.Location),
 	}, nil
 }
 
-func (p *parser) ParseAccessOperator() (*ast.AccessOperator, error) {
-	operator := &ast.AccessOperator{
-		Location: p.token.Location,
-	}
-	if err := p.tryConsume(token.Dot); err != nil {
-		return nil, err
-	}
-	return operator, nil
-}
-
 func (p *parser) ParseIndex(array ast.Expression) (*ast.Index, error) {
-	open, err := p.ParseArrayOpenOperator()
-	if err != nil {
+	open := p.token
+	if err := p.tryConsume(token.BracketOpen); err != nil {
 		return nil, err
 	}
 	index, err := p.ParseExpression(Lowest)
 	if err != nil {
 		return nil, err
 	}
-	close, err := p.ParseArrayCloseOperator()
-	if err != nil {
+	close := p.token
+	if err := p.tryConsume(token.BracketClose); err != nil {
 		return nil, err
 	}
 	return &ast.Index{
-		Value:         array,
-		OpenOperator:  open,
-		Index:         index,
-		CloseOperator: close,
-		Location:      source.Span(array.SourceLocation(), close.Location),
+		Value:    array,
+		Open:     open,
+		Index:    index,
+		Close:    close,
+		Location: source.Span(array.SourceLocation(), close.Location),
 	}, nil
 }
 
 func (p *parser) ParseCall(reciever ast.Expression) (*ast.Call, error) {
+	open := p.token
 	if err := p.tryConsume(token.ParenthesisOpen); err != nil {
 		return nil, err
 	}
@@ -1452,14 +1359,16 @@ func (p *parser) ParseCall(reciever ast.Expression) (*ast.Call, error) {
 	if err != nil {
 		return nil, err
 	}
-	end := p.token.Location
+	close := p.token
 	if err := p.tryConsume(token.ParenthesisClose); err != nil {
 		return nil, err
 	}
 	return &ast.Call{
 		Reciever:  reciever,
+		Open:      open,
 		Arguments: args,
-		Location:  source.Span(reciever.SourceLocation(), end),
+		Close:     close,
+		Location:  source.Span(reciever.SourceLocation(), close.Location),
 	}, nil
 }
 
@@ -1490,14 +1399,10 @@ func (p *parser) ParseArgument() (*ast.Argument, error) {
 		if err != nil {
 			return nil, err
 		}
-		assign := p.token
+		node.Name = id
+		node.Operator = p.token
 		if err := p.tryConsume(token.Assign); err != nil {
 			return nil, err
-		}
-		node.Name = id
-		node.Operator = &ast.AssignmentOperator{
-			Kind:     ast.Assign,
-			Location: assign.Location,
 		}
 	}
 	value, err := p.ParseExpression(Lowest)
@@ -1514,16 +1419,16 @@ func (p *parser) ParseArgument() (*ast.Argument, error) {
 }
 
 func (p *parser) ParseArrayCreation() (*ast.ArrayCreation, error) {
-	new, err := p.ParseNewOperator()
-	if err != nil {
+	new := p.token
+	if err := p.tryConsume(token.New); err != nil {
 		return nil, err
 	}
 	typeLiteral, err := p.ParseTypeLiteral()
 	if err != nil {
 		return nil, err
 	}
-	open, err := p.ParseArrayOpenOperator()
-	if err != nil {
+	open := p.token
+	if err := p.tryConsume(token.BracketOpen); err != nil {
 		return nil, err
 	}
 	size, err := p.ParseIntLiteral()
@@ -1533,66 +1438,37 @@ func (p *parser) ParseArrayCreation() (*ast.ArrayCreation, error) {
 	if size.Value < 1 || size.Value > 128 {
 		return nil, newError(size.SourceLocation(), "expected array size to be an IntLiteral in range [1, 128], but found %d", size.Value)
 	}
-	close, err := p.ParseArrayCloseOperator()
-	if err != nil {
-		return nil, err
-	}
-	return &ast.ArrayCreation{
-		NewOperator:   new,
-		Type:          typeLiteral,
-		OpenOperator:  open,
-		Size:          size,
-		CloseOperator: close,
-		Location:      source.Span(new.Location, close.Location),
-	}, nil
-}
-
-func (p *parser) ParseNewOperator() (*ast.NewOperator, error) {
-	operator := &ast.NewOperator{
-		Location: p.token.Location,
-	}
-	if err := p.tryConsume(token.New); err != nil {
-		return nil, err
-	}
-	return operator, nil
-}
-
-func (p *parser) ParseArrayOpenOperator() (*ast.ArrayOpenOperator, error) {
-	operator := &ast.ArrayOpenOperator{
-		Location: p.token.Location,
-	}
-	if err := p.tryConsume(token.BracketOpen); err != nil {
-		return nil, err
-	}
-	return operator, nil
-}
-
-func (p *parser) ParseArrayCloseOperator() (*ast.ArrayCloseOperator, error) {
-	operator := &ast.ArrayCloseOperator{
-		Location: p.token.Location,
-	}
+	close := p.token
 	if err := p.tryConsume(token.BracketClose); err != nil {
 		return nil, err
 	}
-	return operator, nil
+	return &ast.ArrayCreation{
+		NewOperator: new,
+		Type:        typeLiteral,
+		Open:        open,
+		Size:        size,
+		Close:       close,
+		Location:    source.Span(new.Location, close.Location),
+	}, nil
 }
 
 func (p *parser) ParseParenthetical() (*ast.Parenthetical, error) {
-	start := p.token.Location
+	var err error
+	node := &ast.Parenthetical{
+		Open: p.token,
+	}
 	if err := p.tryConsume(token.ParenthesisOpen); err != nil {
 		return nil, err
 	}
-	expr, err := p.ParseExpression(Lowest)
+	node.Value, err = p.ParseExpression(Lowest)
 	if err != nil {
 		return nil, err
 	}
-	node := &ast.Parenthetical{
-		Value:    expr,
-		Location: source.Span(start, p.token.Location),
-	}
+	node.Close = p.token
 	if err := p.tryConsume(token.ParenthesisClose); err != nil {
 		return nil, err
 	}
+	node.Location = source.Span(node.Open.SourceLocation(), node.Close.SourceLocation())
 	return node, nil
 }
 
@@ -1641,67 +1517,72 @@ func (p *parser) ParseLiteral() (ast.Literal, error) {
 }
 
 func (p *parser) ParseIntLiteral() (*ast.IntLiteral, error) {
-	tok := p.token
+	node := &ast.IntLiteral{
+		Text:     p.token,
+		Location: p.token.Location,
+	}
 	if err := p.tryConsume(token.IntLiteral); err != nil {
 		return nil, err
 	}
-	text := strings.ToLower(string(tok.Location.Text()))
+	text := strings.ToLower(string(node.Location.Text()))
 	val, err := strconv.ParseInt(text, 0, 32)
 	if err != nil {
-		return nil, newError(tok.Location, "failed to parse %q as an integer: %v", text, err)
+		return nil, newError(node.Location, "failed to parse %q as an integer: %v", text, err)
 	}
-	return &ast.IntLiteral{
-		Value:    int(val),
-		Location: tok.Location,
-	}, nil
+	node.Value = int(val)
+	return node, nil
 }
 
 func (p *parser) ParseFloatLiteral() (*ast.FloatLiteral, error) {
-	tok := p.token
+	node := &ast.FloatLiteral{
+		Text:     p.token,
+		Location: p.token.Location,
+	}
 	if err := p.tryConsume(token.FloatLiteral); err != nil {
 		return nil, err
 	}
-	text := strings.ToLower(string(tok.Location.Text()))
+	text := strings.ToLower(string(node.Location.Text()))
 	val, err := strconv.ParseFloat(text, 32)
 	if err != nil {
-		return nil, newError(tok.Location, "failed to parse %q as a float: %v", text, err)
+		return nil, newError(node.Location, "failed to parse %q as a float: %v", text, err)
 	}
-	return &ast.FloatLiteral{
-		Value:    float32(val),
-		Location: tok.Location,
-	}, nil
+	node.Value = float32(val)
+	return node, nil
 }
 
 func (p *parser) ParseBoolLiteral() (*ast.BoolLiteral, error) {
-	tok := p.token
+	node := &ast.BoolLiteral{
+		Text:     p.token,
+		Value:    p.token.Kind == token.True,
+		Location: p.token.Location,
+	}
 	if err := p.tryConsume(token.True, token.False); err != nil {
 		return nil, err
 	}
-	return &ast.BoolLiteral{
-		Value:    tok.Kind == token.True,
-		Location: tok.Location,
-	}, nil
+	return node, nil
 }
 
 func (p *parser) ParseStringLiteral() (*ast.StringLiteral, error) {
-	tok := p.token
+	node := &ast.StringLiteral{
+		Text:     p.token,
+		Value:    string(p.token.Location.Text()[1 : p.token.Location.Length-1]),
+		Location: p.token.Location,
+	}
 	if err := p.tryConsume(token.StringLiteral); err != nil {
 		return nil, err
 	}
-	return &ast.StringLiteral{
-		Value:    string(tok.Location.Text()[1 : tok.Location.Length-1]),
-		Location: tok.Location,
-	}, nil
+	return node, nil
 }
 
 func (p *parser) ParseNoneLiteral() (*ast.NoneLiteral, error) {
-	tok := p.token
+	node := &ast.NoneLiteral{
+		Text:     p.token,
+		Location: p.token.Location,
+	}
 	if err := p.tryConsume(token.None); err != nil {
 		return nil, err
 	}
-	return &ast.NoneLiteral{
-		Location: tok.Location,
-	}, nil
+	return node, nil
 }
 
 func registerPrefix[T ast.Expression](p *parser, fn func() (T, error), types ...token.Kind) {

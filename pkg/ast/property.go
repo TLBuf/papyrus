@@ -8,42 +8,72 @@ import "github.com/TLBuf/papyrus/pkg/source"
 // referenced by the engine.
 type Property struct {
 	Trivia
-	// Name is the name of the property.
-	Name *Identifier
 	// Type is the type of this property.
 	Type *TypeLiteral
-	// IsHidden defines whether this is a hidden property (i.e. it doesn't appear
-	// in the editor).
-	IsHidden bool
-	// IsConditional defines whether this is a conditional property (i.e. it can
-	// referenced in conditions).
-	IsConditional bool
-	// IsAuto defines whether this property uses the auto syntax (i.e. it has not
-	// get or set function definitions).
-	IsAuto bool
-	// IsReadOnly defines whether this property is marked read-only.
-	IsReadOnly bool
+	// Keyword is the Property keyword that starts the definition.
+	Keyword Token
+	// Name is the name of the property.
+	Name *Identifier
+	// Operator is the assign operator that defines an initial value or nil if
+	// the property uses the type's default value.
+	//
+	// If this is non-nil, [Value] will be non-nil (and vice versa). If [Auto] and
+	// [AutoReadOnly] are nil, this must be nil.
+	Operator Token
+	// Value is the literal that defines the initial value of the property.
+	//
+	// If [Auto] and [AutoReadOnly] are nil, this must be nil.
+	Value Literal
+	// Hidden are the Hidden tokens that define that this property is hidden (i.e.
+	// it doesn't appear in the editor) or empty if this property is not hidden.
+	//
+	// Errata: This being multiple values is due to the offical Papyrus parser
+	// accepting any number of flag tokens. They are all included here for
+	// completeness, but only one is required to consider the property hidden.
+	Hidden []Token
+	// Conditional are the Conditional tokens that define that this property is
+	// conditional (i.e. it can appear in conditions) or empty if this property is
+	// not conditional.
+	//
+	// Errata: This being multiple values is due to the offical Papyrus parser
+	// accepting any number of flag tokens. They are all included here for
+	// completeness, but only one is required to consider the property
+	// conditional.
+	Conditional []Token
+	// Auto is the Auto token that defines that this is an auto property or nil
+	// if this property is a read-only auto property or full property.
+	//
+	// If non-nil, [Get], [Set], and [AutoReadOnly] will be nil.
+	Auto Token
+	// AutoReadOnly is the AutoReadOnly token that defines that this is a
+	// read-only auto property or nil if this property is an auto property or full
+	// property.
+	//
+	// If non-nil, [Get], [Set], and [Auto] will be nil. If non-nil, [Operator]
+	// and [Value] must also be non-nil.
+	AutoReadOnly Token
 	// Comment is the optional documentation comment for this property.
 	Comment *DocComment
-	// Value is the literal that defines the initial value of the property. This
-	// is nil if IsAuto is false.
-	Value Literal
-	// Get is the get function for this property or nil if undefined or IsAuto is
-	// true.
+	// Get is the get function for this property or nil if undefined.
 	//
-	// If IsAuto is false, either Get or Set (or both) will be non-nil.
+	// If [Auto] and [AutoReadOnly] are nil, either Get or Set (or both) will be
+	// non-nil.
 	//
 	// This function is never global or native, has no parameters, and returns the
 	// same type as this property's type.
 	Get *Function
-	// Set is the set function for this property or nil if undefined or IsAuto is
-	// true.
+	// Set is the set function for this property or nil if undefined.
 	//
-	// If IsAuto is false, either Get or Set (or both) will be non-nil.
+	// If [Auto] and [AutoReadOnly] are nil, either Get or Set (or both) will be
+	// non-nil.
 	//
 	// This function is never global or native, has one parameter that is the same
 	// type as this property's type, and returns nothing.
 	Set *Function
+	// EndKeyword is the EndProperty keyword that ends the definition or nil if
+	// the property is Auto or AutoReadOnly (and thus has no Get or Set
+	// functions).
+	EndKeyword Token
 	// Location is the source range of the node.
 	Location source.Location
 }

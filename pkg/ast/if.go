@@ -6,25 +6,23 @@ import "github.com/TLBuf/papyrus/pkg/source"
 // true and potentially a different set of statements if that condition is
 // false.
 type If struct {
-	// Conditional is the main conditional block of the if statement.
-	Conditional ConditionalBlock
-	// AlternativeConditonals are the ordered set of alternative contional blocks,
-	// i.e. ElseIfs.
-	AlternativeConditionals []ConditionalBlock
-	// Alternative is the list of statements that should be evaluated if the
-	// condition and all alternative conditionals are false, i.e. Else.
-	Alternative []FunctionStatement
-	// Location is the source range of the node.
-	Location source.Location
-}
-
-// ConditionalBlock is a list of statements that may be conditionally executed.
-type ConditionalBlock struct {
-	// Condition is the expression that defines the condition to check.
+	Trivia
+	// Keyword is the If keyword that starts the statement.
+	Keyword Token
+	// Condition is the expression that defines the first condition to check.
 	Condition Expression
-	// Statements is the list of statements that should be evaluated if the
+	// Statements is the list of statements that should be evaluated if the first
 	// condition is true.
 	Statements []FunctionStatement
+	// ElseIfs are the ordered list of ElseIf blocks (or empty if there are none).
+	ElseIfs []*ElseIf
+	// Else is the block that should be executed if the first [Condition] and all
+	// [ElseIf] conditions evaluate to false or nil if there is no else block.
+	Else *Else
+	// EndKeyword is the EndIf keyword that ends the statement.
+	EndKeyword Token
+	// Location is the source range of the node.
+	Location source.Location
 }
 
 // SourceLocation returns the source location of the node.
@@ -35,3 +33,44 @@ func (i *If) SourceLocation() source.Location {
 func (*If) functionStatement() {}
 
 var _ FunctionStatement = (*If)(nil)
+
+// ElseIf is a list of statements that may be executed if a condition is true
+// and all previous conditions evaluate to false.
+type ElseIf struct {
+	Trivia
+	// Keyword is the ElseIf keyword that starts the block.
+	Keyword Token
+	// Condition is the expression that defines the condition to check.
+	Condition Expression
+	// Statements is the list of statements that should be evaluated if the
+	// condition is true.
+	Statements []FunctionStatement
+	// Location is the source range of the node.
+	Location source.Location
+}
+
+// SourceLocation returns the source location of the node.
+func (i *ElseIf) SourceLocation() source.Location {
+	return i.Location
+}
+
+var _ Node = (*ElseIf)(nil)
+
+// Else is a list of statements that may be executed if all previous conditions
+// evaluate to false.
+type Else struct {
+	Trivia
+	// Keyword is the Else keyword that starts the block.
+	Keyword Token
+	// Statements is the list of statements that should be evaluated.
+	Statements []FunctionStatement
+	// Location is the source range of the node.
+	Location source.Location
+}
+
+// SourceLocation returns the source location of the node.
+func (i *Else) SourceLocation() source.Location {
+	return i.Location
+}
+
+var _ Node = (*Else)(nil)

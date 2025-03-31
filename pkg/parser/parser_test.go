@@ -6,6 +6,7 @@ import (
 	"github.com/TLBuf/papyrus/pkg/ast"
 	"github.com/TLBuf/papyrus/pkg/parser"
 	"github.com/TLBuf/papyrus/pkg/source"
+	"github.com/TLBuf/papyrus/pkg/token"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 )
@@ -20,8 +21,22 @@ func TestHeader(t *testing.T) {
 			name:  "basic",
 			input: "ScriptName Foo",
 			want: &ast.Script{
+				Keyword: token.Token{
+					Kind: token.ScriptName,
+					Location: source.Location{
+						ByteOffset: 0,
+						Length:     10,
+					},
+				},
 				Name: &ast.Identifier{
-					Text: "foo",
+					Text: token.Token{
+						Kind: token.Identifier,
+						Location: source.Location{
+							ByteOffset: 11,
+							Length:     3,
+						},
+					},
+					Normalized: "foo",
 					Location: source.Location{
 						ByteOffset: 11,
 						Length:     3,
@@ -37,15 +52,43 @@ func TestHeader(t *testing.T) {
 			name:  "extends",
 			input: "ScriptName Foo Extends Bar",
 			want: &ast.Script{
+				Keyword: token.Token{
+					Kind: token.ScriptName,
+					Location: source.Location{
+						ByteOffset: 0,
+						Length:     10,
+					},
+				},
 				Name: &ast.Identifier{
-					Text: "foo",
+					Text: token.Token{
+						Kind: token.Identifier,
+						Location: source.Location{
+							ByteOffset: 11,
+							Length:     3,
+						},
+					},
+					Normalized: "foo",
 					Location: source.Location{
 						ByteOffset: 11,
 						Length:     3,
 					},
 				},
-				Extends: &ast.Identifier{
-					Text: "bar",
+				Extends: token.Token{
+					Kind: token.Extends,
+					Location: source.Location{
+						ByteOffset: 15,
+						Length:     7,
+					},
+				},
+				Parent: &ast.Identifier{
+					Text: token.Token{
+						Kind: token.Identifier,
+						Location: source.Location{
+							ByteOffset: 23,
+							Length:     3,
+						},
+					},
+					Normalized: "bar",
 					Location: source.Location{
 						ByteOffset: 23,
 						Length:     3,
@@ -61,14 +104,34 @@ func TestHeader(t *testing.T) {
 			name:  "hidden",
 			input: "ScriptName Foo Hidden",
 			want: &ast.Script{
+				Keyword: token.Token{
+					Kind: token.ScriptName,
+					Location: source.Location{
+						ByteOffset: 0,
+						Length:     10,
+					},
+				},
 				Name: &ast.Identifier{
-					Text: "foo",
+					Text: token.Token{
+						Kind: token.Identifier,
+						Location: source.Location{
+							ByteOffset: 11,
+							Length:     3,
+						},
+					},
+					Normalized: "foo",
 					Location: source.Location{
 						ByteOffset: 11,
 						Length:     3,
 					},
 				},
-				IsHidden: true,
+				Hidden: []ast.Token{token.Token{
+					Kind: token.Hidden,
+					Location: source.Location{
+						ByteOffset: 15,
+						Length:     6,
+					},
+				}},
 				Location: source.Location{
 					ByteOffset: 0,
 					Length:     21,
@@ -79,14 +142,34 @@ func TestHeader(t *testing.T) {
 			name:  "conditional",
 			input: "ScriptName Foo Conditional",
 			want: &ast.Script{
+				Keyword: token.Token{
+					Kind: token.ScriptName,
+					Location: source.Location{
+						ByteOffset: 0,
+						Length:     10,
+					},
+				},
 				Name: &ast.Identifier{
-					Text: "foo",
+					Text: token.Token{
+						Kind: token.Identifier,
+						Location: source.Location{
+							ByteOffset: 11,
+							Length:     3,
+						},
+					},
+					Normalized: "foo",
 					Location: source.Location{
 						ByteOffset: 11,
 						Length:     3,
 					},
 				},
-				IsConditional: true,
+				Conditional: []ast.Token{token.Token{
+					Kind: token.Conditional,
+					Location: source.Location{
+						ByteOffset: 15,
+						Length:     11,
+					},
+				}},
 				Location: source.Location{
 					ByteOffset: 0,
 					Length:     26,
@@ -97,15 +180,41 @@ func TestHeader(t *testing.T) {
 			name:  "hidden_conditional",
 			input: "ScriptName Foo Hidden Conditional",
 			want: &ast.Script{
+				Keyword: token.Token{
+					Kind: token.ScriptName,
+					Location: source.Location{
+						ByteOffset: 0,
+						Length:     10,
+					},
+				},
 				Name: &ast.Identifier{
-					Text: "foo",
+					Text: token.Token{
+						Kind: token.Identifier,
+						Location: source.Location{
+							ByteOffset: 11,
+							Length:     3,
+						},
+					},
+					Normalized: "foo",
 					Location: source.Location{
 						ByteOffset: 11,
 						Length:     3,
 					},
 				},
-				IsHidden:      true,
-				IsConditional: true,
+				Hidden: []ast.Token{token.Token{
+					Kind: token.Hidden,
+					Location: source.Location{
+						ByteOffset: 15,
+						Length:     6,
+					},
+				}},
+				Conditional: []ast.Token{token.Token{
+					Kind: token.Conditional,
+					Location: source.Location{
+						ByteOffset: 22,
+						Length:     11,
+					},
+				}},
 				Location: source.Location{
 					ByteOffset: 0,
 					Length:     33,
@@ -116,15 +225,41 @@ func TestHeader(t *testing.T) {
 			name:  "conditional_hidden",
 			input: "ScriptName Foo Conditional Hidden",
 			want: &ast.Script{
+				Keyword: token.Token{
+					Kind: token.ScriptName,
+					Location: source.Location{
+						ByteOffset: 0,
+						Length:     10,
+					},
+				},
 				Name: &ast.Identifier{
-					Text: "foo",
+					Text: token.Token{
+						Kind: token.Identifier,
+						Location: source.Location{
+							ByteOffset: 11,
+							Length:     3,
+						},
+					},
+					Normalized: "foo",
 					Location: source.Location{
 						ByteOffset: 11,
 						Length:     3,
 					},
 				},
-				IsHidden:      true,
-				IsConditional: true,
+				Hidden: []ast.Token{token.Token{
+					Kind: token.Hidden,
+					Location: source.Location{
+						ByteOffset: 27,
+						Length:     6,
+					},
+				}},
+				Conditional: []ast.Token{token.Token{
+					Kind: token.Conditional,
+					Location: source.Location{
+						ByteOffset: 15,
+						Length:     11,
+					},
+				}},
 				Location: source.Location{
 					ByteOffset: 0,
 					Length:     33,
@@ -135,15 +270,55 @@ func TestHeader(t *testing.T) {
 			name:  "many_flags",
 			input: "ScriptName Foo Conditional Hidden Conditional Hidden",
 			want: &ast.Script{
+				Keyword: token.Token{
+					Kind: token.ScriptName,
+					Location: source.Location{
+						ByteOffset: 0,
+						Length:     10,
+					},
+				},
 				Name: &ast.Identifier{
-					Text: "foo",
+					Text: token.Token{
+						Kind: token.Identifier,
+						Location: source.Location{
+							ByteOffset: 11,
+							Length:     3,
+						},
+					},
+					Normalized: "foo",
 					Location: source.Location{
 						ByteOffset: 11,
 						Length:     3,
 					},
 				},
-				IsHidden:      true,
-				IsConditional: true,
+				Hidden: []ast.Token{
+					token.Token{
+						Kind: token.Hidden,
+						Location: source.Location{
+							ByteOffset: 27,
+							Length:     6,
+						}},
+					token.Token{
+						Kind: token.Hidden,
+						Location: source.Location{
+							ByteOffset: 46,
+							Length:     6,
+						}},
+				},
+				Conditional: []ast.Token{
+					token.Token{
+						Kind: token.Conditional,
+						Location: source.Location{
+							ByteOffset: 15,
+							Length:     11,
+						}},
+					token.Token{
+						Kind: token.Conditional,
+						Location: source.Location{
+							ByteOffset: 34,
+							Length:     11,
+						}},
+				},
 				Location: source.Location{
 					ByteOffset: 0,
 					Length:     52,
@@ -154,22 +329,76 @@ func TestHeader(t *testing.T) {
 			name:  "extends_many_flags",
 			input: "ScriptName Foo Extends Bar Hidden Conditional Hidden Conditional",
 			want: &ast.Script{
+				Keyword: token.Token{
+					Kind: token.ScriptName,
+					Location: source.Location{
+						ByteOffset: 0,
+						Length:     10,
+					},
+				},
 				Name: &ast.Identifier{
-					Text: "foo",
+					Text: token.Token{
+						Kind: token.Identifier,
+						Location: source.Location{
+							ByteOffset: 11,
+							Length:     3,
+						},
+					},
+					Normalized: "foo",
 					Location: source.Location{
 						ByteOffset: 11,
 						Length:     3,
 					},
 				},
-				Extends: &ast.Identifier{
-					Text: "bar",
+				Extends: token.Token{
+					Kind: token.Extends,
+					Location: source.Location{
+						ByteOffset: 15,
+						Length:     7,
+					},
+				},
+				Parent: &ast.Identifier{
+					Text: token.Token{
+						Kind: token.Identifier,
+						Location: source.Location{
+							ByteOffset: 23,
+							Length:     3,
+						},
+					},
+					Normalized: "bar",
 					Location: source.Location{
 						ByteOffset: 23,
 						Length:     3,
 					},
 				},
-				IsHidden:      true,
-				IsConditional: true,
+				Hidden: []ast.Token{
+					token.Token{
+						Kind: token.Hidden,
+						Location: source.Location{
+							ByteOffset: 27,
+							Length:     6,
+						}},
+					token.Token{
+						Kind: token.Hidden,
+						Location: source.Location{
+							ByteOffset: 46,
+							Length:     6,
+						}},
+				},
+				Conditional: []ast.Token{
+					token.Token{
+						Kind: token.Conditional,
+						Location: source.Location{
+							ByteOffset: 34,
+							Length:     11,
+						}},
+					token.Token{
+						Kind: token.Conditional,
+						Location: source.Location{
+							ByteOffset: 53,
+							Length:     11,
+						}},
+				},
 				Location: source.Location{
 					ByteOffset: 0,
 					Length:     64,
@@ -181,8 +410,22 @@ func TestHeader(t *testing.T) {
 			input: `ScriptName Foo
 			Import Bar`,
 			want: &ast.Script{
+				Keyword: token.Token{
+					Kind: token.ScriptName,
+					Location: source.Location{
+						ByteOffset: 0,
+						Length:     10,
+					},
+				},
 				Name: &ast.Identifier{
-					Text: "foo",
+					Text: token.Token{
+						Kind: token.Identifier,
+						Location: source.Location{
+							ByteOffset: 11,
+							Length:     3,
+						},
+					},
+					Normalized: "foo",
 					Location: source.Location{
 						ByteOffset: 11,
 						Length:     3,
@@ -190,8 +433,22 @@ func TestHeader(t *testing.T) {
 				},
 				Statements: []ast.ScriptStatement{
 					&ast.Import{
+						Keyword: token.Token{
+							Kind: token.Import,
+							Location: source.Location{
+								ByteOffset: 18,
+								Length:     6,
+							},
+						},
 						Name: &ast.Identifier{
-							Text: "bar",
+							Text: token.Token{
+								Kind: token.Identifier,
+								Location: source.Location{
+									ByteOffset: 25,
+									Length:     3,
+								},
+							},
+							Normalized: "bar",
 							Location: source.Location{
 								ByteOffset: 25,
 								Length:     3,
@@ -215,8 +472,22 @@ func TestHeader(t *testing.T) {
 			State Bar
 			EndState`,
 			want: &ast.Script{
+				Keyword: token.Token{
+					Kind: token.ScriptName,
+					Location: source.Location{
+						ByteOffset: 0,
+						Length:     10,
+					},
+				},
 				Name: &ast.Identifier{
-					Text: "foo",
+					Text: token.Token{
+						Kind: token.Identifier,
+						Location: source.Location{
+							ByteOffset: 11,
+							Length:     3,
+						},
+					},
+					Normalized: "foo",
 					Location: source.Location{
 						ByteOffset: 11,
 						Length:     3,
@@ -224,14 +495,34 @@ func TestHeader(t *testing.T) {
 				},
 				Statements: []ast.ScriptStatement{
 					&ast.State{
+						Keyword: token.Token{
+							Kind: token.State,
+							Location: source.Location{
+								ByteOffset: 18,
+								Length:     5,
+							},
+						},
 						Name: &ast.Identifier{
-							Text: "bar",
+							Text: token.Token{
+								Kind: token.Identifier,
+								Location: source.Location{
+									ByteOffset: 24,
+									Length:     3,
+								},
+							},
+							Normalized: "bar",
 							Location: source.Location{
 								ByteOffset: 24,
 								Length:     3,
 							},
 						},
-						IsAuto: false,
+						EndKeyword: token.Token{
+							Kind: token.EndState,
+							Location: source.Location{
+								ByteOffset: 31,
+								Length:     8,
+							},
+						},
 						Location: source.Location{
 							ByteOffset: 18,
 							Length:     21,
@@ -250,8 +541,22 @@ func TestHeader(t *testing.T) {
 			Auto State Bar
 			EndState`,
 			want: &ast.Script{
+				Keyword: token.Token{
+					Kind: token.ScriptName,
+					Location: source.Location{
+						ByteOffset: 0,
+						Length:     10,
+					},
+				},
 				Name: &ast.Identifier{
-					Text: "foo",
+					Text: token.Token{
+						Kind: token.Identifier,
+						Location: source.Location{
+							ByteOffset: 11,
+							Length:     3,
+						},
+					},
+					Normalized: "foo",
 					Location: source.Location{
 						ByteOffset: 11,
 						Length:     3,
@@ -259,14 +564,41 @@ func TestHeader(t *testing.T) {
 				},
 				Statements: []ast.ScriptStatement{
 					&ast.State{
+						Keyword: token.Token{
+							Kind: token.State,
+							Location: source.Location{
+								ByteOffset: 23,
+								Length:     5,
+							},
+						},
 						Name: &ast.Identifier{
-							Text: "bar",
+							Text: token.Token{
+								Kind: token.Identifier,
+								Location: source.Location{
+									ByteOffset: 29,
+									Length:     3,
+								},
+							},
+							Normalized: "bar",
 							Location: source.Location{
 								ByteOffset: 29,
 								Length:     3,
 							},
 						},
-						IsAuto: true,
+						Auto: token.Token{
+							Kind: token.Auto,
+							Location: source.Location{
+								ByteOffset: 18,
+								Length:     4,
+							},
+						},
+						EndKeyword: token.Token{
+							Kind: token.EndState,
+							Location: source.Location{
+								ByteOffset: 36,
+								Length:     8,
+							},
+						},
 						Location: source.Location{
 							ByteOffset: 18,
 							Length:     26,
