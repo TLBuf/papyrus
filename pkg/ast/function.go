@@ -32,7 +32,7 @@ type Function struct {
 	// Native are the Native tokens that define that this is a native function or
 	// empty if this function in non-native.
 	//
-	// If non-empty, [Statements] will be empty and [End] will be nil.
+	// If non-empty, [Statements] will be empty and [EndKeyword] will be nil.
 	//
 	// Errata: This being multiple values is due to the offical Papyrus parser
 	// accepting any number of flag tokens. They are all included here for

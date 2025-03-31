@@ -547,8 +547,9 @@ func (p *parser) ParseEvent() (*ast.Event, error) {
 		return nil, err
 	}
 	end := p.token.Location
-	if p.token.Kind == token.Native {
-		node.Native = p.token
+	for p.token.Kind == token.Native {
+		node.Native = append(node.Native, p.token)
+		end = p.token.Location
 		if err := p.next(); err != nil {
 			return nil, err
 		}

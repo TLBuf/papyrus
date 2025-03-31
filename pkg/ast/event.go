@@ -17,11 +17,15 @@ type Event struct {
 	Parameters []*Parameter
 	// Close is the close parenthesis token that ends the parameter list.
 	Close Token
-	// Native is the Native token that defines that this is a native event or nil
-	// if this event in non-native.
+	// Native are the Native tokens that define that this is a native event or
+	// empty if this event in non-native.
 	//
-	// If non-nil, [Statements] will be empty and [End] will be nil.
-	Native Token
+	// If non-empty, [Statements] will be empty and [EndKeyword] will be nil.
+	//
+	// Errata: This being multiple values is due to the offical Papyrus parser
+	// accepting any number of flag tokens. They are all included here for
+	// completeness, but only one is required to consider the event native.
+	Native []Token
 	// Comment is the optional documentation comment for this event.
 	Comment *DocComment
 	// Statements is the list of function statements that constitute the body of
