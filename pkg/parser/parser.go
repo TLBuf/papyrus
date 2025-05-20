@@ -14,57 +14,59 @@ import (
 	"github.com/TLBuf/papyrus/pkg/types"
 )
 
-// Parser provides the ability to lex and parse a Papyrus script into an
-// [*ast.Script].
-type Parser struct {
-	keepLooseComments bool
+type config struct {
+	withLooseComments bool
 }
 
-type Option func(*Parser)
+// Option defines an option to configure how parsing is performed.
+type Option interface{ apply(*config) }
 
-// WithLooseComments directs the parser on whether or not to retain loose
-// comments that may appear (i.e. line and block comments). Doc comments are
-// always captured.
-func WithLooseComments(keep bool) Option {
-	return func(p *Parser) {
-		p.keepLooseComments = keep
-	}
+type option func(*config)
+
+// apply implements the [Option] interface.
+func (o option) apply(config *config) {
+	o(config)
 }
 
-// New returns a [*Parser] that is configured to parser script files.
-func New(opts ...Option) *Parser {
-	p := &Parser{}
-	for _, opt := range opts {
-		opt(p)
-	}
-	return p
+// WithLooseComments controls block and line (i.e. loose) comment processing.
+//
+// If enabled, loose comments will be attached to the appropriate [ast.Trivia]
+// on returned nodes. This is only required when the nodes may need to be
+// written back out as source, e.g. when formatting.
+func WithLooseComments(enabled bool) Option {
+	return option(func(c *config) {
+		c.withLooseComments = enabled
+	})
 }
 
 // Parser returns the file parsed as an [*ast.Script] or an [Error] if parsing
 // encountered one or more issues.
-func (p *Parser) Parse(file *source.File) (*ast.Script, error) {
+func Parse(file *source.File, opts ...Option) (*ast.Script, error) {
 	lex, err := lexer.New(file)
 	if err != nil {
 		return nil, err
 	}
-	prsr := &parser{
-		l:                 lex,
-		keepLooseComments: p.keepLooseComments,
-		prefix:            make(map[token.Kind]prefixParser),
-		infix:             make(map[token.Kind]infixParser),
+	p := &parser{
+		l:      lex,
+		prefix: make(map[token.Kind]prefixParser),
+		infix:  make(map[token.Kind]infixParser),
+	}
+	for _, opt := range opts {
+		opt.apply(&(p.config))
 	}
 
-	registerPrefix(prsr, prsr.ParseBoolLiteral, token.True, token.False)
-	registerPrefix(prsr, prsr.ParseFloatLiteral, token.FloatLiteral)
-	registerPrefix(prsr, prsr.ParseIdentifier, token.Identifier)
-	registerPrefix(prsr, prsr.ParseIntLiteral, token.IntLiteral)
-	registerPrefix(prsr, prsr.ParseNoneLiteral, token.None)
-	registerPrefix(prsr, prsr.ParseParenthetical, token.ParenthesisOpen)
-	registerPrefix(prsr, prsr.ParseStringLiteral, token.StringLiteral)
-	registerPrefix(prsr, prsr.ParseUnary, token.Minus, token.LogicalNot)
+	registerPrefix(p, p.ParseBoolLiteral, token.True, token.False)
+	registerPrefix(p, p.ParseFloatLiteral, token.FloatLiteral)
+	registerPrefix(p, p.ParseIdentifier, token.Identifier)
+	registerPrefix(p, p.ParseIntLiteral, token.IntLiteral)
+	registerPrefix(p, p.ParseNoneLiteral, token.None)
+	registerPrefix(p, p.ParseParenthetical, token.ParenthesisOpen)
+	registerPrefix(p, p.ParseStringLiteral, token.StringLiteral)
+	registerPrefix(p, p.ParseUnary, token.Minus, token.LogicalNot)
 
-	registerInfix(prsr, prsr.ParseAccess, token.Dot)
-	registerInfix(prsr, prsr.ParseBinary,
+	registerInfix(p, p.ParseAccess, token.Dot)
+	registerInfix(p,
+		p.ParseBinary,
 		token.LogicalOr,
 		token.LogicalAnd,
 		token.Equal,
@@ -78,75 +80,72 @@ func (p *Parser) Parse(file *source.File) (*ast.Script, error) {
 		token.Divide,
 		token.Multiply,
 		token.Modulo)
-	registerInfix(prsr, prsr.ParseCall, token.ParenthesisOpen)
-	registerInfix(prsr, prsr.ParseCast, token.As)
-	registerInfix(prsr, prsr.ParseIndex, token.BracketOpen)
+	registerInfix(p, p.ParseCall, token.ParenthesisOpen)
+	registerInfix(p, p.ParseCast, token.As)
+	registerInfix(p, p.ParseIndex, token.BracketOpen)
 
-	if err := prsr.next(); err != nil {
+	if err := p.next(); err != nil {
 		return nil, err
 	}
-	if err := prsr.next(); err != nil {
+	if err := p.next(); err != nil {
 		return nil, err
 	}
-	return prsr.ParseScript()
+	return p.ParseScript()
 }
 
 type parser struct {
-	l *lexer.Lexer
-
+	config
+	l         *lexer.Lexer
 	token     token.Token
 	lookahead token.Token
-
-	keepLooseComments bool
-	looseComments     []ast.LooseComment
-
-	recovery bool
-	errors   []ast.Error
-
-	prefix map[token.Kind]prefixParser
-	infix  map[token.Kind]infixParser
+	comments  []ast.LooseComment
+	recovery  bool
+	errors    []ast.Error
+	prefix    map[token.Kind]prefixParser
+	infix     map[token.Kind]infixParser
 }
 
+// Operator precedence.
 const (
 	_ int = iota
-	Lowest
-	LogicalOr      // ||
-	LogicalAnd     // &&
-	Comparison     // ==, !=, >, >=, <, <=
-	Additive       // +, -
-	Multiplicitive // *, /, %
-	Prefix         // -x or !y
-	Cast           // x As y
-	Access         // x.y
-	Call           // x(y)
-	Index          // x[y]
+	lowest
+	logicalOr      // ||
+	logicalAnd     // &&
+	comparison     // ==, !=, >, >=, <, <=
+	additive       // +, -
+	multiplicitive // *, /, %
+	prefix         // -x or !y
+	cast           // x As y
+	access         // x.y
+	call           // x(y)
+	index          // x[y]
 )
 
-var precedences = map[token.Kind]int{
-	token.LogicalOr:       LogicalOr,
-	token.LogicalAnd:      LogicalAnd,
-	token.Equal:           Comparison,
-	token.NotEqual:        Comparison,
-	token.Greater:         Comparison,
-	token.GreaterOrEqual:  Comparison,
-	token.Less:            Comparison,
-	token.LessOrEqual:     Comparison,
-	token.Plus:            Additive,
-	token.Minus:           Additive,
-	token.Multiply:        Multiplicitive,
-	token.Divide:          Multiplicitive,
-	token.Modulo:          Multiplicitive,
-	token.As:              Cast,
-	token.Dot:             Access,
-	token.ParenthesisOpen: Call,
-	token.BracketOpen:     Index,
+var precedence = map[token.Kind]int{
+	token.LogicalOr:       logicalOr,
+	token.LogicalAnd:      logicalAnd,
+	token.Equal:           comparison,
+	token.NotEqual:        comparison,
+	token.Greater:         comparison,
+	token.GreaterOrEqual:  comparison,
+	token.Less:            comparison,
+	token.LessOrEqual:     comparison,
+	token.Plus:            additive,
+	token.Minus:           additive,
+	token.Multiply:        multiplicitive,
+	token.Divide:          multiplicitive,
+	token.Modulo:          multiplicitive,
+	token.As:              cast,
+	token.Dot:             access,
+	token.ParenthesisOpen: call,
+	token.BracketOpen:     index,
 }
 
 func precedenceOf(t token.Kind) int {
-	if p, ok := precedences[t]; ok {
+	if p, ok := precedence[t]; ok {
 		return p
 	}
-	return Lowest
+	return lowest
 }
 
 type (
@@ -173,8 +172,8 @@ func (p *parser) next() error {
 		if err != nil {
 			return err
 		}
-		if p.keepLooseComments {
-			p.looseComments = append(p.looseComments, tok)
+		if p.config.withLooseComments {
+			p.comments = append(p.comments, tok)
 		}
 	}
 	if p.token.Kind == token.BlockCommentOpen {
@@ -182,8 +181,8 @@ func (p *parser) next() error {
 		if err != nil {
 			return err
 		}
-		if p.keepLooseComments {
-			p.looseComments = append(p.looseComments, tok)
+		if p.config.withLooseComments {
+			p.comments = append(p.comments, tok)
 		}
 	}
 	return nil
@@ -800,7 +799,7 @@ func (p *parser) ParseFunctionVariable() (*ast.FunctionVariable, error) {
 
 func (p *parser) ParseAssignment() (*ast.Assignment, error) {
 	start := p.token.Location
-	assignee, err := p.ParseExpression(Lowest)
+	assignee, err := p.ParseExpression(lowest)
 	if err != nil {
 		return nil, err
 	}
@@ -814,7 +813,7 @@ func (p *parser) ParseAssignment() (*ast.Assignment, error) {
 		token.AssignSubtract); err != nil {
 		return nil, err
 	}
-	expr, err := p.ParseExpression(Lowest)
+	expr, err := p.ParseExpression(lowest)
 	if err != nil {
 		return nil, err
 	}
@@ -838,7 +837,7 @@ func (p *parser) ParseReturn() (*ast.Return, error) {
 	if p.token.Kind == token.Newline {
 		return node, nil
 	}
-	node.Value, err = p.ParseExpression(Lowest)
+	node.Value, err = p.ParseExpression(lowest)
 	if err != nil {
 		return nil, err
 	}
@@ -854,7 +853,7 @@ func (p *parser) ParseIf() (*ast.If, error) {
 	if err := p.tryConsume(token.If); err != nil {
 		return nil, err
 	}
-	node.Condition, err = p.ParseExpression(Lowest)
+	node.Condition, err = p.ParseExpression(lowest)
 	if err != nil {
 		return nil, err
 	}
@@ -872,7 +871,7 @@ func (p *parser) ParseIf() (*ast.If, error) {
 		if err := p.tryConsume(token.ElseIf); err != nil {
 			return nil, err
 		}
-		block.Condition, err = p.ParseExpression(Lowest)
+		block.Condition, err = p.ParseExpression(lowest)
 		if err != nil {
 			return nil, err
 		}
@@ -927,7 +926,7 @@ func (p *parser) ParseWhile() (*ast.While, error) {
 	if err := p.tryConsume(token.While); err != nil {
 		return nil, err
 	}
-	node.Condition, err = p.ParseExpression(Lowest)
+	node.Condition, err = p.ParseExpression(lowest)
 	if err != nil {
 		return nil, err
 	}
@@ -1287,7 +1286,7 @@ func (p *parser) ParseUnary() (ast.Expression, error) {
 	if err := p.tryConsume(token.Minus, token.LogicalNot); err != nil {
 		return nil, err
 	}
-	node.Operand, err = p.ParseExpression(Prefix)
+	node.Operand, err = p.ParseExpression(prefix)
 	if err != nil {
 		return nil, err
 	}
@@ -1334,7 +1333,7 @@ func (p *parser) ParseIndex(array ast.Expression) (*ast.Index, error) {
 	if err := p.tryConsume(token.BracketOpen); err != nil {
 		return nil, err
 	}
-	index, err := p.ParseExpression(Lowest)
+	index, err := p.ParseExpression(lowest)
 	if err != nil {
 		return nil, err
 	}
@@ -1406,7 +1405,7 @@ func (p *parser) ParseArgument() (*ast.Argument, error) {
 			return nil, err
 		}
 	}
-	value, err := p.ParseExpression(Lowest)
+	value, err := p.ParseExpression(lowest)
 	if err != nil {
 		return nil, err
 	}
@@ -1461,7 +1460,7 @@ func (p *parser) ParseParenthetical() (*ast.Parenthetical, error) {
 	if err := p.tryConsume(token.ParenthesisOpen); err != nil {
 		return nil, err
 	}
-	node.Value, err = p.ParseExpression(Lowest)
+	node.Value, err = p.ParseExpression(lowest)
 	if err != nil {
 		return nil, err
 	}
