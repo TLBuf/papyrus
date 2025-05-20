@@ -114,6 +114,11 @@ func (t Token) TokenKind() Kind {
 	return t.Kind
 }
 
+// Accept calls the VisitToken function on the given visitor with this token.
+func (t Token) Accept(v interface{ VisitToken(Token) error }) error {
+	return v.VisitToken(t)
+}
+
 // SourceLocation returns the source range of the token.
 func (t Token) SourceLocation() source.Location {
 	return t.Location

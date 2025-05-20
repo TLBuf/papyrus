@@ -22,4 +22,6 @@ func (c *Cast) SourceLocation() source.Location {
 
 func (*Cast) expression() {}
 
+func (*Cast) functionStatement() {}
+
 var _ Expression = (*Cast)(nil)

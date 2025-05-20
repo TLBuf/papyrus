@@ -16,6 +16,7 @@ import (
 
 type config struct {
 	withLooseComments bool
+	withRecovery      bool
 }
 
 // Option defines an option to configure how parsing is performed.
@@ -39,6 +40,22 @@ func WithLooseComments(enabled bool) Option {
 	})
 }
 
+// WithRecovery controls parsing should attempt error recovery and potentially
+// include [ast.Error] nodes in the resulting AST.
+//
+// If enabled, the parser will attempt error recovery if an issue is found and
+// instead of immediately failing, it will try to emit an error node instead. It
+// is the responsibility of the caller to check for the presensce of [ast.Error]
+// nodes.
+//
+// Enabling this does not guarantee that parsing will never fail with an
+// [Error].
+func WithRecovery(enabled bool) Option {
+	return option(func(c *config) {
+		c.withRecovery = enabled
+	})
+}
+
 // Parser returns the file parsed as an [*ast.Script] or an [Error] if parsing
 // encountered one or more issues.
 func Parse(file *source.File, opts ...Option) (*ast.Script, error) {
@@ -47,6 +64,10 @@ func Parse(file *source.File, opts ...Option) (*ast.Script, error) {
 		return nil, err
 	}
 	p := &parser{
+		config: config{
+			withLooseComments: false,
+			withRecovery:      false,
+		},
 		l:      lex,
 		prefix: make(map[token.Kind]prefixParser),
 		infix:  make(map[token.Kind]infixParser),
@@ -383,8 +404,9 @@ func (p *parser) ParseScriptStatement() (ast.ScriptStatement, error) {
 	}
 	// Error recovery. Attempt to realign to a known statement token and emit an
 	// error statement to fill the gap.
-	if p.recovery {
-		// If an error was returned during a recovery operation, just propagate it.
+	if p.recovery || !p.config.withRecovery {
+		// If an error was returned during a recovery operation
+		// or we shouldn't even attempt recovery, just propagate it.
 		return nil, err
 	}
 	p.recovery = true
@@ -503,8 +525,9 @@ func (p *parser) ParseInvokable() (ast.Invokable, error) {
 	}
 	// Error recovery. Attempt to realign to a known statement token and emit an
 	// error statement to fill the gap.
-	if p.recovery {
-		// If an error was returned during a recovery operation, just propagate it.
+	if p.recovery || !p.config.withRecovery {
+		// If an error was returned during a recovery operation
+		// or we shouldn't even attempt recovery, just propagate it.
 		return nil, err
 	}
 	p.recovery = true
@@ -728,8 +751,9 @@ func (p *parser) ParseFunctionStatementBlock(terminals ...token.Kind) ([]ast.Fun
 		}
 		// Error recovery. Attempt to realign to a known statement token and emit an
 		// error statement to fill the gap.
-		if p.recovery {
-			// If an error was returned during a recovery operation, just propagate it.
+		if p.recovery || !p.config.withRecovery {
+			// If an error was returned during a recovery operation
+			// or we shouldn't even attempt recovery, just propagate it.
 			return nil, err
 		}
 		p.recovery = true
@@ -774,11 +798,14 @@ func (p *parser) ParseFunctionStatement() (ast.FunctionStatement, error) {
 	case token.Bool, token.Int, token.Float, token.String:
 		return p.ParseFunctionVariable()
 	case token.Identifier:
-		if p.lookahead.Kind == token.Identifier { // Object type.
+		switch p.lookahead.Kind {
+		case token.Identifier: // p.token is an object type, p.lookahead is a variable name
 			return p.ParseFunctionVariable()
+		case token.Assign, token.AssignAdd, token.AssignDivide, token.AssignModulo, token.AssignMultiply, token.AssignSubtract:
+			return p.ParseAssignment()
 		}
 	}
-	return p.ParseAssignment()
+	return p.ParseExpression(lowest)
 }
 
 func (p *parser) ParseFunctionVariable() (*ast.FunctionVariable, error) {

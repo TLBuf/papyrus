@@ -23,4 +23,6 @@ func (a *Access) SourceLocation() source.Location {
 
 func (*Access) expression() {}
 
+func (*Access) functionStatement() {}
+
 var _ Expression = (*Access)(nil)

@@ -20,4 +20,6 @@ func (i *Identifier) SourceLocation() source.Location {
 
 func (*Identifier) expression() {}
 
+func (*Identifier) functionStatement() {}
+
 var _ Expression = (*Identifier)(nil)

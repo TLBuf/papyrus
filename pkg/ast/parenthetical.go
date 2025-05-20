@@ -22,4 +22,6 @@ func (p *Parenthetical) SourceLocation() source.Location {
 
 func (*Parenthetical) expression() {}
 
+func (*Parenthetical) functionStatement() {}
+
 var _ Expression = (*Parenthetical)(nil)

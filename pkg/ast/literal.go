@@ -22,6 +22,8 @@ func (*BoolLiteral) expression() {}
 
 func (*BoolLiteral) literal() {}
 
+func (*BoolLiteral) functionStatement() {}
+
 var _ Literal = (*BoolLiteral)(nil)
 
 // IntLiteral is an integer literal.
@@ -43,6 +45,8 @@ func (l *IntLiteral) SourceLocation() source.Location {
 func (*IntLiteral) expression() {}
 
 func (*IntLiteral) literal() {}
+
+func (*IntLiteral) functionStatement() {}
 
 var _ Literal = (*IntLiteral)(nil)
 
@@ -66,6 +70,8 @@ func (*FloatLiteral) expression() {}
 
 func (*FloatLiteral) literal() {}
 
+func (*FloatLiteral) functionStatement() {}
+
 var _ Literal = (*FloatLiteral)(nil)
 
 // StringLiteral is a string literal.
@@ -88,6 +94,8 @@ func (*StringLiteral) expression() {}
 
 func (*StringLiteral) literal() {}
 
+func (*StringLiteral) functionStatement() {}
+
 var _ Literal = (*StringLiteral)(nil)
 
 // NoneLiteral is the none literal (i.e. the null object literal).
@@ -107,5 +115,7 @@ func (l *NoneLiteral) SourceLocation() source.Location {
 func (*NoneLiteral) expression() {}
 
 func (*NoneLiteral) literal() {}
+
+func (*NoneLiteral) functionStatement() {}
 
 var _ Literal = (*NoneLiteral)(nil)

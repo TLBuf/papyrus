@@ -20,4 +20,6 @@ func (u *Unary) SourceLocation() source.Location {
 
 func (*Unary) expression() {}
 
+func (*Unary) functionStatement() {}
+
 var _ Expression = (*Unary)(nil)

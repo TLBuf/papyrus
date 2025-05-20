@@ -27,7 +27,7 @@ type FunctionStatement interface {
 
 // Expression is a common interface for all expression nodes.
 type Expression interface {
-	Node
+	FunctionStatement
 	expression()
 }
 
