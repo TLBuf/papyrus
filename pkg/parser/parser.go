@@ -90,7 +90,18 @@ func Parse(file *source.File, opts ...Option) (*ast.Script, error) {
 	if err := p.next(); err != nil {
 		return nil, err
 	}
-	return p.ParseScript()
+	script, err := p.ParseScript()
+	if err != nil {
+		return nil, err
+	}
+
+	if p.config.withLooseComments {
+		if err := attachLooseComments(script, p.comments); err != nil {
+			return nil, err
+		}
+	}
+
+	return script, nil
 }
 
 type parser struct {
