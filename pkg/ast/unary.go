@@ -6,11 +6,16 @@ import "github.com/TLBuf/papyrus/pkg/source"
 type Unary struct {
 	Trivia
 	// Operator defines the operator token this unary expression uses.
-	Operator Token
+	Operator *Token
 	// Operand is the operand.
 	Operand Expression
 	// Location is the source range of the node.
 	Location source.Location
+}
+
+// Accept calls the appropriate method on the [Visitor] for the node.
+func (u *Unary) Accept(v Visitor) error {
+	return v.VisitUnary(u)
 }
 
 // SourceLocation returns the source location of the node.

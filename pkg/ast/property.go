@@ -11,7 +11,7 @@ type Property struct {
 	// Type is the type of this property.
 	Type *TypeLiteral
 	// Keyword is the Property keyword that starts the definition.
-	Keyword Token
+	Keyword *Token
 	// Name is the name of the property.
 	Name *Identifier
 	// Operator is the assign operator that defines an initial value or nil if
@@ -19,7 +19,7 @@ type Property struct {
 	//
 	// If this is non-nil, [Value] will be non-nil (and vice versa). If [Auto] and
 	// [AutoReadOnly] are nil, this must be nil.
-	Operator Token
+	Operator *Token
 	// Value is the literal that defines the initial value of the property.
 	//
 	// If [Auto] and [AutoReadOnly] are nil, this must be nil.
@@ -30,7 +30,7 @@ type Property struct {
 	// Errata: This being multiple values is due to the offical Papyrus parser
 	// accepting any number of flag tokens. They are all included here for
 	// completeness, but only one is required to consider the property hidden.
-	Hidden []Token
+	Hidden []*Token
 	// Conditional are the Conditional tokens that define that this property is
 	// conditional (i.e. it can appear in conditions) or empty if this property is
 	// not conditional.
@@ -39,19 +39,19 @@ type Property struct {
 	// accepting any number of flag tokens. They are all included here for
 	// completeness, but only one is required to consider the property
 	// conditional.
-	Conditional []Token
+	Conditional []*Token
 	// Auto is the Auto token that defines that this is an auto property or nil
 	// if this property is a read-only auto property or full property.
 	//
 	// If non-nil, [Get], [Set], and [AutoReadOnly] will be nil.
-	Auto Token
+	Auto *Token
 	// AutoReadOnly is the AutoReadOnly token that defines that this is a
 	// read-only auto property or nil if this property is an auto property or full
 	// property.
 	//
 	// If non-nil, [Get], [Set], and [Auto] will be nil. If non-nil, [Operator]
 	// and [Value] must also be non-nil.
-	AutoReadOnly Token
+	AutoReadOnly *Token
 	// Comment is the optional documentation comment for this property.
 	Comment *DocComment
 	// Get is the get function for this property or nil if undefined.
@@ -73,9 +73,14 @@ type Property struct {
 	// EndKeyword is the EndProperty keyword that ends the definition or nil if
 	// the property is Auto or AutoReadOnly (and thus has no Get or Set
 	// functions).
-	EndKeyword Token
+	EndKeyword *Token
 	// Location is the source range of the node.
 	Location source.Location
+}
+
+// Accept calls the appropriate method on the [Visitor] for the node.
+func (p *Property) Accept(v Visitor) error {
+	return v.VisitProperty(p)
 }
 
 // SourceLocation returns the source location of the node.

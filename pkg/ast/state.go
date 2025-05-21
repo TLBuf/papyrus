@@ -10,17 +10,22 @@ type State struct {
 	Trivia
 	// Auto is the Auto keyword that identifies this state as the state the script
 	// should start in automatically.
-	Auto Token
+	Auto *Token
 	// Keyword is the State keyword that starts the definition.
-	Keyword Token
+	Keyword *Token
 	// Name is the name of the variable.
 	Name *Identifier
 	// Invokables is the list of functions and events defined for this state.
 	Invokables []Invokable
 	// EndKeyword is the EndState keyword that ends the definition.
-	EndKeyword Token
+	EndKeyword *Token
 	// Location is the source range of the node.
 	Location source.Location
+}
+
+// Accept calls the appropriate method on the [Visitor] for the node.
+func (s *State) Accept(v Visitor) error {
+	return v.VisitState(s)
 }
 
 // SourceLocation returns the source location of the node.

@@ -8,7 +8,7 @@ import "github.com/TLBuf/papyrus/pkg/source"
 type If struct {
 	Trivia
 	// Keyword is the If keyword that starts the statement.
-	Keyword Token
+	Keyword *Token
 	// Condition is the expression that defines the first condition to check.
 	Condition Expression
 	// Statements is the list of statements that should be evaluated if the first
@@ -20,9 +20,14 @@ type If struct {
 	// [ElseIf] conditions evaluate to false or nil if there is no else block.
 	Else *Else
 	// EndKeyword is the EndIf keyword that ends the statement.
-	EndKeyword Token
+	EndKeyword *Token
 	// Location is the source range of the node.
 	Location source.Location
+}
+
+// Accept calls the appropriate method on the [Visitor] for the node.
+func (i *If) Accept(v Visitor) error {
+	return v.VisitIf(i)
 }
 
 // SourceLocation returns the source location of the node.
@@ -39,7 +44,7 @@ var _ FunctionStatement = (*If)(nil)
 type ElseIf struct {
 	Trivia
 	// Keyword is the ElseIf keyword that starts the block.
-	Keyword Token
+	Keyword *Token
 	// Condition is the expression that defines the condition to check.
 	Condition Expression
 	// Statements is the list of statements that should be evaluated if the
@@ -49,9 +54,14 @@ type ElseIf struct {
 	Location source.Location
 }
 
+// Accept calls the appropriate method on the [Visitor] for the node.
+func (e *ElseIf) Accept(v Visitor) error {
+	return v.VisitElseIf(e)
+}
+
 // SourceLocation returns the source location of the node.
-func (i *ElseIf) SourceLocation() source.Location {
-	return i.Location
+func (e *ElseIf) SourceLocation() source.Location {
+	return e.Location
 }
 
 var _ Node = (*ElseIf)(nil)
@@ -61,16 +71,21 @@ var _ Node = (*ElseIf)(nil)
 type Else struct {
 	Trivia
 	// Keyword is the Else keyword that starts the block.
-	Keyword Token
+	Keyword *Token
 	// Statements is the list of statements that should be evaluated.
 	Statements []FunctionStatement
 	// Location is the source range of the node.
 	Location source.Location
 }
 
+// Accept calls the appropriate method on the [Visitor] for the node.
+func (e *Else) Accept(v Visitor) error {
+	return v.VisitElse(e)
+}
+
 // SourceLocation returns the source location of the node.
-func (i *Else) SourceLocation() source.Location {
-	return i.Location
+func (e *Else) SourceLocation() source.Location {
+	return e.Location
 }
 
 var _ Node = (*Else)(nil)

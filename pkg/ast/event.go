@@ -8,15 +8,15 @@ import "github.com/TLBuf/papyrus/pkg/source"
 type Event struct {
 	Trivia
 	// Keyword is the Event keyword that starts the definition.
-	Keyword Token
+	Keyword *Token
 	// Name is the name of the event.
 	Name *Identifier
 	// Open is the open parenthesis token that starts the parameter list.
-	Open Token
+	Open *Token
 	// Parameters is the list of parameters this event defines in order.
 	Parameters []*Parameter
 	// Close is the close parenthesis token that ends the parameter list.
-	Close Token
+	Close *Token
 	// Native are the Native tokens that define that this is a native event or
 	// empty if this event in non-native.
 	//
@@ -25,7 +25,7 @@ type Event struct {
 	// Errata: This being multiple values is due to the offical Papyrus parser
 	// accepting any number of flag tokens. They are all included here for
 	// completeness, but only one is required to consider the event native.
-	Native []Token
+	Native []*Token
 	// Comment is the optional documentation comment for this event.
 	Comment *DocComment
 	// Statements is the list of function statements that constitute the body of
@@ -33,9 +33,14 @@ type Event struct {
 	Statements []FunctionStatement
 	// EndKeyword is the EndEvent keyword that ends the definition or nil if the
 	// event is native (and thus has no body).
-	EndKeyword Token
+	EndKeyword *Token
 	// Location is the source range of the node.
 	Location source.Location
+}
+
+// Accept calls the appropriate method on the [Visitor] for the node.
+func (c *Event) Accept(v Visitor) error {
+	return v.VisitEvent(c)
 }
 
 // SourceLocation returns the source location of the node.

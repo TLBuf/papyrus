@@ -6,11 +6,16 @@ import "github.com/TLBuf/papyrus/pkg/source"
 type BoolLiteral struct {
 	Trivia
 	// Text is the BoolLiteral token.
-	Text Token
+	Text *Token
 	// Value is the parsed value of the string literal.
 	Value bool
 	// Location is the source range of the node.
 	Location source.Location
+}
+
+// Accept calls the appropriate method on the [Visitor] for the node.
+func (l *BoolLiteral) Accept(v Visitor) error {
+	return v.VisitBoolLiteral(l)
 }
 
 // SourceLocation returns the source location of the node.
@@ -30,11 +35,16 @@ var _ Literal = (*BoolLiteral)(nil)
 type IntLiteral struct {
 	Trivia
 	// Text is the IntLiteral token.
-	Text Token
+	Text *Token
 	// Value is the parsed value of the string literal.
 	Value int
 	// Location is the source range of the node.
 	Location source.Location
+}
+
+// Accept calls the appropriate method on the [Visitor] for the node.
+func (l *IntLiteral) Accept(v Visitor) error {
+	return v.VisitIntLiteral(l)
 }
 
 // SourceLocation returns the source location of the node.
@@ -54,11 +64,16 @@ var _ Literal = (*IntLiteral)(nil)
 type FloatLiteral struct {
 	Trivia
 	// Text is the FloatLiteral token.
-	Text Token
+	Text *Token
 	// Value is the parsed value of the string literal.
 	Value float32
 	// Location is the source range of the node.
 	Location source.Location
+}
+
+// Accept calls the appropriate method on the [Visitor] for the node.
+func (l *FloatLiteral) Accept(v Visitor) error {
+	return v.VisitFloatLiteral(l)
 }
 
 // SourceLocation returns the source location of the node.
@@ -78,11 +93,16 @@ var _ Literal = (*FloatLiteral)(nil)
 type StringLiteral struct {
 	Trivia
 	// Text is the StringLiteral token.
-	Text Token
+	Text *Token
 	// Value is the parsed value of the string literal.
 	Value string
 	// Location is the source range of the node.
 	Location source.Location
+}
+
+// Accept calls the appropriate method on the [Visitor] for the node.
+func (l *StringLiteral) Accept(v Visitor) error {
+	return v.VisitStringLiteral(l)
 }
 
 // SourceLocation returns the source location of the node.
@@ -102,9 +122,14 @@ var _ Literal = (*StringLiteral)(nil)
 type NoneLiteral struct {
 	Trivia
 	// Text is the None token.
-	Text Token
+	Text *Token
 	// Location is the source range of the node.
 	Location source.Location
+}
+
+// Accept calls the appropriate method on the [Visitor] for the node.
+func (l *NoneLiteral) Accept(v Visitor) error {
+	return v.VisitNoneLiteral(l)
 }
 
 // SourceLocation returns the source location of the node.

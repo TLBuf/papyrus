@@ -8,14 +8,19 @@ type Index struct {
 	// Value is the expression that defines the array to reference.
 	Value Expression
 	// Open is the open bracket token.
-	Open Token
+	Open *Token
 	// Index is the expression that defines the index of the element to reference
 	// in the array.
 	Index Expression
 	// Close is the close bracket token.
-	Close Token
+	Close *Token
 	// Location is the source range of the node.
 	Location source.Location
+}
+
+// Accept calls the appropriate method on the [Visitor] for the node.
+func (i *Index) Accept(v Visitor) error {
+	return v.VisitIndex(i)
 }
 
 // SourceLocation returns the source location of the node.

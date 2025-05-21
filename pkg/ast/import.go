@@ -11,11 +11,16 @@ import (
 type Import struct {
 	Trivia
 	// Keyword is the Import keyword token that starts the statement.
-	Keyword Token
+	Keyword *Token
 	// Name is the name of the script being imported.
 	Name *Identifier
 	// Location is the source range of the node.
 	Location source.Location
+}
+
+// Accept calls the appropriate method on the [Visitor] for the node.
+func (i *Import) Accept(v Visitor) error {
+	return v.VisitImport(i)
 }
 
 // SourceLocation returns the source location of the node.

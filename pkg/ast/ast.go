@@ -3,11 +3,12 @@ package ast
 
 import (
 	"github.com/TLBuf/papyrus/pkg/source"
-	"github.com/TLBuf/papyrus/pkg/token"
 )
 
 // Node is a common interfface for all AST nodes.
 type Node interface {
+	// Accept calls the appropriate method on the [Visitor] for the node.
+	Accept(Visitor) error
 	// SourceLocation returns the source location of the node.
 	SourceLocation() source.Location
 }
@@ -58,13 +59,6 @@ type Error interface {
 	Node
 	// Message returns a human-readable message describing the error encountered.
 	ErrorMessage() string
-}
-
-// Token is a single lexed token.
-type Token interface {
-	Node
-	// TokenKind returns the [token.Kind] of the token.
-	TokenKind() token.Kind
 }
 
 // Trivia contains supplemental information that has no semantic meaning, but

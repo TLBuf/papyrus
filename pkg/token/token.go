@@ -109,21 +109,6 @@ type Token struct {
 	Location source.Location
 }
 
-// Kind returns the specific kind of this token.
-func (t Token) TokenKind() Kind {
-	return t.Kind
-}
-
-// Accept calls the VisitToken function on the given visitor with this token.
-func (t Token) Accept(v interface{ VisitToken(Token) error }) error {
-	return v.VisitToken(t)
-}
-
-// SourceLocation returns the source range of the token.
-func (t Token) SourceLocation() source.Location {
-	return t.Location
-}
-
 // String implements the [fmt.Stringer] interface.
 func (t Token) String() string {
 	return string(t.Location.Text())

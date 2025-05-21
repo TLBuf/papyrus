@@ -8,11 +8,16 @@ type Cast struct {
 	// Value is the expression being cast to a new type.
 	Value Expression
 	// Operator is the As operator token.
-	Operator Token
+	Operator *Token
 	// Type is the type the value is being cast to.
 	Type *TypeLiteral
 	// Location is the source range of the node.
 	Location source.Location
+}
+
+// Accept calls the appropriate method on the [Visitor] for the node.
+func (c *Cast) Accept(v Visitor) error {
+	return v.VisitCast(c)
 }
 
 // SourceLocation returns the source location of the node.

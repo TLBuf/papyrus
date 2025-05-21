@@ -6,12 +6,17 @@ import "github.com/TLBuf/papyrus/pkg/source"
 type Return struct {
 	Trivia
 	// Keyword is the Return keyword token.
-	Keyword Token
+	Keyword *Token
 	// Value is the expression that defines the value to return or nil if there is
 	// none (i.e. the function doesn't return a value).
 	Value Expression
 	// Location is the source range of the node.
 	Location source.Location
+}
+
+// Accept calls the appropriate method on the [Visitor] for the node.
+func (r *Return) Accept(v Visitor) error {
+	return v.VisitReturn(r)
 }
 
 // SourceLocation returns the source location of the node.

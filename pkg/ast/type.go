@@ -9,19 +9,24 @@ import (
 type TypeLiteral struct {
 	Trivia
 	// Text is the type literal token.
-	Text Token
+	Text *Token
 	// Open is the open bracket token that identifies an array type.
 	//
 	// When this is non-nil, [Close] must also be non-nil.
-	Open Token
+	Open *Token
 	// Close is the close bracket token that identifies an array type.
 	//
 	// When this is non-nil, [Open] must also be non-nil.
-	Close Token
+	Close *Token
 	// Type is the type the literal represents.
 	Type types.Type
 	// Location is the source range of the node.
 	Location source.Location
+}
+
+// Accept calls the appropriate method on the [Visitor] for the node.
+func (t *TypeLiteral) Accept(v Visitor) error {
+	return v.VisitTypeLiteral(t)
 }
 
 // SourceLocation returns the source location of the node.

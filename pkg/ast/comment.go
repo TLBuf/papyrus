@@ -7,17 +7,22 @@ type DocComment struct {
 	// Open is the opening brace token for the doc comment.
 	//
 	// This is always of kind [token.BraceOpen].
-	Open Token
+	Open *Token
 	// Close is the closing brace token for the doc comment.
 	//
 	// This is always of kind [token.BraceClose].
-	Close Token
+	Close *Token
 	// Text is the token for the text of the comment (which may include newlines).
 	//
 	// This is always of kind [token.Comment].
-	Text Token
+	Text *Token
 	// Location is the source range of the node.
 	Location source.Location
+}
+
+// Accept calls the appropriate method on the [Visitor] for the node.
+func (c *DocComment) Accept(v Visitor) error {
+	return v.VisitDocComment(c)
 }
 
 // SourceLocation returns the source location of the node.
@@ -32,17 +37,22 @@ type BlockComment struct {
 	// Open is the opening brace token for the block comment.
 	//
 	// This is always of kind [token.BlockCommentOpen].
-	Open Token
+	Open *Token
 	// Close is the closing brace token for the block comment.
 	//
 	// This is always of kind [token.BlockCommentClose].
-	Close Token
+	Close *Token
 	// Text is the token for the text of the comment (which may include newlines).
 	//
 	// This is always of kind [token.Comment].
-	Text Token
+	Text *Token
 	// Location is the source range of the node.
 	Location source.Location
+}
+
+// Accept calls the appropriate method on the [Visitor] for the node.
+func (c *BlockComment) Accept(v Visitor) error {
+	return v.VisitBlockComment(c)
 }
 
 // SourceLocation returns the source location of the node.
@@ -59,13 +69,18 @@ type LineComment struct {
 	// Open is the semicolon that starts the comment.
 	//
 	// This is always of kind [token.Semicolon].
-	Semicolon Token
+	Semicolon *Token
 	// Text is the token for the text of the comment (which will never include a newline).
 	//
 	// This is always of kind [token.Comment].
-	Text Token
+	Text *Token
 	// Location is the source range of the node.
 	Location source.Location
+}
+
+// Accept calls the appropriate method on the [Visitor] for the node.
+func (c *LineComment) Accept(v Visitor) error {
+	return v.VisitLineComment(c)
 }
 
 // SourceLocation returns the source location of the node.

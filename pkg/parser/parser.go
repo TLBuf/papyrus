@@ -121,8 +121,8 @@ func Parse(file *source.File, opts ...Option) (*ast.Script, error) {
 type parser struct {
 	l *lexer.Lexer
 
-	token     token.Token
-	lookahead token.Token
+	token     *ast.Token
+	lookahead *ast.Token
 
 	attachLooseComments bool
 	comments            []ast.LooseComment
@@ -194,7 +194,10 @@ func (p *parser) next() error {
 			Location: err.(lexer.Error).Location,
 		}
 	}
-	p.lookahead = t
+	p.lookahead = tok(t)
+	if p.token == nil {
+		return nil
+	}
 	// Consume loose comments immediately so the rest of the
 	// parser never has to deal with them directly.
 	if p.token.Kind == token.Semicolon {
@@ -673,7 +676,7 @@ func (p *parser) ParseFunction() (*ast.Function, error) {
 	return node, p.tryConsume(token.Newline, token.EOF)
 }
 
-func (p *parser) ParseParameterList() (ast.Token, []*ast.Parameter, ast.Token, error) {
+func (p *parser) ParseParameterList() (*ast.Token, []*ast.Parameter, *ast.Token, error) {
 	open := p.token
 	if err := p.tryConsume(token.ParenthesisOpen); err != nil {
 		return nil, nil, nil, err
@@ -1639,4 +1642,11 @@ func keys[K comparable, V any](data map[K]V) []K {
 		keys = append(keys, k)
 	}
 	return keys
+}
+
+func tok(t token.Token) *ast.Token {
+	return &ast.Token{
+		Kind:     t.Kind,
+		Location: t.Location,
+	}
 }

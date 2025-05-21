@@ -10,12 +10,17 @@ type Parameter struct {
 	// Name is the name of the parameter.
 	Name *Identifier
 	// Operator is the assignment operator or nil if no default value is defined.
-	Operator Token
+	Operator *Token
 	// Value is the optional default value of the parameter or nil if no default
 	// value is defined.
 	Value Literal
 	// Location is the source range of the node.
 	Location source.Location
+}
+
+// Accept calls the appropriate method on the [Visitor] for the node.
+func (p *Parameter) Accept(v Visitor) error {
+	return v.VisitParameter(p)
 }
 
 // SourceLocation returns the source location of the node.

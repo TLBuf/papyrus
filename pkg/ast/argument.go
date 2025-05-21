@@ -10,11 +10,16 @@ type Argument struct {
 	Name *Identifier
 	// Operator is the assignment operator token between the name and value or
 	// nil if using positional syntax.
-	Operator Token
+	Operator *Token
 	// Value is the expression that defines the value of this argument.
 	Value Expression
 	// Location is the source range of the node.
 	Location source.Location
+}
+
+// Accept calls the appropriate method on the [Visitor] for the node.
+func (a *Argument) Accept(v Visitor) error {
+	return v.VisitArgument(a)
 }
 
 // SourceLocation returns the source location of the node.

@@ -62,6 +62,8 @@ type Visitor interface {
 	VisitScript(*Script) error
 	// VisitState visits a [State] node.
 	VisitState(*State) error
+	// VisitToken visits a [Token] node.
+	VisitToken(*Token) error
 	// VisitTypeLiteral visits a [TypeLiteral] node.
 	VisitTypeLiteral(*TypeLiteral) error
 	// VisitUnary visits a [Unary] node.
@@ -76,8 +78,6 @@ type Visitor interface {
 	VisitErrorScriptStatement(*ErrorScriptStatement) error
 	// VisitErrorFunctionStatement visits an [ErrorFunctionStatement] node.
 	VisitErrorFunctionStatement(*ErrorFunctionStatement) error
-	// VisitToken visits a [Token] node.
-	VisitToken(Token) error
 }
 
 // VisitScriptStatement calls the appropriate Visit

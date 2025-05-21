@@ -10,7 +10,7 @@ type ScriptVariable struct {
 	// Name is the name of the variable.
 	Name *Identifier
 	// Operator is the assignment operator or nil if no inital value is assigned.
-	Operator Token
+	Operator *Token
 	// Value is the literal the script variable is assigned or nil if there isn't
 	// one (and the variable should have the default value for its type).
 	Value Literal
@@ -22,14 +22,19 @@ type ScriptVariable struct {
 	// accepting any number of flag tokens. They are all included here for
 	// completeness, but only one is required to consider the variable
 	// conditional.
-	Conditional []Token
+	Conditional []*Token
 	// Location is the source range of the node.
 	Location source.Location
 }
 
+// Accept calls the appropriate method on the [Visitor] for the node.
+func (s *ScriptVariable) Accept(v Visitor) error {
+	return v.VisitScriptVariable(s)
+}
+
 // SourceLocation returns the source location of the node.
-func (v *ScriptVariable) SourceLocation() source.Location {
-	return v.Location
+func (s *ScriptVariable) SourceLocation() source.Location {
+	return s.Location
 }
 
 func (*ScriptVariable) scriptStatement() {}
@@ -45,7 +50,7 @@ type FunctionVariable struct {
 	// Name is the name of the variable.
 	Name *Identifier
 	// Operator is the assignment operator or nil if no inital value is assigned.
-	Operator Token
+	Operator *Token
 	// Value is the expression the variable is assigned or nil if there isn't one
 	// (and the variable should have the default value for its type).
 	Value Expression
@@ -53,9 +58,14 @@ type FunctionVariable struct {
 	Location source.Location
 }
 
+// Accept calls the appropriate method on the [Visitor] for the node.
+func (f *FunctionVariable) Accept(v Visitor) error {
+	return v.VisitFunctionVariable(f)
+}
+
 // SourceLocation returns the source location of the node.
-func (v *FunctionVariable) SourceLocation() source.Location {
-	return v.Location
+func (f *FunctionVariable) SourceLocation() source.Location {
+	return f.Location
 }
 
 func (*FunctionVariable) functionStatement() {}
