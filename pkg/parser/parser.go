@@ -14,19 +14,14 @@ import (
 	"github.com/TLBuf/papyrus/pkg/types"
 )
 
-type config struct {
-	withLooseComments bool
-	withRecovery      bool
-}
-
 // Option defines an option to configure how parsing is performed.
-type Option interface{ apply(*config) }
+type Option interface{ apply(*parser) }
 
-type option func(*config)
+type option func(*parser)
 
 // apply implements the [Option] interface.
-func (o option) apply(config *config) {
-	o(config)
+func (o option) apply(p *parser) {
+	o(p)
 }
 
 // WithLooseComments controls block and line (i.e. loose) comment processing.
@@ -35,8 +30,8 @@ func (o option) apply(config *config) {
 // on returned nodes. This is only required when the nodes may need to be
 // written back out as source, e.g. when formatting.
 func WithLooseComments(enabled bool) Option {
-	return option(func(c *config) {
-		c.withLooseComments = enabled
+	return option(func(p *parser) {
+		p.attachLooseComments = enabled
 	})
 }
 
@@ -51,8 +46,8 @@ func WithLooseComments(enabled bool) Option {
 // Enabling this does not guarantee that parsing will never fail with an
 // [Error].
 func WithRecovery(enabled bool) Option {
-	return option(func(c *config) {
-		c.withRecovery = enabled
+	return option(func(p *parser) {
+		p.attemptRecovery = enabled
 	})
 }
 
@@ -64,16 +59,14 @@ func Parse(file *source.File, opts ...Option) (*ast.Script, error) {
 		return nil, err
 	}
 	p := &parser{
-		config: config{
-			withLooseComments: false,
-			withRecovery:      false,
-		},
-		l:      lex,
-		prefix: make(map[token.Kind]prefixParser),
-		infix:  make(map[token.Kind]infixParser),
+		l:                   lex,
+		attachLooseComments: false,
+		attemptRecovery:     false,
+		prefix:              make(map[token.Kind]prefixParser),
+		infix:               make(map[token.Kind]infixParser),
 	}
 	for _, opt := range opts {
-		opt.apply(&(p.config))
+		opt.apply(p)
 	}
 
 	registerPrefix(p, p.ParseBoolLiteral, token.True, token.False)
@@ -116,7 +109,7 @@ func Parse(file *source.File, opts ...Option) (*ast.Script, error) {
 		return nil, err
 	}
 
-	if p.config.withLooseComments {
+	if p.attachLooseComments {
 		if err := attachLooseComments(script, p.comments); err != nil {
 			return nil, err
 		}
@@ -126,15 +119,21 @@ func Parse(file *source.File, opts ...Option) (*ast.Script, error) {
 }
 
 type parser struct {
-	config
-	l         *lexer.Lexer
+	l *lexer.Lexer
+
+	attachLooseComments bool
+	attemptRecovery     bool
+
 	token     token.Token
 	lookahead token.Token
-	comments  []ast.LooseComment
-	recovery  bool
-	errors    []ast.Error
-	prefix    map[token.Kind]prefixParser
-	infix     map[token.Kind]infixParser
+
+	comments []ast.LooseComment
+
+	recovery bool
+	errors   []ast.Error
+
+	prefix map[token.Kind]prefixParser
+	infix  map[token.Kind]infixParser
 }
 
 // Operator precedence.
@@ -204,7 +203,7 @@ func (p *parser) next() error {
 		if err != nil {
 			return err
 		}
-		if p.config.withLooseComments {
+		if p.attachLooseComments {
 			p.comments = append(p.comments, tok)
 		}
 	}
@@ -213,7 +212,7 @@ func (p *parser) next() error {
 		if err != nil {
 			return err
 		}
-		if p.config.withLooseComments {
+		if p.attachLooseComments {
 			p.comments = append(p.comments, tok)
 		}
 	}
@@ -404,7 +403,7 @@ func (p *parser) ParseScriptStatement() (ast.ScriptStatement, error) {
 	}
 	// Error recovery. Attempt to realign to a known statement token and emit an
 	// error statement to fill the gap.
-	if p.recovery || !p.config.withRecovery {
+	if p.recovery || !p.attemptRecovery {
 		// If an error was returned during a recovery operation
 		// or we shouldn't even attempt recovery, just propagate it.
 		return nil, err
@@ -525,7 +524,7 @@ func (p *parser) ParseInvokable() (ast.Invokable, error) {
 	}
 	// Error recovery. Attempt to realign to a known statement token and emit an
 	// error statement to fill the gap.
-	if p.recovery || !p.config.withRecovery {
+	if p.recovery || !p.attemptRecovery {
 		// If an error was returned during a recovery operation
 		// or we shouldn't even attempt recovery, just propagate it.
 		return nil, err
@@ -751,7 +750,7 @@ func (p *parser) ParseFunctionStatementBlock(terminals ...token.Kind) ([]ast.Fun
 		}
 		// Error recovery. Attempt to realign to a known statement token and emit an
 		// error statement to fill the gap.
-		if p.recovery || !p.config.withRecovery {
+		if p.recovery || !p.attemptRecovery {
 			// If an error was returned during a recovery operation
 			// or we shouldn't even attempt recovery, just propagate it.
 			return nil, err
