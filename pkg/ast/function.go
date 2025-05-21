@@ -5,13 +5,13 @@ import "github.com/TLBuf/papyrus/pkg/source"
 // Function defines a Papyrus function.
 type Function struct {
 	Trivia
+	// ReturnType is the type of value this function returns or nil if it doesn't
+	// return a value.
+	ReturnType *TypeLiteral
 	// Keyword is the Function keyword that starts the definition.
 	Keyword *Token
 	// Name is the name of the function.
 	Name *Identifier
-	// ReturnType is the type of value this function returns or nil if it doesn't
-	// return a value.
-	ReturnType *TypeLiteral
 	// Open is the open parenthesis token that starts the parameter list.
 	Open *Token
 	// Parameters is the list of parameters this function defines in order.

@@ -24,6 +24,18 @@ type Property struct {
 	//
 	// If [Auto] and [AutoReadOnly] are nil, this must be nil.
 	Value Literal
+	// Auto is the Auto token that defines that this is an auto property or nil
+	// if this property is a read-only auto property or full property.
+	//
+	// If non-nil, [Get], [Set], and [AutoReadOnly] will be nil.
+	Auto *Token
+	// AutoReadOnly is the AutoReadOnly token that defines that this is a
+	// read-only auto property or nil if this property is an auto property or full
+	// property.
+	//
+	// If non-nil, [Get], [Set], and [Auto] will be nil. If non-nil, [Operator]
+	// and [Value] must also be non-nil.
+	AutoReadOnly *Token
 	// Hidden are the Hidden tokens that define that this property is hidden (i.e.
 	// it doesn't appear in the editor) or empty if this property is not hidden.
 	//
@@ -40,18 +52,6 @@ type Property struct {
 	// completeness, but only one is required to consider the property
 	// conditional.
 	Conditional []*Token
-	// Auto is the Auto token that defines that this is an auto property or nil
-	// if this property is a read-only auto property or full property.
-	//
-	// If non-nil, [Get], [Set], and [AutoReadOnly] will be nil.
-	Auto *Token
-	// AutoReadOnly is the AutoReadOnly token that defines that this is a
-	// read-only auto property or nil if this property is an auto property or full
-	// property.
-	//
-	// If non-nil, [Get], [Set], and [Auto] will be nil. If non-nil, [Operator]
-	// and [Value] must also be non-nil.
-	AutoReadOnly *Token
 	// Comment is the optional documentation comment for this property.
 	Comment *DocComment
 	// Get is the get function for this property or nil if undefined.

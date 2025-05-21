@@ -8,14 +8,14 @@ type DocComment struct {
 	//
 	// This is always of kind [token.BraceOpen].
 	Open *Token
-	// Close is the closing brace token for the doc comment.
-	//
-	// This is always of kind [token.BraceClose].
-	Close *Token
 	// Text is the token for the text of the comment (which may include newlines).
 	//
 	// This is always of kind [token.Comment].
 	Text *Token
+	// Close is the closing brace token for the doc comment.
+	//
+	// This is always of kind [token.BraceClose].
+	Close *Token
 	// Location is the source range of the node.
 	Location source.Location
 }
@@ -38,14 +38,14 @@ type BlockComment struct {
 	//
 	// This is always of kind [token.BlockCommentOpen].
 	Open *Token
-	// Close is the closing brace token for the block comment.
-	//
-	// This is always of kind [token.BlockCommentClose].
-	Close *Token
 	// Text is the token for the text of the comment (which may include newlines).
 	//
 	// This is always of kind [token.Comment].
 	Text *Token
+	// Close is the closing brace token for the block comment.
+	//
+	// This is always of kind [token.BlockCommentClose].
+	Close *Token
 	// Location is the source range of the node.
 	Location source.Location
 }
@@ -68,8 +68,8 @@ var _ LooseComment = (*BlockComment)(nil)
 type LineComment struct {
 	// Open is the semicolon that starts the comment.
 	//
-	// This is always of kind [token.Semicolon].
-	Semicolon *Token
+	// This is always of kind [token.Open].
+	Open *Token
 	// Text is the token for the text of the comment (which will never include a newline).
 	//
 	// This is always of kind [token.Comment].

@@ -17,8 +17,6 @@ type Script struct {
 	// Parent is the name of the script this one extends from or nil if this
 	// script doesn't extend another.
 	Parent *Identifier
-	// Comment is the documentation comment for this script.
-	Comment *DocComment
 	// Hidden are the Hidden tokens that define that this script is hidden (i.e.
 	// it doesn't appear in the editor) or empty if this script is not hidden.
 	//
@@ -34,6 +32,8 @@ type Script struct {
 	// accepting any number of flag tokens. They are all included here for
 	// completeness, but only one is required to consider the script conditional.
 	Conditional []*Token
+	// Comment is the documentation comment for this script.
+	Comment *DocComment
 	// Statements is the list of statements that constitute the body of the
 	// script.
 	Statements []ScriptStatement

@@ -1,6 +1,8 @@
 package ast
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // Visitor is a visitor of AST nodes.
 type Visitor interface {
@@ -243,4 +245,32 @@ func VisitError(v Visitor, e Error) error {
 	default:
 		return fmt.Errorf("unsupported Error implementation: %T", e)
 	}
+}
+
+func visitLeadingComments(v Visitor, t Trivia) error {
+	for _, c := range t.LeadingComments {
+		if err := VisitLooseComment(v, c); err != nil {
+			return fmt.Errorf("leading comment: %w", err)
+		}
+	}
+	for _, c := range t.PrefixComments {
+		if err := VisitLooseComment(v, c); err != nil {
+			return fmt.Errorf("prefix comment: %w", err)
+		}
+	}
+	return nil
+}
+
+func visitTrailingComments(v Visitor, t Trivia) error {
+	for _, c := range t.SuffixComments {
+		if err := VisitLooseComment(v, c); err != nil {
+			return fmt.Errorf("suffix comment: %w", err)
+		}
+	}
+	for _, c := range t.TrailingComments {
+		if err := VisitLooseComment(v, c); err != nil {
+			return fmt.Errorf("trailing comment: %w", err)
+		}
+	}
+	return nil
 }

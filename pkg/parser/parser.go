@@ -301,7 +301,7 @@ func (p *parser) ParseBlockComment() (*ast.BlockComment, error) {
 
 func (p *parser) ParseLineComment() (*ast.LineComment, error) {
 	node := &ast.LineComment{
-		Semicolon: p.token,
+		Open: p.token,
 	}
 	if err := p.tryConsume(token.Semicolon); err != nil {
 		return nil, err
