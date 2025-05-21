@@ -121,16 +121,15 @@ func Parse(file *source.File, opts ...Option) (*ast.Script, error) {
 type parser struct {
 	l *lexer.Lexer
 
-	attachLooseComments bool
-	attemptRecovery     bool
-
 	token     token.Token
 	lookahead token.Token
 
-	comments []ast.LooseComment
+	attachLooseComments bool
+	comments            []ast.LooseComment
 
-	recovery bool
-	errors   []ast.Error
+	attemptRecovery bool
+	recovery        bool
+	errors          []ast.Error
 
 	prefix map[token.Kind]prefixParser
 	infix  map[token.Kind]infixParser
