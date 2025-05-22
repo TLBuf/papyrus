@@ -14,11 +14,6 @@ type Return struct {
 	Location source.Location
 }
 
-// Accept calls the appropriate method on the [Visitor] for the node.
-func (r *Return) Accept(v Visitor) error {
-	return v.VisitReturn(r)
-}
-
 // SourceLocation returns the source location of the node.
 func (r *Return) SourceLocation() source.Location {
 	return r.Location

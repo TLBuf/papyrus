@@ -78,11 +78,6 @@ type Property struct {
 	Location source.Location
 }
 
-// Accept calls the appropriate method on the [Visitor] for the node.
-func (p *Property) Accept(v Visitor) error {
-	return v.VisitProperty(p)
-}
-
 // SourceLocation returns the source location of the node.
 func (p *Property) SourceLocation() source.Location {
 	return p.Location

@@ -20,11 +20,6 @@ type While struct {
 	Location source.Location
 }
 
-// Accept calls the appropriate method on the [Visitor] for the node.
-func (w *While) Accept(v Visitor) error {
-	return v.VisitWhile(w)
-}
-
 // SourceLocation returns the source location of the node.
 func (w *While) SourceLocation() source.Location {
 	return w.Location

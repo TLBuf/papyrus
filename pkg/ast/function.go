@@ -50,11 +50,6 @@ type Function struct {
 	Location source.Location
 }
 
-// Accept calls the appropriate method on the [Visitor] for the node.
-func (f *Function) Accept(v Visitor) error {
-	return v.VisitFunction(f)
-}
-
 // SourceLocation returns the source location of the node.
 func (f *Function) SourceLocation() source.Location {
 	return f.Location

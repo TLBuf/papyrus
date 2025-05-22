@@ -25,11 +25,6 @@ type If struct {
 	Location source.Location
 }
 
-// Accept calls the appropriate method on the [Visitor] for the node.
-func (i *If) Accept(v Visitor) error {
-	return v.VisitIf(i)
-}
-
 // SourceLocation returns the source location of the node.
 func (i *If) SourceLocation() source.Location {
 	return i.Location

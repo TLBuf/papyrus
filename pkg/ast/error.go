@@ -11,11 +11,6 @@ type ErrorScriptStatement struct {
 	Location source.Location
 }
 
-// Accept calls the appropriate method on the [Visitor] for the node.
-func (e *ErrorScriptStatement) Accept(v Visitor) error {
-	return v.VisitErrorScriptStatement(e)
-}
-
 // SourceLocation returns the source location of the node.
 func (e *ErrorScriptStatement) SourceLocation() source.Location {
 	return e.Location
@@ -38,11 +33,6 @@ type ErrorFunctionStatement struct {
 	Message string
 	// Location is the source range of the node.
 	Location source.Location
-}
-
-// Accept calls the appropriate method on the [Visitor] for the node.
-func (e *ErrorFunctionStatement) Accept(v Visitor) error {
-	return v.VisitErrorFunctionStatement(e)
 }
 
 // SourceLocation returns the source location of the node.

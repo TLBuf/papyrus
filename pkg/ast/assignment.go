@@ -16,11 +16,6 @@ type Assignment struct {
 	Location source.Location
 }
 
-// Accept calls the appropriate method on the [Visitor] for the node.
-func (a *Assignment) Accept(v Visitor) error {
-	return v.VisitAssignment(a)
-}
-
 // SourceLocation returns the source location of the node.
 func (a *Assignment) SourceLocation() source.Location {
 	return a.Location

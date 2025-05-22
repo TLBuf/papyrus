@@ -23,11 +23,6 @@ type State struct {
 	Location source.Location
 }
 
-// Accept calls the appropriate method on the [Visitor] for the node.
-func (s *State) Accept(v Visitor) error {
-	return v.VisitState(s)
-}
-
 // SourceLocation returns the source location of the node.
 func (s *State) SourceLocation() source.Location {
 	return s.Location

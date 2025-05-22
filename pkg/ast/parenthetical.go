@@ -15,11 +15,6 @@ type Parenthetical struct {
 	Location source.Location
 }
 
-// Accept calls the appropriate method on the [Visitor] for the node.
-func (p *Parenthetical) Accept(v Visitor) error {
-	return v.VisitParenthetical(p)
-}
-
 // SourceLocation returns the source location of the node.
 func (p *Parenthetical) SourceLocation() source.Location {
 	return p.Location

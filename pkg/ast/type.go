@@ -24,11 +24,6 @@ type TypeLiteral struct {
 	Location source.Location
 }
 
-// Accept calls the appropriate method on the [Visitor] for the node.
-func (t *TypeLiteral) Accept(v Visitor) error {
-	return v.VisitTypeLiteral(t)
-}
-
 // SourceLocation returns the source location of the node.
 func (t *TypeLiteral) SourceLocation() source.Location {
 	return t.Location

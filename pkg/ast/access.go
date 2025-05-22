@@ -16,11 +16,6 @@ type Access struct {
 	Location source.Location
 }
 
-// Accept calls the appropriate method on the [Visitor] for the node.
-func (a *Access) Accept(v Visitor) error {
-	return v.VisitAccess(a)
-}
-
 // SourceLocation returns the source location of the node.
 func (a *Access) SourceLocation() source.Location {
 	return a.Location

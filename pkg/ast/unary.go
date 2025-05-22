@@ -13,11 +13,6 @@ type Unary struct {
 	Location source.Location
 }
 
-// Accept calls the appropriate method on the [Visitor] for the node.
-func (u *Unary) Accept(v Visitor) error {
-	return v.VisitUnary(u)
-}
-
 // SourceLocation returns the source location of the node.
 func (u *Unary) SourceLocation() source.Location {
 	return u.Location

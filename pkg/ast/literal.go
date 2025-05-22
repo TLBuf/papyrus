@@ -13,11 +13,6 @@ type BoolLiteral struct {
 	Location source.Location
 }
 
-// Accept calls the appropriate method on the [Visitor] for the node.
-func (l *BoolLiteral) Accept(v Visitor) error {
-	return v.VisitBoolLiteral(l)
-}
-
 // SourceLocation returns the source location of the node.
 func (l *BoolLiteral) SourceLocation() source.Location {
 	return l.Location

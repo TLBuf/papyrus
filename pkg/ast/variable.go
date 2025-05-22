@@ -27,11 +27,6 @@ type ScriptVariable struct {
 	Location source.Location
 }
 
-// Accept calls the appropriate method on the [Visitor] for the node.
-func (s *ScriptVariable) Accept(v Visitor) error {
-	return v.VisitScriptVariable(s)
-}
-
 // SourceLocation returns the source location of the node.
 func (s *ScriptVariable) SourceLocation() source.Location {
 	return s.Location

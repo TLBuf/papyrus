@@ -17,11 +17,6 @@ type Argument struct {
 	Location source.Location
 }
 
-// Accept calls the appropriate method on the [Visitor] for the node.
-func (a *Argument) Accept(v Visitor) error {
-	return v.VisitArgument(a)
-}
-
 // SourceLocation returns the source location of the node.
 func (a *Argument) SourceLocation() source.Location {
 	return a.Location
