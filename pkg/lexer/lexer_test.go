@@ -1,6 +1,7 @@
 package lexer_test
 
 import (
+	"iter"
 	"strings"
 	"testing"
 
@@ -105,14 +106,16 @@ EndState ; Comment
 	file := &source.File{
 		Text: []byte(text),
 	}
-	l, err := lexer.New(file)
+	stream, err := lexer.Lex(file)
 	if err != nil {
-		t.Fatalf("expected error creating lexer: %v", err)
+		t.Fatalf("Lex() returned unexpected error: %v", err)
 	}
+	next, stop := iter.Pull2(stream.All())
+	defer stop()
 	for i, tt := range tests {
-		tok, err := l.NextToken()
-		if err != nil {
-			t.Fatalf("unexpected error at token %d %q: %v", i, tok, err)
+		_, tok, ok := next()
+		if !ok {
+			t.Fatalf("encountered end of input at token %d", i)
 		}
 		if tok.Kind != tt.wantType {
 			t.Errorf("token type mismatch at token %d %q, want: %v, got: %v", i, tok, tt.wantType, tok.Kind)

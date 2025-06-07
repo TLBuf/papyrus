@@ -4,6 +4,7 @@ package parser
 import (
 	"bytes"
 	"fmt"
+	"iter"
 	"strconv"
 	"strings"
 
@@ -54,12 +55,17 @@ func WithRecovery(enabled bool) Option {
 // Parser returns the file parsed as an [*ast.Script] or an [Error] if parsing
 // encountered one or more issues.
 func Parse(file *source.File, opts ...Option) (*ast.Script, error) {
-	lex, err := lexer.New(file)
+	stream, err := lexer.Lex(file)
 	if err != nil {
-		return nil, err
+		return nil, Error{
+			Err:      err,
+			Location: err.(lexer.Error).Location,
+		}
 	}
+	streamNext, stop := iter.Pull2(stream.All())
+	defer stop()
 	p := &parser{
-		l:                   lex,
+		streamNext:          streamNext,
 		attachLooseComments: false,
 		attemptRecovery:     false,
 		prefix:              make(map[token.Kind]prefixParser),
@@ -119,7 +125,7 @@ func Parse(file *source.File, opts ...Option) (*ast.Script, error) {
 }
 
 type parser struct {
-	l *lexer.Lexer
+	streamNext func() (int, token.Token, bool)
 
 	token     *ast.Token
 	lookahead *ast.Token
@@ -183,16 +189,13 @@ type (
 	infixParser  func(ast.Expression) (ast.Expression, error)
 )
 
-// next advances token and lookahead by one token while skipping loose comment
-// tokens. Returns true if parsing should continue, false otherwise.
+// next advances token and lookahead by one
+// token while skipping loose comment tokens.
 func (p *parser) next() error {
 	p.token = p.lookahead
-	t, err := p.l.NextToken()
-	if err != nil {
-		return Error{
-			Err:      err,
-			Location: err.(lexer.Error).Location,
-		}
+	_, t, ok := p.streamNext()
+	if !ok {
+		return nil
 	}
 	p.lookahead = tok(t)
 	if p.token == nil {
