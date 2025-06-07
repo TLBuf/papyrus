@@ -15,6 +15,11 @@ type Cast struct {
 	Location source.Location
 }
 
+// Accept calls the appropriate visitor method for the node.
+func (c *Cast) Accept(v Visitor) error {
+	return v.VisitCast(c)
+}
+
 // SourceLocation returns the source location of the node.
 func (c *Cast) SourceLocation() source.Location {
 	return c.Location

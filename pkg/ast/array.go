@@ -19,6 +19,11 @@ type ArrayCreation struct {
 	Location source.Location
 }
 
+// Accept calls the appropriate visitor method for the node.
+func (a *ArrayCreation) Accept(v Visitor) error {
+	return v.VisitArrayCreation(a)
+}
+
 // SourceLocation returns the source location of the node.
 func (a *ArrayCreation) SourceLocation() source.Location {
 	return a.Location

@@ -18,6 +18,11 @@ type Import struct {
 	Location source.Location
 }
 
+// Accept calls the appropriate visitor method for the node.
+func (i *Import) Accept(v Visitor) error {
+	return v.VisitImport(i)
+}
+
 // SourceLocation returns the source location of the node.
 func (i *Import) SourceLocation() source.Location {
 	return i.Location

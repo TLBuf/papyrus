@@ -7,6 +7,8 @@ import (
 
 // Node is a common interfface for all AST nodes.
 type Node interface {
+	// Accept calls the appropriate visitor method for the node.
+	Accept(Visitor) error
 	// SourceLocation returns the source location of the node.
 	SourceLocation() source.Location
 }

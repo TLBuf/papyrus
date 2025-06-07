@@ -15,6 +15,11 @@ type Binary struct {
 	Location source.Location
 }
 
+// Accept calls the appropriate visitor method for the node.
+func (b *Binary) Accept(v Visitor) error {
+	return v.VisitBinary(b)
+}
+
 // SourceLocation returns the source location of the node.
 func (b *Binary) SourceLocation() source.Location {
 	return b.Location

@@ -38,6 +38,11 @@ type Event struct {
 	Location source.Location
 }
 
+// Accept calls the appropriate visitor method for the node.
+func (e *Event) Accept(v Visitor) error {
+	return v.VisitEvent(e)
+}
+
 // SourceLocation returns the source location of the node.
 func (e *Event) SourceLocation() source.Location {
 	return e.Location

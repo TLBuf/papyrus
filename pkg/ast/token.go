@@ -16,6 +16,11 @@ type Token struct {
 	Location source.Location
 }
 
+// Accept calls the appropriate visitor method for the node.
+func (t *Token) Accept(v Visitor) error {
+	return v.VisitToken(t)
+}
+
 // SourceLocation returns the source location of the node.
 func (t *Token) SourceLocation() source.Location {
 	return t.Location

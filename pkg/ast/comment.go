@@ -20,6 +20,11 @@ type DocComment struct {
 	Location source.Location
 }
 
+// Accept calls the appropriate visitor method for the node.
+func (c *DocComment) Accept(v Visitor) error {
+	return v.VisitDocComment(c)
+}
+
 // SourceLocation returns the source location of the node.
 func (c *DocComment) SourceLocation() source.Location {
 	return c.Location

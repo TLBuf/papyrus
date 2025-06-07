@@ -41,6 +41,11 @@ type Script struct {
 	Location source.Location
 }
 
+// Accept calls the appropriate visitor method for the node.
+func (s *Script) Accept(v Visitor) error {
+	return v.VisitScript(s)
+}
+
 // SourceLocation returns the source location of the node.
 func (s *Script) SourceLocation() source.Location {
 	return s.Location

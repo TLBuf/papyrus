@@ -18,6 +18,11 @@ type Index struct {
 	Location source.Location
 }
 
+// Accept calls the appropriate visitor method for the node.
+func (i *Index) Accept(v Visitor) error {
+	return v.VisitIndex(i)
+}
+
 // SourceLocation returns the source location of the node.
 func (i *Index) SourceLocation() source.Location {
 	return i.Location

@@ -13,6 +13,11 @@ type Identifier struct {
 	Location source.Location
 }
 
+// Accept calls the appropriate visitor method for the node.
+func (i *Identifier) Accept(v Visitor) error {
+	return v.VisitIdentifier(i)
+}
+
 // SourceLocation returns the source location of the node.
 func (i *Identifier) SourceLocation() source.Location {
 	return i.Location
