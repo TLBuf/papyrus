@@ -60,7 +60,14 @@ func formatFile(path string) error {
 	}
 	script, err := parser.Parse(file)
 	if err != nil {
-		return fmt.Errorf("failed to parse %q: %w", path, err)
+		err := err.(parser.Error)
+		snip, serr := err.Location.Snippet(80, 9)
+		if serr != nil {
+			return fmt.Errorf("failed to create snippet for parser error: %w: %w", serr, err)
+		}
+		var sb strings.Builder
+		source.Print(&sb, snip)
+		return fmt.Errorf("failed to parse: %v\n\n%s\n%s", err.Err, err.Location, sb.String())
 	}
 	var formatted bytes.Buffer
 	if err := format.Format(&formatted, script, format.WithTabs(formatTabs), format.WithUnixLineEndings(formatUnix), format.WithIndentWidth(formatIndent)); err != nil {

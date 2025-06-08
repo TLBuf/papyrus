@@ -19,6 +19,11 @@ func (e Error) Error() string {
 	return fmt.Sprintf("%s: %v", e.Location, e.Err)
 }
 
+// Unwrap returns the underlying error.
+func (e Error) Unwrap() error {
+	return e.Err
+}
+
 func newError(location source.Location, msg string, args ...any) Error {
 	return Error{
 		Err:      fmt.Errorf(msg, args...),
