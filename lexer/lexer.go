@@ -80,7 +80,7 @@ func (l *lexer) NextToken() (token.Token, error) {
 	case commentDoc:
 		tok, err = l.commentDoc()
 	default:
-		err = fmt.Errorf("Lexer in unknown lexing mode: %d", l.mode)
+		err = fmt.Errorf("lexer in unknown lexing mode: %d", l.mode)
 	}
 	if err != nil || tok.Kind == token.Newline || tok.Kind == token.EOF {
 		return tok, err
@@ -145,102 +145,100 @@ func (l *lexer) nextToken() (token.Token, error) {
 		if err := l.readChar(); err != nil {
 			return l.newToken(token.Illegal), err
 		}
-		if l.character == '=' {
-			tok = l.newTokenFrom(token.Equal, start)
+		if l.character != '=' {
+			return l.newTokenAt(token.Assign, start), nil
 		}
-		return l.newTokenAt(token.Assign, start), nil
+		tok = l.newTokenFrom(token.Equal, start)
 	case '+':
 		start := l.here()
 		if err := l.readChar(); err != nil {
 			return l.newToken(token.Illegal), err
 		}
-		if l.character == '=' {
-			tok = l.newTokenFrom(token.AssignAdd, start)
+		if l.character != '=' {
+			return l.newTokenAt(token.Plus, start), nil
 		}
-		return l.newTokenAt(token.Plus, start), nil
+		tok = l.newTokenFrom(token.AssignAdd, start)
 	case '-':
 		start := l.here()
 		if err := l.readChar(); err != nil {
 			return l.newToken(token.Illegal), err
 		}
-		if l.character == '=' {
-			tok = l.newTokenFrom(token.AssignSubtract, start)
+		if l.character != '=' {
+			return l.newTokenAt(token.Minus, start), nil
 		}
-		return l.newTokenAt(token.Minus, start), nil
+		tok = l.newTokenFrom(token.AssignSubtract, start)
 	case '*':
 		start := l.here()
 		if err := l.readChar(); err != nil {
 			return l.newToken(token.Illegal), err
 		}
-		if l.character == '=' {
-			tok = l.newTokenFrom(token.AssignMultiply, start)
+		if l.character != '=' {
+			return l.newTokenAt(token.Multiply, start), nil
 		}
-		return l.newTokenAt(token.Multiply, start), nil
+		tok = l.newTokenFrom(token.AssignMultiply, start)
 	case '/':
 		start := l.here()
 		if err := l.readChar(); err != nil {
 			return l.newToken(token.Illegal), err
 		}
-		if l.character == '=' {
-			tok = l.newTokenFrom(token.AssignDivide, start)
+		if l.character != '=' {
+			return l.newTokenAt(token.Divide, start), nil
 		}
-		return l.newTokenAt(token.Divide, start), nil
+		tok = l.newTokenFrom(token.AssignDivide, start)
 	case '%':
 		start := l.here()
 		if err := l.readChar(); err != nil {
 			return l.newToken(token.Illegal), err
 		}
-		if l.character == '=' {
-			tok = l.newTokenFrom(token.AssignModulo, start)
+		if l.character != '=' {
+			return l.newTokenAt(token.Modulo, start), nil
 		}
-		return l.newTokenAt(token.Modulo, start), nil
+		tok = l.newTokenFrom(token.AssignModulo, start)
 	case '!':
 		start := l.here()
 		if err := l.readChar(); err != nil {
 			return l.newToken(token.Illegal), err
 		}
-		if l.character == '=' {
-			tok = l.newTokenFrom(token.NotEqual, start)
+		if l.character != '=' {
+			return l.newTokenAt(token.LogicalNot, start), nil
 		}
-		return l.newTokenAt(token.LogicalNot, start), nil
+		tok = l.newTokenFrom(token.NotEqual, start)
 	case '>':
 		start := l.here()
 		if err := l.readChar(); err != nil {
 			return l.newToken(token.Illegal), err
 		}
-		if l.character == '=' {
-			tok = l.newTokenFrom(token.GreaterOrEqual, start)
+		if l.character != '=' {
+			return l.newTokenAt(token.Greater, start), nil
 		}
-		return l.newTokenAt(token.Greater, start), nil
+		tok = l.newTokenFrom(token.GreaterOrEqual, start)
 	case '<':
 		start := l.here()
 		if err := l.readChar(); err != nil {
 			return l.newToken(token.Illegal), err
 		}
-		if l.character == '=' {
-			tok = l.newTokenFrom(token.LessOrEqual, start)
+		if l.character != '=' {
+			return l.newTokenAt(token.Less, start), nil
 		}
-		return l.newTokenAt(token.Less, start), nil
+		tok = l.newTokenFrom(token.LessOrEqual, start)
 	case '|':
 		start := l.here()
 		if err := l.readChar(); err != nil {
 			return l.newToken(token.Illegal), err
 		}
-		if l.character == '|' {
-			tok = l.newTokenFrom(token.LogicalOr, start)
-			break
+		if l.character != '|' {
+			return l.newTokenAt(token.Illegal, start), newError(tok.Location, "'|' is not a valid operator")
 		}
-		return l.newTokenAt(token.Illegal, start), newError(tok.Location, "'|' is not a valid operator")
+		tok = l.newTokenFrom(token.LogicalOr, start)
 	case '&':
 		start := l.here()
 		if err := l.readChar(); err != nil {
 			return l.newToken(token.Illegal), err
 		}
-		if l.character == '&' {
-			tok = l.newTokenFrom(token.LogicalAnd, start)
-			break
+		if l.character != '&' {
+			return l.newTokenAt(token.Illegal, start), newError(tok.Location, "'&' is not a valid operator")
 		}
-		return l.newTokenAt(token.Illegal, start), newError(tok.Location, "'&' is not a valid operator")
+		tok = l.newTokenFrom(token.LogicalAnd, start)
 	case '{':
 		tok = l.newToken(token.BraceOpen)
 		if err := l.readChar(); err != nil {
@@ -253,13 +251,12 @@ func (l *lexer) nextToken() (token.Token, error) {
 		if err := l.readChar(); err != nil {
 			return l.newToken(token.Illegal), err
 		}
-		if l.character == '/' {
-			l.mode = commentBlock
-			tok = l.newTokenFrom(token.BlockCommentOpen, start)
-			break
+		if l.character != '/' {
+			l.mode = commentLine
+			return l.newTokenAt(token.Semicolon, start), nil
 		}
-		l.mode = commentLine
-		return l.newTokenAt(token.Semicolon, start), nil
+		l.mode = commentBlock
+		tok = l.newTokenFrom(token.BlockCommentOpen, start)
 	case '"':
 		return l.readString()
 	default:
