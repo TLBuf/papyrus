@@ -204,7 +204,7 @@ func fitLineOnePoint(text []rune, column, width int) ([]Chunk, int) {
 		return []Chunk{
 			{Text: "..."},
 			{Text: string(text[length-width+3:]), IsSource: true},
-		}, column - length + width - 3
+		}, column - length + width
 	}
 	// Pivot around column since it's somewhere in the middle.
 	start := column - center - center%2 + 3
