@@ -5,8 +5,8 @@ import "github.com/TLBuf/papyrus/pkg/source"
 // ArrayCreation is an expression that creates a new array of a fixed length.
 type ArrayCreation struct {
 	Trivia
-	// NewOperator is the new operator token.
-	NewOperator *Token
+	// New is the new operator token.
+	New *Token
 	// Type is the type of elements the array can contain.
 	Type *TypeLiteral
 	// OpenOperator is the open bracket token.

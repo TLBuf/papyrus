@@ -1406,7 +1406,7 @@ func (p *parser) ParseCall(reciever ast.Expression) (*ast.Call, error) {
 		return nil, err
 	}
 	return &ast.Call{
-		Reciever:  reciever,
+		Function:  reciever,
 		Open:      open,
 		Arguments: args,
 		Close:     close,
@@ -1485,12 +1485,12 @@ func (p *parser) ParseArrayCreation() (*ast.ArrayCreation, error) {
 		return nil, err
 	}
 	return &ast.ArrayCreation{
-		NewOperator: new,
-		Type:        typeLiteral,
-		Open:        open,
-		Size:        size,
-		Close:       close,
-		Location:    source.Span(new.Location, close.Location),
+		New:      new,
+		Type:     typeLiteral,
+		Open:     open,
+		Size:     size,
+		Close:    close,
+		Location: source.Span(new.Location, close.Location),
 	}, nil
 }
 

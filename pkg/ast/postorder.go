@@ -100,7 +100,7 @@ func (v PostorderVisitor) VisitArrayCreation(a *ArrayCreation) error {
 			return fmt.Errorf("prefix comment: %w", err)
 		}
 	}
-	if err := a.NewOperator.Accept(v); err != nil {
+	if err := a.New.Accept(v); err != nil {
 		return fmt.Errorf("new operator: %w", err)
 	}
 	if err := a.Type.Accept(v); err != nil {
@@ -220,7 +220,7 @@ func (v PostorderVisitor) VisitCall(c *Call) error {
 			return fmt.Errorf("prefix comment: %w", err)
 		}
 	}
-	if err := c.Reciever.Accept(v); err != nil {
+	if err := c.Function.Accept(v); err != nil {
 		return fmt.Errorf("reciever: %w", err)
 	}
 	if err := c.Open.Accept(v); err != nil {

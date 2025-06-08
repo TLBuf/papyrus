@@ -7,97 +7,6 @@ import (
 	"github.com/TLBuf/papyrus/pkg/source"
 )
 
-// Kind is the type of token.
-type Kind byte
-
-// The set of tokens for Papyrus.
-const (
-	Illegal Kind = iota
-	EOF
-	As
-	Assign
-	AssignAdd
-	AssignDivide
-	AssignModulo
-	AssignMultiply
-	AssignSubtract
-	Auto
-	AutoReadOnly
-	BlockCommentClose
-	BlockCommentOpen
-	Bool
-	BraceClose
-	BraceOpen
-	BracketClose
-	BracketOpen
-	Comma
-	Comment
-	Conditional
-	Divide
-	Dot
-	Else
-	ElseIf
-	EndEvent
-	EndFunction
-	EndIf
-	EndProperty
-	EndState
-	EndWhile
-	Equal
-	Event
-	Extends
-	False
-	Float
-	FloatLiteral
-	Function
-	Global
-	Greater
-	GreaterOrEqual
-	Hidden
-	Identifier
-	If
-	Import
-	Int
-	IntLiteral
-	Length
-	Less
-	LessOrEqual
-	LogicalAnd
-	LogicalNot
-	LogicalOr
-	Minus
-	Modulo
-	Multiply
-	Native
-	New
-	Newline
-	None
-	NotEqual
-	Parent
-	ParenthesisClose
-	ParenthesisOpen
-	Plus
-	Property
-	Return
-	ScriptName
-	Self
-	Semicolon
-	State
-	String
-	StringLiteral
-	True
-	While
-)
-
-// String implements the [fmt.Stringer] interface.
-func (t Kind) String() string {
-	name, ok := names[t]
-	if ok {
-		return name
-	}
-	return "<unknown>"
-}
-
 // Token encodes a single lexical token in the Papyrus language.
 //
 // Each token has a [Kind] and information about where it is located
@@ -109,7 +18,7 @@ type Token struct {
 	Location source.Location
 }
 
-// String implements the [fmt.Stringer] interface.
+// String returns the text of the token as it appears in the lexed source.
 func (t Token) String() string {
 	return string(t.Location.Text())
 }
@@ -161,120 +70,355 @@ var keywords = map[string]Kind{
 	"while":        While,
 }
 
-// Returns the symbol representation
-func Symbol(k Kind) string {
-	if s, ok := symbols[k]; ok {
-		return s
+// Kind is the type of token.
+type Kind byte
+
+const (
+	// Illegal is the zero value token denoting a missing or malformed token.
+	Illegal Kind = iota
+	// EOF denotes the end of a token stream.
+	EOF
+	// As is the casting keyword.
+	As
+	// Assign, '=', is the assignment operator symbol.
+	Assign
+	// AssignAdd, '+=', is the addition assignment operator symbol.
+	AssignAdd
+	// AssignDivide, '/=', is the division assignment operator symbol.
+	AssignDivide
+	// AssignModulo, '%=', is the modular assignment operator symbol.
+	AssignModulo
+	// AssignMultiply, '*=', is the multiplication assignment operator symbol.
+	AssignMultiply
+	// AssignSubtract, '-=', is the subtraction assignment operator symbol.
+	AssignSubtract
+	// Auto is the auto property keyword.
+	Auto
+	// AutoReadOnly is the auto read-only property keyword.
+	AutoReadOnly
+	// BlockCommentClose, '/;', is the symbol that ends a block comment.
+	BlockCommentClose
+	// BlockCommentClose, '/;', is the symbol that starts a block comment.
+	BlockCommentOpen
+	// Bool is the bool type keyword.
+	Bool
+	// BraceClose, '}', is the symbol that ends a documentation comment.
+	BraceClose
+	// BraceOpen, '{', is the symbol that starts a documentation comment.
+	BraceOpen
+	// BracketClose, ']', is the closing bracket symbol used by arrays.
+	BracketClose
+	// BracketOpen, '[', is the openning bracket symbol used by arrays.
+	BracketOpen
+	// Comma, ',', is the symbol used to seperate list elements.
+	Comma
+	// Comment denotes a token that contains all content of a comment.
+	Comment
+	// Conditional is the conditional flag keyword.
+	Conditional
+	// Divide, '/', is the division symbol.
+	Divide
+	// Dot, '.', is the access operator symbol.
+	Dot
+	// Else is the unconditional alternative keyword.
+	Else
+	// ElseIf is the conditional alternative keyword.
+	ElseIf
+	// EndEvent is the keyword that ends an event block.
+	EndEvent
+	// EndFunction is the keyword that ends a function block.
+	EndFunction
+	// EndIf is the keyword that ends a conditional block.
+	EndIf
+	// EndProperty is the keyword that ends a property block.
+	EndProperty
+	// EndState is the keyword that ends a state block.
+	EndState
+	// EndWhile is the keyword that ends a loop block.
+	EndWhile
+	// Equal, '==', is the equality comparison operator symbol.
+	Equal
+	// Event is the keyword that starts an event block.
+	Event
+	// Extends is the keyword used to extend another script.
+	Extends
+	// False is the boolean literal false value keyword.
+	False
+	// Float is the floating-point type keyword.
+	Float
+	// FloatLiteral denotes a floating-point literal value.
+	FloatLiteral
+	// Function is the keyword that starts a function block.
+	Function
+	// Global is the global flag keyword.
+	Global
+	// Greater, '>', is the greater than comparison operator symbol.
+	Greater
+	// GreaterOrEqual, '>=', is the greater than or equal to comparison operator symbol.
+	GreaterOrEqual
+	// Hidden is the hidden flag keyword.
+	Hidden
+	// Identifier denotes a non-keyword identifier.
+	Identifier
+	// If is the keyword that starts a conditional block.
+	If
+	// Import is the keyword used to import another script into the current one.
+	Import
+	// Int is the integer type keyword.
+	Int
+	// IntLiteral denotes an integer literal value.
+	IntLiteral
+	// Length is the array length keyword.
+	Length
+	// Less, '<', is the less than comparison operator symbol.
+	Less
+	// LessOrEqual, '<=', is the less than or equal to comparison operator symbol.
+	LessOrEqual
+	// LogicalAnd, '&&', is the logical AND operator symbol.
+	LogicalAnd
+	// LogicalNot, '!', is the logical NOT operator symbol.
+	LogicalNot
+	// LogicalOr, '||', is the logical OR operator symbol.
+	LogicalOr
+	// Minus, '-', is the subtraction or unary numeric negation operator symbol.
+	Minus
+	// Modulo, '%', is the modular operator symbol.
+	Modulo
+	// Multiply, '*', is the multiplication operator symbol.
+	Multiply
+	// Native is the native flag keyword.
+	Native
+	// New is the keyword used to create new arrays.
+	New
+	// Newline denotes a line break (end of statement).
+	Newline
+	// None is the object literal empty value keyword.
+	None
+	// NotEqual, '!=', is the negaive equality comparison operator symbol.
+	NotEqual
+	// Parent is the keyword used to refer to symbols in an extended script.
+	Parent
+	// ParenthesisClose, ')', is the is the closing symbol used by parameter and argument lists and parentheticals.
+	ParenthesisClose
+	// ParenthesisOpen, '(', is the is the openning symbol used by parameter and argument lists and parentheticals.
+	ParenthesisOpen
+	// Plus, '+', is the addition operator symbol.
+	Plus
+	// Property is the keyword that starts a property definition or block.
+	Property
+	// Return is the keyword used to end execution of a function or event.
+	Return
+	// ScriptName is the keyword used define a script's name.
+	ScriptName
+	// Self is the keyword used to refer to symbols in the script itself.
+	Self
+	// Semicolon is the keyword that denotes the start of a line comment.
+	Semicolon
+	// State is the keyword that starts a state block.
+	State
+	// String is the string type keyword.
+	String
+	// StringLiteral denotes a string literal value.
+	StringLiteral
+	// True is the boolean literal true value keyword.
+	True
+	// While is the keyword that starts a loop block.
+	While
+)
+
+// Keyword returns the string representation of this
+// kind or an empty string if it is not a keyword.
+//
+// This method will always return a standardized
+// captialization regardless of any lexed text.
+func (k Kind) Keyword() string {
+	if k.IsKeyword() {
+		return names[k]
 	}
 	return ""
 }
 
-var symbols = map[Kind]string{
-	Assign:            "=",
-	AssignAdd:         "+=",
-	AssignDivide:      "/=",
-	AssignModulo:      "%=",
-	AssignMultiply:    "*=",
-	AssignSubtract:    "-=",
-	BlockCommentClose: "/;",
-	BlockCommentOpen:  ";/",
-	BraceClose:        "}",
-	BraceOpen:         "{",
-	BracketClose:      "]",
-	BracketOpen:       "[",
-	Comma:             ",",
-	Divide:            "/",
-	Dot:               ".",
-	Equal:             "==",
-	Greater:           ">",
-	GreaterOrEqual:    ">=",
-	LogicalAnd:        "&&",
-	LogicalNot:        "!",
-	LogicalOr:         "||",
-	Minus:             "-",
-	Modulo:            "%",
-	Multiply:          "*",
-	NotEqual:          "!=",
-	ParenthesisClose:  ")",
-	ParenthesisOpen:   "(",
-	Plus:              "+",
-	Semicolon:         ";",
+// IsKeyword returns true if this kind is an
+// alphabetic keyword and false otherwise.
+func (k Kind) IsKeyword() bool {
+	switch k {
+	case As,
+		Auto,
+		AutoReadOnly,
+		Bool,
+		Conditional,
+		Else,
+		ElseIf,
+		EndEvent,
+		EndFunction,
+		EndIf,
+		EndProperty,
+		EndState,
+		EndWhile,
+		Event,
+		Extends,
+		False,
+		Float,
+		Function,
+		Global,
+		Hidden,
+		If,
+		Import,
+		Int,
+		Length,
+		Native,
+		New,
+		None,
+		Parent,
+		Property,
+		Return,
+		ScriptName,
+		Self,
+		State,
+		String,
+		True,
+		While:
+		return true
+	}
+	return false
 }
 
-var names = map[Kind]string{
-	Illegal:           "Illegal",
-	EOF:               "EOF",
-	As:                "As",
-	Assign:            "Assign",
-	AssignAdd:         "AssignAdd",
-	AssignDivide:      "AssignDivide",
-	AssignModulo:      "AssignModulo",
-	AssignMultiply:    "AssignMultiply",
-	AssignSubtract:    "AssignSubtract",
-	Auto:              "Auto",
-	AutoReadOnly:      "AutoReadOnly",
-	BlockCommentClose: "BlockCommentClose",
-	BlockCommentOpen:  "BlockCommentOpen",
-	Bool:              "Bool",
-	BraceClose:        "BraceClose",
-	BraceOpen:         "BraceOpen",
-	BracketClose:      "BracketClose",
-	BracketOpen:       "BracketOpen",
-	Comma:             "Comma",
-	Comment:           "Comment",
-	Conditional:       "Conditional",
-	Divide:            "Divide",
-	Dot:               "Dot",
-	Else:              "Else",
-	ElseIf:            "ElseIf",
-	EndEvent:          "EndEvent",
-	EndFunction:       "EndFunction",
-	EndIf:             "EndIf",
-	EndProperty:       "EndProperty",
-	EndState:          "EndState",
-	EndWhile:          "EndWhile",
-	Equal:             "Equal",
-	Event:             "Event",
-	Extends:           "Extends",
-	False:             "False",
-	Float:             "Float",
-	FloatLiteral:      "FloatLiteral",
-	Function:          "Function",
-	Global:            "Global",
-	Greater:           "Greater",
-	GreaterOrEqual:    "GreaterOrEqual",
-	Hidden:            "Hidden",
-	Identifier:        "Identifier",
-	If:                "If",
-	Import:            "Import",
-	Int:               "Int",
-	IntLiteral:        "IntLiteral",
-	Length:            "Length",
-	Less:              "Less",
-	LessOrEqual:       "LessOrEqual",
-	LogicalAnd:        "LogicalAnd",
-	LogicalNot:        "LogicalNot",
-	LogicalOr:         "LogicalOr",
-	Minus:             "Minus",
-	Modulo:            "Modulo",
-	Multiply:          "Multiply",
-	Native:            "Native",
-	New:               "New",
-	Newline:           "Newline",
-	None:              "None",
-	NotEqual:          "NotEqual",
-	Parent:            "Parent",
-	ParenthesisClose:  "ParenthesisClose",
-	ParenthesisOpen:   "ParenthesisOpen",
-	Plus:              "Plus",
-	Property:          "Property",
-	Return:            "Return",
-	ScriptName:        "ScriptName",
-	Self:              "Self",
-	Semicolon:         "Semicolon",
-	State:             "State",
-	String:            "String",
-	StringLiteral:     "StringLiteral",
-	True:              "True",
-	While:             "While",
+// Symbol returns the string representation of this
+// kind or an empty string if it is not a symbol.
+func (k Kind) Symbol() string {
+	if k.IsSymbol() {
+		return names[k]
+	}
+	return ""
+}
+
+// IsSymbol returns true if this kind is a
+// non-alphabetic symbol and false otherwise.
+func (k Kind) IsSymbol() bool {
+	switch k {
+	case Assign,
+		AssignAdd,
+		AssignDivide,
+		AssignModulo,
+		AssignMultiply,
+		AssignSubtract,
+		BlockCommentClose,
+		BlockCommentOpen,
+		BraceClose,
+		BraceOpen,
+		BracketClose,
+		BracketOpen,
+		Comma,
+		Divide,
+		Dot,
+		Equal,
+		Greater,
+		GreaterOrEqual,
+		LogicalAnd,
+		LogicalNot,
+		LogicalOr,
+		Minus,
+		Modulo,
+		Multiply,
+		NotEqual,
+		ParenthesisClose,
+		ParenthesisOpen,
+		Plus,
+		Semicolon:
+		return true
+	}
+	return false
+}
+
+// String returns the string representation of this Kind.
+//
+// If the Kind is a symbol or keyword, this returns the same string as
+// [Kind.Symbol] and [Kind.Keyword] respectively, otherwise it returns the name
+// of the token surrounded by angle brackets.
+//
+// This method will always return a standardized captialization regardless of
+// any lexed text.
+func (k Kind) String() string {
+	if int(k) < len(names) {
+		return names[k]
+	}
+	return "<Unknown>"
+}
+
+var names = []string{
+	"<Illegal>",
+	"<EOF>",
+	"As",
+	"=",
+	"+=",
+	"/=",
+	"%=",
+	"*=",
+	"-=",
+	"Auto",
+	"AutoReadOnly",
+	"/;",
+	";/",
+	"Bool",
+	"}",
+	"{",
+	"]",
+	"[",
+	",",
+	"<Comment>",
+	"Conditional",
+	"/",
+	".",
+	"Else",
+	"ElseIf",
+	"EndEvent",
+	"EndFunction",
+	"EndIf",
+	"EndProperty",
+	"EndState",
+	"EndWhile",
+	"==",
+	"Event",
+	"Extends",
+	"False",
+	"Float",
+	"<FloatLiteral>",
+	"Function",
+	"Global",
+	">",
+	">=",
+	"Hidden",
+	"<Identifier>",
+	"If",
+	"Import",
+	"Int",
+	"<IntLiteral>",
+	"Length",
+	"<",
+	"<=",
+	"&&",
+	"!",
+	"||",
+	"-",
+	"%",
+	"*",
+	"Native",
+	"New",
+	"<Newline>",
+	"None",
+	"!=",
+	"Parent",
+	")",
+	"(",
+	"Plus",
+	"Property",
+	"Return",
+	"ScriptName",
+	"Self",
+	";",
+	"State",
+	"String",
+	"<StringLiteral>",
+	"True",
+	"While",
 }
