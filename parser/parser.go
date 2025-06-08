@@ -235,10 +235,14 @@ func (p *parser) tryConsume(t token.Kind, alts ...token.Kind) error {
 			return p.next()
 		}
 	}
+	return unexpectedTokenError(p.token, t, alts...)
+}
+
+func unexpectedTokenError(got *ast.Token, want token.Kind, alts ...token.Kind) error {
 	if len(alts) > 0 {
-		return newError(p.token.Location, "expected any of [%s, %s], but found %s", t, tokensTypesToString(alts...), p.token.Kind)
+		return newError(got.Location, "expected any of [%s, %s], but found %s", want, tokensTypesToString(alts...), got.Kind)
 	}
-	return newError(p.token.Location, "expected %s, but found %s", t, p.token.Kind)
+	return newError(got.Location, "expected %s, but found %s", want, got.Kind)
 }
 
 func tokensTypesToString(types ...token.Kind) string {
@@ -398,10 +402,25 @@ func (p *parser) ParseScriptStatement() (ast.ScriptStatement, error) {
 		case token.Identifier:
 			stmt, err = p.ParseScriptVariable()
 		default:
-			err = fmt.Errorf("expected Import, Event, State, Function, Property, or a variable definition, but found %s", start.Kind)
+			err = unexpectedTokenError(
+				p.lookahead,
+				token.Property,
+				token.Function,
+				token.Identifier)
 		}
 	default:
-		err = fmt.Errorf("expected Import, Event, State, Function, Property, or a variable definition, but found %s", start.Kind)
+		err = unexpectedTokenError(
+			p.token,
+			token.Import,
+			token.Event,
+			token.Auto,
+			token.State,
+			token.Function,
+			token.Bool,
+			token.Float,
+			token.Int,
+			token.String,
+			token.Identifier)
 	}
 	if err == nil {
 		return stmt, nil
@@ -522,7 +541,15 @@ func (p *parser) ParseInvokable() (ast.Invokable, error) {
 	case token.Function, token.Bool, token.Float, token.Int, token.String, token.Identifier:
 		stmt, err = p.ParseFunction()
 	default:
-		err = fmt.Errorf("expected Event or Function, but found %s", start.Kind)
+		err = unexpectedTokenError(
+			p.token,
+			token.Event,
+			token.Function,
+			token.Bool,
+			token.Float,
+			token.Int,
+			token.String,
+			token.Identifier)
 	}
 	if err == nil {
 		return stmt, nil
@@ -1021,7 +1048,7 @@ func (p *parser) ParseProperty() (*ast.Property, error) {
 		}
 	} else if p.token.Kind == token.AutoReadOnly {
 		if node.Value == nil {
-			return nil, newError(p.token.Location, "expected value to be defined for AutoReadOnly property")
+			return nil, newError(p.token.Location, "expected value to be defined for %s property", token.AutoReadOnly)
 		}
 		node.AutoReadOnly = p.token
 		end = p.token.Location
@@ -1239,7 +1266,13 @@ func (p *parser) ParseTypeLiteral() (*ast.TypeLiteral, error) {
 			Name: string(bytes.ToLower(p.token.Location.Text())),
 		}
 	default:
-		return nil, newError(p.token.Location, "expected Bool, Int, Float, String, or an identifier, but found %s", p.token.Kind)
+		return nil, unexpectedTokenError(
+			p.token,
+			token.Bool,
+			token.Float,
+			token.Int,
+			token.String,
+			token.Identifier)
 	}
 	if err := p.next(); err != nil {
 		return nil, err
@@ -1266,7 +1299,8 @@ func (p *parser) ParseTypeLiteral() (*ast.TypeLiteral, error) {
 func (p *parser) ParseExpression(precedence int) (ast.Expression, error) {
 	prefix := p.prefix[p.token.Kind]
 	if prefix == nil {
-		return nil, newError(p.token.Location, "expected any of [%s], but found %s", tokensTypesToString(keys(p.prefix)...), p.token.Kind)
+		want := keys(p.prefix)
+		return nil, unexpectedTokenError(p.token, want[0], want[1:]...)
 	}
 	expr, err := prefix()
 	if err != nil {
@@ -1478,7 +1512,7 @@ func (p *parser) ParseArrayCreation() (*ast.ArrayCreation, error) {
 		return nil, err
 	}
 	if size.Value < 1 || size.Value > 128 {
-		return nil, newError(size.SourceLocation(), "expected array size to be an IntLiteral in range [1, 128], but found %d", size.Value)
+		return nil, newError(size.SourceLocation(), "expected array size to be an %s in range [1, 128], but found %d", token.IntLiteral, size.Value)
 	}
 	close := p.token
 	if err := p.tryConsume(token.BracketClose); err != nil {
@@ -1542,7 +1576,10 @@ func (p *parser) ParseLiteral() (ast.Literal, error) {
 			lit.Value = -lit.Value
 			return lit, err
 		default:
-			return nil, fmt.Errorf("expected IntLiteral or FloatLiteral, but found %s", p.token.Kind)
+			return nil, unexpectedTokenError(
+				p.token,
+				token.IntLiteral,
+				token.FloatLiteral)
 		}
 	case token.True, token.False:
 		return p.ParseBoolLiteral()
@@ -1555,7 +1592,14 @@ func (p *parser) ParseLiteral() (ast.Literal, error) {
 	case token.None:
 		return p.ParseNoneLiteral()
 	}
-	return nil, fmt.Errorf("expected True, False, None, Integer, Float, or String literal, but found %s", p.token.Kind)
+	return nil, unexpectedTokenError(
+		p.token,
+		token.True,
+		token.False,
+		token.IntLiteral,
+		token.FloatLiteral,
+		token.StringLiteral,
+		token.None)
 }
 
 func (p *parser) ParseIntLiteral() (*ast.IntLiteral, error) {
