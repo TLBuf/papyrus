@@ -313,6 +313,19 @@ func (l *lexer) here() source.Location {
 	}
 }
 
+func (l *lexer) nextByteLocation() source.Location {
+	return source.Location{
+		File:           l.file,
+		ByteOffset:     l.position,
+		Length:         1,
+		StartLine:      l.line,
+		StartColumn:    l.column + 1,
+		EndLine:        l.line,
+		EndColumn:      l.column + 1,
+		PreambleLength: l.position - l.lineStartOffset + 1,
+	}
+}
+
 func (l *lexer) readIdentifier() (token.Token, error) {
 	start := l.here()
 	if err := l.readChar(); err != nil {
@@ -330,12 +343,7 @@ func (l *lexer) readIdentifier() (token.Token, error) {
 	if l.character == '[' {
 		next, err := l.peek()
 		if err != nil {
-			loc := l.here()
-			loc.ByteOffset = l.next
-			loc.StartColumn++
-			loc.EndColumn++
-			loc.PreambleLength++
-			return l.newTokenAt(token.Illegal, loc), err
+			return l.newTokenAt(token.Illegal, l.nextByteLocation()), err
 		}
 		if next == ']' {
 			// Array type (rather than index or declaration).
@@ -413,9 +421,6 @@ func (l *lexer) readNumber() (token.Token, error) {
 
 func (l *lexer) readString() (token.Token, error) {
 	start := l.here()
-	if err := l.readChar(); err != nil {
-		return l.newToken(token.Illegal), err
-	}
 	escaping := false
 	for {
 		if err := l.readChar(); err != nil {
@@ -594,7 +599,7 @@ func (l *lexer) readChar() error {
 	} else {
 		r, w := utf8.DecodeRune(l.file.Text[l.next:])
 		if r == utf8.RuneError {
-			return fmt.Errorf("encountered invalid UTF-8 at byte %d", l.next)
+			return newError(l.nextByteLocation(), "encountered invalid UTF-8 at byte %d", l.next)
 		}
 		l.character = r
 		width = w
@@ -608,7 +613,7 @@ func (l *lexer) readChar() error {
 func (l *lexer) peek() (rune, error) {
 	r, _ := utf8.DecodeRune(l.file.Text[l.next:])
 	if r == utf8.RuneError {
-		return 0, fmt.Errorf("encountered invalid UTF-8 at byte %d", l.next)
+		return 0, newError(l.nextByteLocation(), "encountered invalid UTF-8 at byte %d", l.next)
 	}
 	return r, nil
 }

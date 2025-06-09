@@ -236,18 +236,20 @@ func (f *formatter) VisitDocComment(node *ast.DocComment) error {
 	if err := node.Open.Accept(f); err != nil {
 		return fmt.Errorf("failed for format Open: %w", err)
 	}
-	text := trimBytes(node.Text.SourceLocation().Text())
+	text := trimRight(node.Text.SourceLocation().Text())
 	if bytes.ContainsRune(text, '\n') {
 		f.level++
 		if err := f.newline(); err != nil {
 			return fmt.Errorf("failed to format newline: %w", err)
 		}
 		for i, line := range bytes.Split(text, []byte{'\n'}) {
-			if err := f.bytes(trimBytes(line)); err != nil {
-				return fmt.Errorf("failed to format comment text: %w", err)
+			if i > 0 {
+				if err := f.newline(); err != nil {
+					return fmt.Errorf("failed to format newline: %w", err)
+				}
 			}
-			if i != len(line)-1 {
-				f.newline()
+			if err := f.bytes(trimRight(line)); err != nil {
+				return fmt.Errorf("failed to format comment text: %w", err)
 			}
 		}
 		f.level--
@@ -255,10 +257,11 @@ func (f *formatter) VisitDocComment(node *ast.DocComment) error {
 			return fmt.Errorf("failed to format newline: %w", err)
 		}
 	} else {
+		text = bytes.TrimSpace(text)
 		if err := f.space(); err != nil {
 			return fmt.Errorf("failed to format space: %w", err)
 		}
-		if err := f.bytes(trimBytes(text)); err != nil {
+		if err := f.bytes(text); err != nil {
 			return fmt.Errorf("failed to format comment text: %w", err)
 		}
 		if err := f.space(); err != nil {
@@ -275,18 +278,20 @@ func (f *formatter) VisitBlockComment(node *ast.BlockComment) error {
 	if err := node.Open.Accept(f); err != nil {
 		return fmt.Errorf("failed for format Open: %w", err)
 	}
-	text := trimBytes(node.Text.SourceLocation().Text())
+	text := trimRight(node.Text.SourceLocation().Text())
 	if bytes.ContainsRune(text, '\n') {
 		f.level++
 		if err := f.newline(); err != nil {
 			return fmt.Errorf("failed to format newline: %w", err)
 		}
 		for i, line := range bytes.Split(text, []byte{'\n'}) {
-			if err := f.bytes(trimBytes(line)); err != nil {
-				return fmt.Errorf("failed to format comment text: %w", err)
+			if i > 0 {
+				if err := f.newline(); err != nil {
+					return fmt.Errorf("failed to format newline: %w", err)
+				}
 			}
-			if i != len(line)-1 {
-				f.newline()
+			if err := f.bytes(trimRight(line)); err != nil {
+				return fmt.Errorf("failed to format comment text: %w", err)
 			}
 		}
 		f.level--
@@ -294,10 +299,11 @@ func (f *formatter) VisitBlockComment(node *ast.BlockComment) error {
 			return fmt.Errorf("failed to format newline: %w", err)
 		}
 	} else {
+		text = bytes.TrimSpace(text)
 		if err := f.space(); err != nil {
 			return fmt.Errorf("failed to format space: %w", err)
 		}
-		if err := f.bytes(trimBytes(text)); err != nil {
+		if err := f.bytes(text); err != nil {
 			return fmt.Errorf("failed to format comment text: %w", err)
 		}
 		if err := f.space(); err != nil {
@@ -317,7 +323,7 @@ func (f *formatter) VisitLineComment(node *ast.LineComment) error {
 	if err := f.space(); err != nil {
 		return fmt.Errorf("failed to format space: %w", err)
 	}
-	if err := f.bytes(trimBytes(node.Text.SourceLocation().Text())); err != nil {
+	if err := f.bytes(trimRight(node.Text.SourceLocation().Text())); err != nil {
 		return fmt.Errorf("failed to format comment text: %w", err)
 	}
 	return nil
@@ -934,6 +940,11 @@ func (f *formatter) VisitScript(node *ast.Script) error {
 		if err := f.newline(); err != nil {
 			return fmt.Errorf("failed to format newline: %w", err)
 		}
+		if (p.Auto == nil && p.AutoReadOnly == nil) || p.Comment != nil {
+			if err := f.newline(); err != nil {
+				return fmt.Errorf("failed to format newline: %w", err)
+			}
+		}
 	}
 	if len(properties) > 0 {
 		if err := f.newline(); err != nil {
@@ -953,9 +964,9 @@ func (f *formatter) VisitScript(node *ast.Script) error {
 			return fmt.Errorf("failed to format newline: %w", err)
 		}
 	}
-	for _, s := range states {
-		if err := s.Accept(f); err != nil {
-			return fmt.Errorf("failed to format State: %w", err)
+	for _, i := range invokables {
+		if err := i.Accept(f); err != nil {
+			return fmt.Errorf("failed to format Invokable: %w", err)
 		}
 		if err := f.newline(); err != nil {
 			return fmt.Errorf("failed to format newline: %w", err)
@@ -964,9 +975,9 @@ func (f *formatter) VisitScript(node *ast.Script) error {
 			return fmt.Errorf("failed to format newline: %w", err)
 		}
 	}
-	for _, i := range invokables {
-		if err := i.Accept(f); err != nil {
-			return fmt.Errorf("failed to format Invokable: %w", err)
+	for _, s := range states {
+		if err := s.Accept(f); err != nil {
+			return fmt.Errorf("failed to format State: %w", err)
 		}
 		if err := f.newline(); err != nil {
 			return fmt.Errorf("failed to format newline: %w", err)
@@ -1146,6 +1157,36 @@ func (f *formatter) VisitFunctionVariable(node *ast.FunctionVariable) error {
 }
 
 func (f *formatter) VisitWhile(node *ast.While) error {
+	if err := node.Keyword.Accept(f); err != nil {
+		return fmt.Errorf("failed for format Keyword: %w", err)
+	}
+	if err := f.space(); err != nil {
+		return fmt.Errorf("failed to format space: %w", err)
+	}
+	if err := node.Condition.Accept(f); err != nil {
+		return fmt.Errorf("failed for format Condition: %w", err)
+	}
+	f.level++
+	if err := f.newline(); err != nil {
+		return fmt.Errorf("failed to format newline: %w", err)
+	}
+	for i, statement := range node.Statements {
+		if i > 0 {
+			if err := f.newline(); err != nil {
+				return fmt.Errorf("failed to format newline: %w", err)
+			}
+		}
+		if err := statement.Accept(f); err != nil {
+			return fmt.Errorf("failed to format Statement: %w", err)
+		}
+	}
+	f.level--
+	if err := f.newline(); err != nil {
+		return fmt.Errorf("failed to format newline: %w", err)
+	}
+	if err := node.EndKeyword.Accept(f); err != nil {
+		return fmt.Errorf("failed for format EndKeyword: %w", err)
+	}
 	return nil
 }
 
@@ -1193,6 +1234,6 @@ func (f *formatter) bytes(text []byte) error {
 	return err
 }
 
-func trimBytes(text []byte) []byte {
-	return bytes.TrimSpace(bytes.TrimRight(text, "\r\n"))
+func trimRight(text []byte) []byte {
+	return bytes.TrimRight(text, " \r\n\t")
 }

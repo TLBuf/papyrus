@@ -149,21 +149,20 @@ func textForSnippet(r Location) []rune {
 
 func splitLines(text []rune) [][]rune {
 	var lines [][]rune
-	s := -1
+	cursor := 0
 	for i, r := range text {
-		if r == '\r' || r == '\n' || r == 0 {
-			if s >= 0 {
-				lines = append(lines, text[s:i])
-				s = -1
+		if r == '\n' {
+			s := text[cursor:i]
+			if s[len(s)-1] == '\r' {
+				s = s[:len(s)-1]
 			}
+			lines = append(lines, s)
+			cursor = i + 1
 			continue
 		}
-		if s < 0 {
-			s = i
-		}
 	}
-	if s > 0 {
-		lines = append(lines, text[s:])
+	if cursor < len(text) {
+		lines = append(lines, text[cursor:])
 	}
 	return lines
 }
