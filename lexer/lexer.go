@@ -62,6 +62,7 @@ func Lex(file *source.File) (TokenStream, error) {
 			return stream, nil
 		}
 	}
+
 }
 
 // NextToken scans the input for the next [token.Token].
@@ -325,7 +326,42 @@ func (l *lexer) readIdentifier() (token.Token, error) {
 	loc := source.Span(start, l.here())
 	loc.Length -= 1
 	loc.EndColumn -= 1
-	return l.newTokenAt(token.LookupIdentifier(string(loc.Text())), loc), nil
+	tok := l.newTokenAt(token.LookupIdentifier(string(loc.Text())), loc)
+	if l.character == '[' {
+		next, err := l.peek()
+		if err != nil {
+			loc := l.here()
+			loc.ByteOffset = l.next
+			loc.StartColumn++
+			loc.EndColumn++
+			loc.PreambleLength++
+			return l.newTokenAt(token.Illegal, loc), err
+		}
+		if next == ']' {
+			// Array type (rather than index or declaration).
+			if err := l.readChar(); err != nil {
+				return l.newToken(token.Illegal), err
+			}
+			kind := tok.Kind
+			switch kind {
+			case token.Bool:
+				kind = token.BoolArray
+			case token.Int:
+				kind = token.IntArray
+			case token.Float:
+				kind = token.FloatArray
+			case token.String:
+				kind = token.StringArray
+			default:
+				kind = token.ObjectArray
+			}
+			tok = l.newTokenFrom(kind, tok.Location)
+			if err := l.readChar(); err != nil {
+				return l.newToken(token.Illegal), err
+			}
+		}
+	}
+	return tok, nil
 }
 
 func (l *lexer) readNumber() (token.Token, error) {
@@ -567,6 +603,14 @@ func (l *lexer) readChar() error {
 	l.position = l.next
 	l.next += width
 	return nil
+}
+
+func (l *lexer) peek() (rune, error) {
+	r, _ := utf8.DecodeRune(l.file.Text[l.next:])
+	if r == utf8.RuneError {
+		return 0, fmt.Errorf("encountered invalid UTF-8 at byte %d", l.next)
+	}
+	return r, nil
 }
 
 func (l *lexer) findNextNewlineOffset() int {

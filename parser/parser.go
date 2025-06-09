@@ -396,7 +396,7 @@ func (p *parser) ParseScriptStatement() (ast.ScriptStatement, error) {
 		stmt, err = p.ParseState()
 	case token.Function:
 		stmt, err = p.ParseFunction()
-	case token.Bool, token.Float, token.Int, token.String, token.Identifier:
+	case token.Bool, token.BoolArray, token.Float, token.FloatArray, token.Int, token.IntArray, token.String, token.StringArray, token.Identifier, token.ObjectArray:
 		switch p.lookahead.Kind {
 		case token.Property:
 			stmt, err = p.ParseProperty()
@@ -1254,19 +1254,32 @@ func (p *parser) ParseTypeLiteral() (*ast.TypeLiteral, error) {
 		Text:     p.token,
 		Location: p.token.Location,
 	}
-	var scalar types.Scalar
 	switch p.token.Kind {
 	case token.Bool:
-		scalar = types.Bool{}
+		node.Type = types.Bool{}
+	case token.BoolArray:
+		node.Type = types.Array{ElementType: types.Bool{}}
 	case token.Int:
-		scalar = types.Int{}
+		node.Type = types.Int{}
+	case token.IntArray:
+		node.Type = types.Array{ElementType: types.Int{}}
 	case token.Float:
-		scalar = types.Float{}
+		node.Type = types.Float{}
+	case token.FloatArray:
+		node.Type = types.Array{ElementType: types.Float{}}
 	case token.String:
-		scalar = types.String{}
+		node.Type = types.String{}
+	case token.StringArray:
+		node.Type = types.Array{ElementType: types.String{}}
 	case token.Identifier:
-		scalar = types.Object{
+		node.Type = types.Object{
 			Name: string(bytes.ToLower(p.token.Location.Text())),
+		}
+	case token.ObjectArray:
+		node.Type = types.Array{
+			ElementType: types.Object{
+				Name: string(bytes.TrimSuffix(bytes.ToLower(p.token.Location.Text()), []byte{'[', ']'})),
+			},
 		}
 	default:
 		return nil, unexpectedTokenError(
@@ -1280,24 +1293,7 @@ func (p *parser) ParseTypeLiteral() (*ast.TypeLiteral, error) {
 	if err := p.next(); err != nil {
 		return nil, err
 	}
-	if p.token.Kind != token.BracketOpen {
-		node.Type = scalar
-		return node, nil
-	}
-	node.Open = p.token
-	if err := p.tryConsume(token.BracketOpen); err != nil {
-		return nil, err
-	}
-	node.Close = p.token
-	if err := p.tryConsume(token.BracketClose); err != nil {
-		return nil, err
-	}
-	return &ast.TypeLiteral{
-		Type: types.Array{
-			ElementType: scalar,
-		},
-		Location: source.Span(node.Location, node.Close.SourceLocation()),
-	}, nil
+	return node, nil
 }
 
 func (p *parser) ParseExpression(precedence int) (ast.Expression, error) {

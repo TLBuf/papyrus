@@ -102,6 +102,8 @@ const (
 	BlockCommentOpen
 	// Bool is the bool type keyword.
 	Bool
+	// BoolArray is the bool array type keyword.
+	BoolArray
 	// BraceClose, '}', is the symbol that ends a documentation comment.
 	BraceClose
 	// BraceOpen, '{', is the symbol that starts a documentation comment.
@@ -146,6 +148,8 @@ const (
 	False
 	// Float is the floating-point type keyword.
 	Float
+	// FloatArray is the floating-point array type keyword.
+	FloatArray
 	// FloatLiteral denotes a floating-point literal value.
 	FloatLiteral
 	// Function is the keyword that starts a function block.
@@ -166,6 +170,8 @@ const (
 	Import
 	// Int is the integer type keyword.
 	Int
+	// IntArray is the integer array type keyword.
+	IntArray
 	// IntLiteral denotes an integer literal value.
 	IntLiteral
 	// Length is the array length keyword.
@@ -196,6 +202,8 @@ const (
 	None
 	// NotEqual, '!=', is the negaive equality comparison operator symbol.
 	NotEqual
+	// ObjectArray is the object array type keyword.
+	ObjectArray
 	// Parent is the keyword used to refer to symbols in an extended script.
 	Parent
 	// ParenthesisClose, ')', is the is the closing symbol used by parameter and argument lists and parentheticals.
@@ -218,6 +226,8 @@ const (
 	State
 	// String is the string type keyword.
 	String
+	// StringArray is the string array type keyword.
+	StringArray
 	// StringLiteral denotes a string literal value.
 	StringLiteral
 	// True is the boolean literal true value keyword.
@@ -246,6 +256,7 @@ func (k Kind) IsKeyword() bool {
 		Auto,
 		AutoReadOnly,
 		Bool,
+		BoolArray,
 		Conditional,
 		Else,
 		ElseIf,
@@ -259,12 +270,14 @@ func (k Kind) IsKeyword() bool {
 		Extends,
 		False,
 		Float,
+		FloatArray,
 		Function,
 		Global,
 		Hidden,
 		If,
 		Import,
 		Int,
+		IntArray,
 		Length,
 		Native,
 		New,
@@ -276,6 +289,7 @@ func (k Kind) IsKeyword() bool {
 		Self,
 		State,
 		String,
+		StringArray,
 		True,
 		While:
 		return true
@@ -362,6 +376,7 @@ var names = []string{
 	"/;",
 	";/",
 	"Bool",
+	"Bool[]",
 	"}",
 	"{",
 	"]",
@@ -384,6 +399,7 @@ var names = []string{
 	"Extends",
 	"False",
 	"Float",
+	"Float[]",
 	"<FloatLiteral>",
 	"Function",
 	"Global",
@@ -394,6 +410,7 @@ var names = []string{
 	"If",
 	"Import",
 	"Int",
+	"Int[]",
 	"<IntLiteral>",
 	"Length",
 	"<",
@@ -409,6 +426,7 @@ var names = []string{
 	"<Newline>",
 	"None",
 	"!=",
+	"<Object[]>",
 	"Parent",
 	")",
 	"(",
@@ -420,6 +438,7 @@ var names = []string{
 	";",
 	"State",
 	"String",
+	"String[]",
 	"<StringLiteral>",
 	"True",
 	"While",
