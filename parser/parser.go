@@ -77,7 +77,7 @@ func Parse(file *source.File, opts ...Option) (*ast.Script, error) {
 
 	registerPrefix(p, p.ParseBoolLiteral, token.True, token.False)
 	registerPrefix(p, p.ParseFloatLiteral, token.FloatLiteral)
-	registerPrefix(p, p.ParseIdentifier, token.Identifier)
+	registerPrefix(p, p.ParseIdentifier, token.Identifier, token.Self, token.Parent)
 	registerPrefix(p, p.ParseIntLiteral, token.IntLiteral)
 	registerPrefix(p, p.ParseNoneLiteral, token.None)
 	registerPrefix(p, p.ParseParenthetical, token.ParenthesisOpen)
@@ -240,9 +240,9 @@ func (p *parser) tryConsume(t token.Kind, alts ...token.Kind) error {
 
 func unexpectedTokenError(got *ast.Token, want token.Kind, alts ...token.Kind) error {
 	if len(alts) > 0 {
-		return newError(got.Location, "expected any of [%s, %s], but found %s", want, tokensTypesToString(alts...), got.Kind)
+		return newError(got.Location, "expected any of [%s, %s], but found: %s", want, tokensTypesToString(alts...), got.Kind)
 	}
-	return newError(got.Location, "expected %s, but found %s", want, got.Kind)
+	return newError(got.Location, "expected: %s, but found: %s", want, got.Kind)
 }
 
 func tokensTypesToString(types ...token.Kind) string {
@@ -365,16 +365,19 @@ func (p *parser) ParseScript() (*ast.Script, error) {
 			return nil, err
 		}
 	}
+	if err := p.consumeNewlines(); err != nil {
+		return nil, err
+	}
 	for p.token.Kind != token.EOF {
-		if err := p.consumeNewlines(); err != nil {
-			return nil, err
-		}
 		stmt, err := p.ParseScriptStatement()
 		if err != nil {
 			return nil, err
 		}
 		if stmt != nil {
 			node.Statements = append(node.Statements, stmt)
+		}
+		if err := p.consumeNewlines(); err != nil {
+			return nil, err
 		}
 	}
 	return node, nil
@@ -856,7 +859,7 @@ func (p *parser) ParseFunctionVariable() (*ast.FunctionVariable, error) {
 		if err := p.tryConsume(token.Assign); err != nil {
 			return nil, err
 		}
-		node.Value, err = p.ParseLiteral()
+		node.Value, err = p.ParseExpression(lowest)
 		if err != nil {
 			return nil, err
 		}
@@ -1052,7 +1055,7 @@ func (p *parser) ParseProperty() (*ast.Property, error) {
 		}
 		node.AutoReadOnly = p.token
 		end = p.token.Location
-		if err := p.tryConsume(token.Auto); err != nil {
+		if err := p.tryConsume(token.AutoReadOnly); err != nil {
 			return nil, err
 		}
 	}
@@ -1240,7 +1243,7 @@ func (p *parser) ParseIdentifier() (*ast.Identifier, error) {
 		Normalized: string(bytes.ToLower(p.token.Location.Text())),
 		Location:   p.token.Location,
 	}
-	if err := p.tryConsume(token.Identifier); err != nil {
+	if err := p.tryConsume(token.Identifier, token.Self, token.Parent); err != nil {
 		return nil, err
 	}
 	return node, nil
@@ -1278,6 +1281,7 @@ func (p *parser) ParseTypeLiteral() (*ast.TypeLiteral, error) {
 		return nil, err
 	}
 	if p.token.Kind != token.BracketOpen {
+		node.Type = scalar
 		return node, nil
 	}
 	node.Open = p.token
@@ -1470,7 +1474,7 @@ func (p *parser) ParseArgumentList() ([]*ast.Argument, error) {
 
 func (p *parser) ParseArgument() (*ast.Argument, error) {
 	node := &ast.Argument{}
-	if p.token.Kind == token.Identifier {
+	if p.token.Kind == token.Identifier && p.lookahead.Kind == token.Assign {
 		id, err := p.ParseIdentifier()
 		if err != nil {
 			return nil, err

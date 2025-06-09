@@ -236,42 +236,14 @@ func (f *formatter) VisitDocComment(node *ast.DocComment) error {
 	if err := node.Open.Accept(f); err != nil {
 		return fmt.Errorf("failed for format Open: %w", err)
 	}
-	f.level++
-	if err := f.newline(); err != nil {
-		return fmt.Errorf("failed to format newline: %w", err)
-	}
-	text := bytes.TrimSpace(node.Text.SourceLocation().Text())
-	for i, line := range bytes.Split(text, []byte{'\n'}) {
-		if err := f.bytes(bytes.TrimSpace(line)); err != nil {
-			return fmt.Errorf("failed to format comment text: %w", err)
-		}
-		if i != len(line)-1 {
-			f.newline()
-		}
-	}
-	f.level--
-	if err := f.newline(); err != nil {
-		return fmt.Errorf("failed to format newline: %w", err)
-	}
-	if err := node.Close.Accept(f); err != nil {
-		return fmt.Errorf("failed for format Close: %w", err)
-	}
-	return nil
-}
-
-func (f *formatter) VisitBlockComment(node *ast.BlockComment) error {
-	if err := node.Open.Accept(f); err != nil {
-		return fmt.Errorf("failed for format Open: %w", err)
-	}
-	text := node.Text.SourceLocation().Text()
+	text := trimBytes(node.Text.SourceLocation().Text())
 	if bytes.ContainsRune(text, '\n') {
 		f.level++
 		if err := f.newline(); err != nil {
 			return fmt.Errorf("failed to format newline: %w", err)
 		}
-		text = bytes.TrimSpace(text)
 		for i, line := range bytes.Split(text, []byte{'\n'}) {
-			if err := f.bytes(bytes.TrimSpace(line)); err != nil {
+			if err := f.bytes(trimBytes(line)); err != nil {
 				return fmt.Errorf("failed to format comment text: %w", err)
 			}
 			if i != len(line)-1 {
@@ -286,7 +258,46 @@ func (f *formatter) VisitBlockComment(node *ast.BlockComment) error {
 		if err := f.space(); err != nil {
 			return fmt.Errorf("failed to format space: %w", err)
 		}
-		if err := f.bytes(bytes.TrimSpace(text)); err != nil {
+		if err := f.bytes(trimBytes(text)); err != nil {
+			return fmt.Errorf("failed to format comment text: %w", err)
+		}
+		if err := f.space(); err != nil {
+			return fmt.Errorf("failed to format space: %w", err)
+		}
+	}
+	if err := node.Close.Accept(f); err != nil {
+		return fmt.Errorf("failed for format Close: %w", err)
+	}
+	return nil
+}
+
+func (f *formatter) VisitBlockComment(node *ast.BlockComment) error {
+	if err := node.Open.Accept(f); err != nil {
+		return fmt.Errorf("failed for format Open: %w", err)
+	}
+	text := trimBytes(node.Text.SourceLocation().Text())
+	if bytes.ContainsRune(text, '\n') {
+		f.level++
+		if err := f.newline(); err != nil {
+			return fmt.Errorf("failed to format newline: %w", err)
+		}
+		for i, line := range bytes.Split(text, []byte{'\n'}) {
+			if err := f.bytes(trimBytes(line)); err != nil {
+				return fmt.Errorf("failed to format comment text: %w", err)
+			}
+			if i != len(line)-1 {
+				f.newline()
+			}
+		}
+		f.level--
+		if err := f.newline(); err != nil {
+			return fmt.Errorf("failed to format newline: %w", err)
+		}
+	} else {
+		if err := f.space(); err != nil {
+			return fmt.Errorf("failed to format space: %w", err)
+		}
+		if err := f.bytes(trimBytes(text)); err != nil {
 			return fmt.Errorf("failed to format comment text: %w", err)
 		}
 		if err := f.space(); err != nil {
@@ -306,7 +317,7 @@ func (f *formatter) VisitLineComment(node *ast.LineComment) error {
 	if err := f.space(); err != nil {
 		return fmt.Errorf("failed to format space: %w", err)
 	}
-	if err := f.bytes(bytes.TrimSpace(node.Text.SourceLocation().Text())); err != nil {
+	if err := f.bytes(trimBytes(node.Text.SourceLocation().Text())); err != nil {
 		return fmt.Errorf("failed to format comment text: %w", err)
 	}
 	return nil
@@ -864,9 +875,9 @@ func (f *formatter) VisitScript(node *ast.Script) error {
 		if err := f.newline(); err != nil {
 			return fmt.Errorf("failed to format newline: %w", err)
 		}
-		if err := f.newline(); err != nil {
-			return fmt.Errorf("failed to format newline: %w", err)
-		}
+	}
+	if err := f.newline(); err != nil {
+		return fmt.Errorf("failed to format newline: %w", err)
 	}
 	// Extract statements and prepare for formatting each one.
 	var imports []*ast.Import
@@ -936,7 +947,6 @@ func (f *formatter) VisitScript(node *ast.Script) error {
 		if err := f.newline(); err != nil {
 			return fmt.Errorf("failed to format newline: %w", err)
 		}
-		f.VisitScriptVariable(v)
 	}
 	if len(variables) > 0 {
 		if err := f.newline(); err != nil {
@@ -1026,7 +1036,7 @@ func (f *formatter) VisitToken(node *ast.Token) error {
 		}
 		return nil
 	}
-	return fmt.Errorf("unexpected token: %v", node)
+	return fmt.Errorf("unexpected token: %s", node.Kind)
 }
 
 func (f *formatter) VisitTypeLiteral(node *ast.TypeLiteral) error {
@@ -1046,6 +1056,8 @@ func (f *formatter) VisitTypeLiteral(node *ast.TypeLiteral) error {
 		text = f.keywords.String
 	case types.Object:
 		text = string(node.Text.Location.Text())
+	default:
+		return fmt.Errorf("unexpected types: %T", baseType)
 	}
 	if err := f.str(text); err != nil {
 		return fmt.Errorf("failed to format type: %w", err)
@@ -1179,4 +1191,8 @@ func (f *formatter) str(text string) error {
 func (f *formatter) bytes(text []byte) error {
 	_, err := f.out.Write(text)
 	return err
+}
+
+func trimBytes(text []byte) []byte {
+	return bytes.TrimSpace(bytes.TrimRight(text, "\r\n"))
 }
