@@ -38,13 +38,18 @@ func Format() *cobra.Command {
 }
 
 func formatFiles(paths ...string) error {
+	failed := 0
 	for _, path := range paths {
 		if strings.TrimSpace(path) == "" {
 			continue
 		}
 		if err := formatFile(path); err != nil {
-			return err
+			failed++
+			fmt.Fprintf(os.Stderr, "%v\n", err)
 		}
+	}
+	if failed > 0 {
+		return fmt.Errorf("failed to format %d file(s)", failed)
 	}
 	return nil
 }
