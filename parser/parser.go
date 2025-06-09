@@ -1306,7 +1306,7 @@ func (p *parser) ParseExpression(precedence int) (ast.Expression, error) {
 	if err != nil {
 		return nil, err
 	}
-	if p.lookahead.Kind != token.Newline && p.lookahead.Kind != token.EOF && precedence < precedenceOf(p.lookahead.Kind) {
+	for p.token.Kind != token.Newline && p.token.Kind != token.EOF && precedence < precedenceOf(p.token.Kind) {
 		infix := p.infix[p.token.Kind]
 		if infix == nil {
 			return expr, nil
@@ -1426,7 +1426,7 @@ func (p *parser) ParseIndex(array ast.Expression) (*ast.Index, error) {
 	}, nil
 }
 
-func (p *parser) ParseCall(reciever ast.Expression) (*ast.Call, error) {
+func (p *parser) ParseCall(function ast.Expression) (*ast.Call, error) {
 	open := p.token
 	if err := p.tryConsume(token.ParenthesisOpen); err != nil {
 		return nil, err
@@ -1440,11 +1440,11 @@ func (p *parser) ParseCall(reciever ast.Expression) (*ast.Call, error) {
 		return nil, err
 	}
 	return &ast.Call{
-		Function:  reciever,
+		Function:  function,
 		Open:      open,
 		Arguments: args,
 		Close:     close,
-		Location:  source.Span(reciever.SourceLocation(), close.Location),
+		Location:  source.Span(function.SourceLocation(), close.Location),
 	}, nil
 }
 
