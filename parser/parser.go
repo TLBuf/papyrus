@@ -4,7 +4,6 @@ package parser
 import (
 	"bytes"
 	"fmt"
-	"iter"
 	"strconv"
 	"strings"
 
@@ -55,17 +54,15 @@ func WithRecovery(enabled bool) Option {
 // Parser returns the file parsed as an [*ast.Script] or an [Error] if parsing
 // encountered one or more issues.
 func Parse(file *source.File, opts ...Option) (*ast.Script, error) {
-	stream, err := lexer.Lex(file)
+	lex, err := lexer.New(file)
 	if err != nil {
 		return nil, Error{
-			Err:      err,
+			Err:      fmt.Errorf("failed to initialize lexer: %w", err),
 			Location: err.(lexer.Error).Location,
 		}
 	}
-	streamNext, stop := iter.Pull2(stream.All())
-	defer stop()
 	p := &parser{
-		streamNext:          streamNext,
+		lex:                 lex,
 		attachLooseComments: false,
 		attemptRecovery:     false,
 		prefix:              make(map[token.Kind]prefixParser),
@@ -126,7 +123,7 @@ func Parse(file *source.File, opts ...Option) (*ast.Script, error) {
 }
 
 type parser struct {
-	streamNext func() (int, token.Token, bool)
+	lex *lexer.Lexer
 
 	token     *ast.Token
 	lookahead *ast.Token
@@ -194,9 +191,12 @@ type (
 // token while skipping loose comment tokens.
 func (p *parser) next() error {
 	p.token = p.lookahead
-	_, t, ok := p.streamNext()
-	if !ok {
-		return nil
+	t, err := p.lex.NextToken()
+	if err != nil {
+		return Error{
+			Err:      err,
+			Location: err.(lexer.Error).Location,
+		}
 	}
 	p.lookahead = tok(t)
 	if p.token == nil {

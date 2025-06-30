@@ -1,7 +1,6 @@
 package lexer_test
 
 import (
-	"iter"
 	"strings"
 	"testing"
 
@@ -78,9 +77,7 @@ EndState ; Comment
 		{token.EndEvent, "EndEvent", 162, 8, 14, 2, 14, 9, 1, 0},
 		{token.Newline, "\r\n", 170, 2, 14, 10, 14, 11, 9, 0},
 		{token.Newline, "\r\n", 172, 2, 15, 1, 15, 2, 0, 0},
-		{token.Int, "Int", 175, 3, 16, 2, 16, 4, 1, 17},
-		{token.BracketOpen, "[", 178, 1, 16, 5, 16, 5, 4, 16},
-		{token.BracketClose, "]", 179, 1, 16, 6, 16, 6, 5, 15},
+		{token.IntArray, "Int[]", 175, 5, 16, 2, 16, 6, 1, 15},
 		{token.Function, "Function", 181, 8, 16, 8, 16, 15, 7, 6},
 		{token.Identifier, "Foo", 190, 3, 16, 17, 16, 19, 16, 2},
 		{token.ParenthesisOpen, "(", 193, 1, 16, 20, 16, 20, 19, 1},
@@ -106,16 +103,14 @@ EndState ; Comment
 	file := &source.File{
 		Text: []byte(text),
 	}
-	stream, err := lexer.Lex(file)
+	lex, err := lexer.New(file)
 	if err != nil {
-		t.Fatalf("Lex() returned unexpected error: %v", err)
+		t.Fatalf("New() returned an unexpected error: %v", err)
 	}
-	next, stop := iter.Pull2(stream.All())
-	defer stop()
 	for i, tt := range tests {
-		_, tok, ok := next()
-		if !ok {
-			t.Fatalf("encountered end of input at token %d", i)
+		tok, err := lex.NextToken()
+		if err != nil {
+			t.Fatalf("NextToken() returned an unexpected error at token %d: %v", i, err)
 		}
 		if tok.Kind != tt.wantType {
 			t.Errorf("token type mismatch at token %d %q, want: %v, got: %v", i, tok, tt.wantType, tok.Kind)
