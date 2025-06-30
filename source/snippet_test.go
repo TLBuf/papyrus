@@ -102,8 +102,8 @@ func TestSnippet(t *testing.T) {
 				PostambleLength: 2,
 			},
 			source.Snippet{
-				Start: source.Indicator{Column: 15},
-				End:   source.Indicator{Column: 15},
+				Start: source.Indicator{Column: 18},
+				End:   source.Indicator{Column: 18},
 				Lines: []source.Line{{Number: 1, Chunks: []source.Chunk{
 					{Text: "..."},
 					{Text: "23456789012345678", IsSource: true},

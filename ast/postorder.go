@@ -13,7 +13,7 @@ type PostorderVisitor struct {
 
 // VisitAccess visits the [Access] node then all children nodes and returns an
 // error if any call returns an error.
-func (v PostorderVisitor) VisitAccess(a *Access) error {
+func (v *PostorderVisitor) VisitAccess(a *Access) error {
 	for _, c := range a.LeadingComments {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
@@ -51,7 +51,7 @@ func (v PostorderVisitor) VisitAccess(a *Access) error {
 
 // PostorderVisitor visits the [Argument] node then all children nodes and
 // returns an error if any call returns an error.
-func (v PostorderVisitor) VisitArgument(a *Argument) error {
+func (v *PostorderVisitor) VisitArgument(a *Argument) error {
 	for _, c := range a.LeadingComments {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
@@ -89,7 +89,7 @@ func (v PostorderVisitor) VisitArgument(a *Argument) error {
 
 // VisitArrayCreation visits the [ArrayCreation] node then all children nodes
 // and returns an error if any call returns an error.
-func (v PostorderVisitor) VisitArrayCreation(a *ArrayCreation) error {
+func (v *PostorderVisitor) VisitArrayCreation(a *ArrayCreation) error {
 	for _, c := range a.LeadingComments {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
@@ -133,7 +133,7 @@ func (v PostorderVisitor) VisitArrayCreation(a *ArrayCreation) error {
 
 // VisitAssignment visits the [Assignment] node then all children nodes and
 // returns an error if any call returns an error.
-func (v PostorderVisitor) VisitAssignment(a *Assignment) error {
+func (v *PostorderVisitor) VisitAssignment(a *Assignment) error {
 	for _, c := range a.LeadingComments {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
@@ -171,7 +171,7 @@ func (v PostorderVisitor) VisitAssignment(a *Assignment) error {
 
 // VisitBinary visits the [Binary] node then all children nodes and
 // returns an error if any call returns an error.
-func (v PostorderVisitor) VisitBinary(b *Binary) error {
+func (v *PostorderVisitor) VisitBinary(b *Binary) error {
 	for _, c := range b.LeadingComments {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
@@ -209,7 +209,7 @@ func (v PostorderVisitor) VisitBinary(b *Binary) error {
 
 // VisitCall visits the [Call] node then all children nodes and returns an
 // error if any call returns an error.
-func (v PostorderVisitor) VisitCall(c *Call) error {
+func (v *PostorderVisitor) VisitCall(c *Call) error {
 	for _, c := range c.LeadingComments {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
@@ -252,7 +252,7 @@ func (v PostorderVisitor) VisitCall(c *Call) error {
 
 // VisitCast visits the [Cast] node then all children nodes and returns an error
 // if any call returns an error.
-func (v PostorderVisitor) VisitCast(c *Cast) error {
+func (v *PostorderVisitor) VisitCast(c *Cast) error {
 	for _, c := range c.LeadingComments {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
@@ -290,7 +290,7 @@ func (v PostorderVisitor) VisitCast(c *Cast) error {
 
 // VisitDocComment visits the [DocComment] node then all children nodes and
 // returns an error if any call returns an error.
-func (v PostorderVisitor) VisitDocComment(c *DocComment) error {
+func (v *PostorderVisitor) VisitDocComment(c *DocComment) error {
 	if err := c.Open.Accept(v); err != nil {
 		return fmt.Errorf("open: %w", err)
 	}
@@ -308,7 +308,7 @@ func (v PostorderVisitor) VisitDocComment(c *DocComment) error {
 
 // VisitBlockComment visits the [BlockComment] node then all children nodes and
 // returns an error if any call returns an error.
-func (v PostorderVisitor) VisitBlockComment(c *BlockComment) error {
+func (v *PostorderVisitor) VisitBlockComment(c *BlockComment) error {
 	if err := c.Open.Accept(v); err != nil {
 		return fmt.Errorf("open: %w", err)
 	}
@@ -326,7 +326,7 @@ func (v PostorderVisitor) VisitBlockComment(c *BlockComment) error {
 
 // VisitLineComment visits the [LineComment] node then all children nodes and
 // returns an error if any call returns an error.
-func (v PostorderVisitor) VisitLineComment(c *LineComment) error {
+func (v *PostorderVisitor) VisitLineComment(c *LineComment) error {
 	if err := c.Open.Accept(v); err != nil {
 		return fmt.Errorf("open: %w", err)
 	}
@@ -341,7 +341,7 @@ func (v PostorderVisitor) VisitLineComment(c *LineComment) error {
 
 // VisitEvent visits the [Event] node then all children nodes and returns an
 // error if any call returns an error.
-func (v PostorderVisitor) VisitEvent(e *Event) error {
+func (v *PostorderVisitor) VisitEvent(e *Event) error {
 	for _, c := range e.LeadingComments {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
@@ -403,7 +403,7 @@ func (v PostorderVisitor) VisitEvent(e *Event) error {
 
 // VisitFunction visits the [Function] node then all children nodes and returns
 // an error if any call returns an error.
-func (v PostorderVisitor) VisitFunction(f *Function) error {
+func (v *PostorderVisitor) VisitFunction(f *Function) error {
 	for _, c := range f.LeadingComments {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
@@ -472,7 +472,7 @@ func (v PostorderVisitor) VisitFunction(f *Function) error {
 
 // VisitIdentifier visits the [Identifier] node then all children nodes and
 // returns an error if any call returns an error.
-func (v PostorderVisitor) VisitIdentifier(i *Identifier) error {
+func (v *PostorderVisitor) VisitIdentifier(i *Identifier) error {
 	for _, c := range i.LeadingComments {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
@@ -504,7 +504,7 @@ func (v PostorderVisitor) VisitIdentifier(i *Identifier) error {
 
 // VisitIf visits the [If] node then all children nodes and returns an error if
 // any call returns an error.
-func (v PostorderVisitor) VisitIf(i *If) error {
+func (v *PostorderVisitor) VisitIf(i *If) error {
 	for _, c := range i.LeadingComments {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
@@ -557,7 +557,7 @@ func (v PostorderVisitor) VisitIf(i *If) error {
 
 // VisitElseIf visits the [ElseIf] node then all children nodes and returns an
 // error if any call returns an error.
-func (v PostorderVisitor) VisitElseIf(e *ElseIf) error {
+func (v *PostorderVisitor) VisitElseIf(e *ElseIf) error {
 	for _, c := range e.LeadingComments {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
@@ -597,7 +597,7 @@ func (v PostorderVisitor) VisitElseIf(e *ElseIf) error {
 
 // VisitElse visits the [Else] node then all children nodes and returns an error
 // if any call returns an error.
-func (v PostorderVisitor) VisitElse(e *Else) error {
+func (v *PostorderVisitor) VisitElse(e *Else) error {
 	for _, c := range e.LeadingComments {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
@@ -634,7 +634,7 @@ func (v PostorderVisitor) VisitElse(e *Else) error {
 
 // VisitImport visits the [Import] node then all children nodes and returns an
 // error if any call returns an error.
-func (v PostorderVisitor) VisitImport(i *Import) error {
+func (v *PostorderVisitor) VisitImport(i *Import) error {
 	for _, c := range i.LeadingComments {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
@@ -669,7 +669,7 @@ func (v PostorderVisitor) VisitImport(i *Import) error {
 
 // VisitIndex visits the [Index] node then all children nodes and returns an
 // error if any call returns an error.
-func (v PostorderVisitor) VisitIndex(i *Index) error {
+func (v *PostorderVisitor) VisitIndex(i *Index) error {
 	for _, c := range i.LeadingComments {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
@@ -710,7 +710,7 @@ func (v PostorderVisitor) VisitIndex(i *Index) error {
 
 // VisitBoolLiteral visits the [BoolLiteral] node then all children nodes and
 // returns an error if any call returns an error.
-func (v PostorderVisitor) VisitBoolLiteral(l *BoolLiteral) error {
+func (v *PostorderVisitor) VisitBoolLiteral(l *BoolLiteral) error {
 	for _, c := range l.LeadingComments {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
@@ -742,7 +742,7 @@ func (v PostorderVisitor) VisitBoolLiteral(l *BoolLiteral) error {
 
 // VisitIntLiteral visits the [IntLiteral] node then all children nodes and
 // returns an error if any call returns an error.
-func (v PostorderVisitor) VisitIntLiteral(l *IntLiteral) error {
+func (v *PostorderVisitor) VisitIntLiteral(l *IntLiteral) error {
 	for _, c := range l.LeadingComments {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
@@ -774,7 +774,7 @@ func (v PostorderVisitor) VisitIntLiteral(l *IntLiteral) error {
 
 // VisitFloatLiteral visits the [FloatLiteral] node then all children nodes and
 // returns an error if any call returns an error.
-func (v PostorderVisitor) VisitFloatLiteral(l *FloatLiteral) error {
+func (v *PostorderVisitor) VisitFloatLiteral(l *FloatLiteral) error {
 	for _, c := range l.LeadingComments {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
@@ -806,7 +806,7 @@ func (v PostorderVisitor) VisitFloatLiteral(l *FloatLiteral) error {
 
 // VisitStringLiteral visits the [StringLiteral] node then all children nodes
 // and returns an error if any call returns an error.
-func (v PostorderVisitor) VisitStringLiteral(l *StringLiteral) error {
+func (v *PostorderVisitor) VisitStringLiteral(l *StringLiteral) error {
 	for _, c := range l.LeadingComments {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
@@ -838,7 +838,7 @@ func (v PostorderVisitor) VisitStringLiteral(l *StringLiteral) error {
 
 // VisitNoneLiteral visits the [NoneLiteral] node then all children nodes and
 // returns an error if any call returns an error.
-func (v PostorderVisitor) VisitNoneLiteral(l *NoneLiteral) error {
+func (v *PostorderVisitor) VisitNoneLiteral(l *NoneLiteral) error {
 	for _, c := range l.LeadingComments {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
@@ -870,7 +870,7 @@ func (v PostorderVisitor) VisitNoneLiteral(l *NoneLiteral) error {
 
 // VisitParameter visits the [Parameter] node then all children nodes and
 // returns an error if any call returns an error.
-func (v PostorderVisitor) VisitParameter(p *Parameter) error {
+func (v *PostorderVisitor) VisitParameter(p *Parameter) error {
 	for _, c := range p.LeadingComments {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
@@ -915,7 +915,7 @@ func (v PostorderVisitor) VisitParameter(p *Parameter) error {
 
 // VisitParenthetical visits the [Parenthetical] node then all children nodes
 // and returns an error if any call returns an error.
-func (v PostorderVisitor) VisitParenthetical(p *Parenthetical) error {
+func (v *PostorderVisitor) VisitParenthetical(p *Parenthetical) error {
 	for _, c := range p.LeadingComments {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
@@ -953,7 +953,7 @@ func (v PostorderVisitor) VisitParenthetical(p *Parenthetical) error {
 
 // VisitProperty visits the [Property] node then all children nodes and returns
 // an error if any call returns an error.
-func (v PostorderVisitor) VisitProperty(p *Property) error {
+func (v *PostorderVisitor) VisitProperty(p *Property) error {
 	for _, c := range p.LeadingComments {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
@@ -1040,7 +1040,7 @@ func (v PostorderVisitor) VisitProperty(p *Property) error {
 
 // VisitReturn visits the [Return] node then all children nodes and returns an
 // error if any call returns an error.
-func (v PostorderVisitor) VisitReturn(r *Return) error {
+func (v *PostorderVisitor) VisitReturn(r *Return) error {
 	for _, c := range r.LeadingComments {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
@@ -1067,7 +1067,7 @@ func (v PostorderVisitor) VisitReturn(r *Return) error {
 
 // VisitScript visits the [Script] node then all children nodes and returns an
 // error if any call returns an error.
-func (v PostorderVisitor) VisitScript(s *Script) error {
+func (v *PostorderVisitor) VisitScript(s *Script) error {
 	for _, c := range s.LeadingComments {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
@@ -1127,7 +1127,7 @@ func (v PostorderVisitor) VisitScript(s *Script) error {
 
 // VisitState visits the [State] node then all children nodes and returns an
 // error if any call returns an error.
-func (v PostorderVisitor) VisitState(s *State) error {
+func (v *PostorderVisitor) VisitState(s *State) error {
 	for _, c := range s.LeadingComments {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
@@ -1175,7 +1175,7 @@ func (v PostorderVisitor) VisitState(s *State) error {
 
 // VisitToken visits the [Token] node and returns an error if the delegate call
 // returns an error.
-func (v PostorderVisitor) VisitToken(t *Token) error {
+func (v *PostorderVisitor) VisitToken(t *Token) error {
 	if err := v.Delegate.VisitToken(t); err != nil {
 		return fmt.Errorf("delegate: %w", err)
 	}
@@ -1184,7 +1184,7 @@ func (v PostorderVisitor) VisitToken(t *Token) error {
 
 // VisitTypeLiteral visits the [TypeLiteral] node then all children nodes and
 // returns an error if any call returns an error.
-func (v PostorderVisitor) VisitTypeLiteral(t *TypeLiteral) error {
+func (v *PostorderVisitor) VisitTypeLiteral(t *TypeLiteral) error {
 	for _, c := range t.LeadingComments {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
@@ -1216,7 +1216,7 @@ func (v PostorderVisitor) VisitTypeLiteral(t *TypeLiteral) error {
 
 // VisitUnary visits the [Unary] node then all children nodes and returns an
 // error if any call returns an error.
-func (v PostorderVisitor) VisitUnary(u *Unary) error {
+func (v *PostorderVisitor) VisitUnary(u *Unary) error {
 	for _, c := range u.LeadingComments {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
@@ -1241,7 +1241,7 @@ func (v PostorderVisitor) VisitUnary(u *Unary) error {
 
 // VisitScriptVariable visits the [ScriptVariable] node then all children nodes
 // and returns an error if any call returns an error.
-func (v PostorderVisitor) VisitScriptVariable(s *ScriptVariable) error {
+func (v *PostorderVisitor) VisitScriptVariable(s *ScriptVariable) error {
 	for _, c := range s.LeadingComments {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
@@ -1281,7 +1281,7 @@ func (v PostorderVisitor) VisitScriptVariable(s *ScriptVariable) error {
 
 // VisitFunctionVariable visits the [FunctionVariable] node then all children
 // nodes and returns an error if any call returns an error.
-func (v PostorderVisitor) VisitFunctionVariable(f *FunctionVariable) error {
+func (v *PostorderVisitor) VisitFunctionVariable(f *FunctionVariable) error {
 	for _, c := range f.LeadingComments {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
@@ -1316,7 +1316,7 @@ func (v PostorderVisitor) VisitFunctionVariable(f *FunctionVariable) error {
 
 // VisitWhile visits the [While] node then all children nodes and returns an
 // error if any call returns an error.
-func (v PostorderVisitor) VisitWhile(w *While) error {
+func (v *PostorderVisitor) VisitWhile(w *While) error {
 	for _, c := range w.LeadingComments {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
@@ -1359,7 +1359,7 @@ func (v PostorderVisitor) VisitWhile(w *While) error {
 
 // VisitErrorScriptStatement visits the [ErrorScriptStatement] node and returns
 // an error if the delegate call returns an error.
-func (v PostorderVisitor) VisitErrorScriptStatement(e *ErrorScriptStatement) error {
+func (v *PostorderVisitor) VisitErrorScriptStatement(e *ErrorScriptStatement) error {
 	if err := v.Delegate.VisitErrorScriptStatement(e); err != nil {
 		return fmt.Errorf("delegate: %w", err)
 	}
@@ -1368,7 +1368,7 @@ func (v PostorderVisitor) VisitErrorScriptStatement(e *ErrorScriptStatement) err
 
 // VisitErrorFunctionStatement visits the [ErrorFunctionStatement] node and
 // returns an error if the delegate call returns an error.
-func (v PostorderVisitor) VisitErrorFunctionStatement(e *ErrorFunctionStatement) error {
+func (v *PostorderVisitor) VisitErrorFunctionStatement(e *ErrorFunctionStatement) error {
 	if err := v.Delegate.VisitErrorFunctionStatement(e); err != nil {
 		return fmt.Errorf("delegate: %w", err)
 	}
