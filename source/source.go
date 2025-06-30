@@ -17,23 +17,23 @@ type Location struct {
 	File *File
 	// ByteOffset is the number of bytes from the start of the file for this
 	// position.
-	ByteOffset int
+	ByteOffset uint32
 	// Length is the number of bytes in this range.
-	Length int
+	Length uint32
 	// StartLine is the 1-indexed line of the inclusive start of the range.
-	StartLine int
+	StartLine uint32
 	// StartColumn is the 1-indexed column of the inclusive start of the range.
-	StartColumn int
+	StartColumn uint32
 	// EndLine is the 1-indexed line of the inclusive end of the range.
-	EndLine int
+	EndLine uint32
 	// EndColumn is the 1-indexed column of the inclusive end of the range.
-	EndColumn int
+	EndColumn uint32
 	// PreambleLength is the number of bytes before the start of the range on the
 	// same line as StartLine.
-	PreambleLength int
+	PreambleLength uint32
 	// PostambleLength is the number of bytes after the end of the range on the
 	// same line as EndLine.
-	PostambleLength int
+	PostambleLength uint32
 }
 
 // Text returns the text this range represents.

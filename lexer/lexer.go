@@ -3,6 +3,7 @@ package lexer
 
 import (
 	"fmt"
+	"math"
 	"unicode/utf8"
 
 	"github.com/TLBuf/papyrus/source"
@@ -27,28 +28,53 @@ const (
 // Lexer provides the ability to lex a Papyrus script.
 type Lexer struct {
 	file            *source.File
-	position        int
-	next            int
+	position        uint32
+	next            uint32
+	column          uint32
+	line            uint32
+	lineStartOffset uint32
+	length          uint32
+	lineEndOffset   uint32
 	character       rune
-	column          int
-	line            int
-	lineStartOffset int
-	lineEndOffset   int
 	mode            mode
 	terminal        token.Token
 }
 
 // New returns a new [Lexer] ready to read tokens from a sorce file.
 func New(file *source.File) (*Lexer, error) {
+	if len(file.Text) > math.MaxUint32 {
+		return nil, Error{
+			Err: fmt.Errorf("input exceeds the maximum number of bytes (%d, 4GB)", math.MaxUint32),
+			Location: source.Location{
+				ByteOffset:  0,
+				Length:      1,
+				StartLine:   1,
+				StartColumn: 1,
+				EndLine:     1,
+				EndColumn:   1,
+			},
+		}
+	}
 	l := &Lexer{
 		file:            file,
 		line:            1,
 		column:          0,
 		lineStartOffset: 0,
-		lineEndOffset:   -1,
+		length:          uint32(len(file.Text)),
 	}
+	l.lineEndOffset = l.findNextNewlineOffset()
 	if err := l.readChar(); err != nil {
-		return nil, fmt.Errorf("failed to read input: %v", err)
+		return nil, Error{
+			Err: fmt.Errorf("failed to read input: %v", err),
+			Location: source.Location{
+				ByteOffset:  0,
+				Length:      1,
+				StartLine:   1,
+				StartColumn: 1,
+				EndLine:     1,
+				EndColumn:   1,
+			},
+		}
 	}
 	return l, nil
 }
@@ -571,7 +597,7 @@ func (l *Lexer) skipWhitespace() error {
 }
 
 func (l *Lexer) readChar() error {
-	width := 1
+	width := uint32(1)
 	if l.lineEndOffset < 0 {
 		l.lineEndOffset = l.findNextNewlineOffset()
 	}
@@ -581,7 +607,7 @@ func (l *Lexer) readChar() error {
 		l.lineStartOffset = l.next
 		l.lineEndOffset = l.findNextNewlineOffset()
 	}
-	if l.next >= len(l.file.Text) {
+	if l.next >= l.length {
 		l.character = 0
 		l.column = 1
 	} else {
@@ -590,7 +616,7 @@ func (l *Lexer) readChar() error {
 			return newError(l.nextByteLocation(), "encountered invalid UTF-8 at byte %d", l.next)
 		}
 		l.character = r
-		width = w
+		width = uint32(w)
 		l.column++
 	}
 	l.position = l.next
@@ -606,14 +632,14 @@ func (l *Lexer) peek() (rune, error) {
 	return r, nil
 }
 
-func (l *Lexer) findNextNewlineOffset() int {
-	for i := l.next; i < len(l.file.Text); i++ {
+func (l *Lexer) findNextNewlineOffset() uint32 {
+	for i := l.next; i < l.length; i++ {
 		b := l.file.Text[i]
 		if b == '\n' || b == '\r' || b == 0 {
 			return i
 		}
 	}
-	return len(l.file.Text)
+	return l.length
 }
 
 func isLetter(char rune) bool {

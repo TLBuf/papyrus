@@ -33,14 +33,14 @@ EndState ; Comment
 	tests := []struct {
 		wantType            token.Kind
 		wantText            string
-		wantOffset          int
-		wantLength          int
-		wantStartLine       int
-		wantStartColumn     int
-		wantEndLine         int
-		wantEndColumn       int
-		wantPreambleLength  int
-		wantPostambleLength int
+		wantOffset          uint32
+		wantLength          uint32
+		wantStartLine       uint32
+		wantStartColumn     uint32
+		wantEndLine         uint32
+		wantEndColumn       uint32
+		wantPreambleLength  uint32
+		wantPostambleLength uint32
 	}{
 		{token.ScriptName, "ScriptName", 0, 10, 1, 1, 1, 10, 0, 16},
 		{token.Identifier, "Foo", 11, 3, 1, 12, 1, 14, 11, 12},

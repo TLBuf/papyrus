@@ -437,7 +437,7 @@ func (v *PostorderVisitor) VisitFunction(f *Function) error {
 		return fmt.Errorf("close: %w", err)
 	}
 	flags := append(f.Global, f.Native...)
-	slices.SortFunc(flags, func(a, b *Token) int { return a.Location.ByteOffset - b.Location.ByteOffset })
+	slices.SortFunc(flags, func(a, b *Token) int { return int(a.Location.ByteOffset - b.Location.ByteOffset) })
 	for _, t := range flags {
 		if err := t.Accept(v); err != nil {
 			return fmt.Errorf("flag: %w", err)
@@ -994,7 +994,7 @@ func (v *PostorderVisitor) VisitProperty(p *Property) error {
 		}
 	}
 	flags := append(p.Hidden, p.Conditional...)
-	slices.SortFunc(flags, func(a, b *Token) int { return a.Location.ByteOffset - b.Location.ByteOffset })
+	slices.SortFunc(flags, func(a, b *Token) int { return int(a.Location.ByteOffset - b.Location.ByteOffset) })
 	for _, t := range flags {
 		if err := t.Accept(v); err != nil {
 			return fmt.Errorf("flag: %w", err)
@@ -1095,7 +1095,7 @@ func (v *PostorderVisitor) VisitScript(s *Script) error {
 		}
 	}
 	flags := append(s.Hidden, s.Conditional...)
-	slices.SortFunc(flags, func(a, b *Token) int { return a.Location.ByteOffset - b.Location.ByteOffset })
+	slices.SortFunc(flags, func(a, b *Token) int { return int(a.Location.ByteOffset - b.Location.ByteOffset) })
 	for _, t := range flags {
 		if err := t.Accept(v); err != nil {
 			return fmt.Errorf("flag: %w", err)

@@ -96,27 +96,27 @@ func (r Location) Snippet(width, height int, opts ...SnippetOption) (Snippet, er
 
 func formatSingleLineSnippet(r Location, width, tabWidth int) Snippet {
 	runes := textForSnippet(r)
-	chunks, start, end := fitLine(runes, r.StartColumn, r.EndColumn, width, tabWidth)
+	chunks, start, end := fitLine(runes, int(r.StartColumn), int(r.EndColumn), width, tabWidth)
 	return Snippet{
 		Start: Indicator{Column: start},
 		End:   Indicator{Column: end},
-		Lines: []Line{{Number: r.StartLine, Chunks: chunks}},
+		Lines: []Line{{Number: int(r.StartLine), Chunks: chunks}},
 	}
 }
 
 func formatMultiLineSnippet(r Location, width, height, tabWidth int) Snippet {
 	text := splitLines(textForSnippet(r))
-	first, start, _ := fitLine(text[0], r.StartColumn, 0, width, tabWidth)
-	last, end, _ := fitLine(text[len(text)-1], r.EndColumn, 0, width, tabWidth)
-	remaining := r.EndLine - r.StartLine - 1
+	first, start, _ := fitLine(text[0], int(r.StartColumn), 0, width, tabWidth)
+	last, end, _ := fitLine(text[len(text)-1], int(r.EndColumn), 0, width, tabWidth)
+	remaining := int(r.EndLine) - int(r.StartLine) - 1
 	available := max(0, height-3)
-	lines := []Line{{Number: r.StartLine, Chunks: first}}
+	lines := []Line{{Number: int(r.StartLine), Chunks: first}}
 	if remaining <= available+1 {
 		for i := 0; i < remaining; i++ {
 			chunks, _, _ := fitLine(text[i+1], 0, 0, width, tabWidth)
-			lines = append(lines, Line{Number: r.StartLine + i + 1, Chunks: chunks})
+			lines = append(lines, Line{Number: int(r.StartLine) + i + 1, Chunks: chunks})
 		}
-		lines = append(lines, Line{Number: r.EndLine, Chunks: last})
+		lines = append(lines, Line{Number: int(r.EndLine), Chunks: last})
 		return Snippet{
 			Start: Indicator{Column: start},
 			End:   Indicator{Column: end},
@@ -127,15 +127,15 @@ func formatMultiLineSnippet(r Location, width, height, tabWidth int) Snippet {
 	heightB := available / 2
 	for i := 0; i < heightA; i++ {
 		chunks, _, _ := fitLine(text[i+1], 0, 0, width, tabWidth)
-		lines = append(lines, Line{Number: r.StartLine + i + 1, Chunks: chunks})
+		lines = append(lines, Line{Number: int(r.StartLine) + i + 1, Chunks: chunks})
 	}
 	omitted := remaining - available
 	lines = append(lines, Line{Chunks: []Chunk{{Text: fmt.Sprintf("... %d lines ...", omitted)}}})
 	for i := 0; i < heightB; i++ {
 		chunks, _, _ := fitLine(text[i+omitted+1], 0, 0, width, tabWidth)
-		lines = append(lines, Line{Number: r.StartLine + i + omitted + 1, Chunks: chunks})
+		lines = append(lines, Line{Number: int(r.StartLine) + i + omitted + 1, Chunks: chunks})
 	}
-	lines = append(lines, Line{Number: r.EndLine, Chunks: last})
+	lines = append(lines, Line{Number: int(r.EndLine), Chunks: last})
 	return Snippet{
 		Start: Indicator{Column: start},
 		End:   Indicator{Column: end},

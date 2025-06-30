@@ -326,7 +326,7 @@ func (p *parser) ParseScript() (*ast.Script, error) {
 	node := &ast.Script{
 		Location: source.Location{
 			File:        p.token.Location.File,
-			Length:      len(p.token.Location.File.Text),
+			Length:      uint32(len(p.token.Location.File.Text)),
 			StartLine:   1,
 			StartColumn: 1,
 		},
