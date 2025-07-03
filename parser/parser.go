@@ -848,15 +848,18 @@ func (p *parser) ParseFunctionStatement() (ast.FunctionStatement, error) {
 			return p.ParseAssignment(nil)
 		}
 	}
-	stmt, err := p.ParseExpression(lowest)
+	expr, err := p.ParseExpression(lowest)
 	if err != nil {
 		return nil, err
 	}
 	switch p.token.Kind {
 	case token.Assign, token.AssignAdd, token.AssignDivide, token.AssignModulo, token.AssignMultiply, token.AssignSubtract:
-		return p.ParseAssignment(stmt)
+		return p.ParseAssignment(expr)
 	}
-	return stmt, nil
+	return &ast.ExpressionStatement{
+		Expression: expr,
+		Location:   expr.SourceLocation(),
+	}, nil
 }
 
 func (p *parser) ParseFunctionVariable() (*ast.FunctionVariable, error) {

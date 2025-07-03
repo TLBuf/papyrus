@@ -601,6 +601,13 @@ func (f *formatter) VisitElse(node *ast.Else) error {
 	return nil
 }
 
+func (f *formatter) VisitExpressionStatement(node *ast.ExpressionStatement) error {
+	if err := node.Expression.Accept(f); err != nil {
+		return fmt.Errorf("failed for format Expression: %w", err)
+	}
+	return nil
+}
+
 func (f *formatter) VisitImport(node *ast.Import) error {
 	if err := node.Keyword.Accept(f); err != nil {
 		return fmt.Errorf("failed for format Keyword: %w", err)

@@ -30,6 +30,4 @@ func (i *Index) SourceLocation() source.Location {
 
 func (*Index) expression() {}
 
-func (*Index) functionStatement() {}
-
 var _ Expression = (*Index)(nil)

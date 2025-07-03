@@ -632,6 +632,38 @@ func (v *PostorderVisitor) VisitElse(e *Else) error {
 	return nil
 }
 
+// VisitExpressionStatement visits the [ExpressionStatement] node then all
+// children nodes and returns an error if any call returns an error.
+func (v *PostorderVisitor) VisitExpressionStatement(s *ExpressionStatement) error {
+	for _, c := range s.LeadingComments {
+		if err := c.Accept(v); err != nil {
+			return fmt.Errorf("leading comment: %w", err)
+		}
+	}
+	for _, c := range s.PrefixComments {
+		if err := c.Accept(v); err != nil {
+			return fmt.Errorf("prefix comment: %w", err)
+		}
+	}
+	if err := s.Expression.Accept(v); err != nil {
+		return fmt.Errorf("expression: %w", err)
+	}
+	for _, c := range s.SuffixComments {
+		if err := c.Accept(v); err != nil {
+			return fmt.Errorf("suffix comment: %w", err)
+		}
+	}
+	for _, c := range s.TrailingComments {
+		if err := c.Accept(v); err != nil {
+			return fmt.Errorf("trailing comment: %w", err)
+		}
+	}
+	if err := v.Delegate.VisitExpressionStatement(s); err != nil {
+		return fmt.Errorf("delegate: %w", err)
+	}
+	return nil
+}
+
 // VisitImport visits the [Import] node then all children nodes and returns an
 // error if any call returns an error.
 func (v *PostorderVisitor) VisitImport(i *Import) error {

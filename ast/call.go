@@ -30,6 +30,4 @@ func (c *Call) SourceLocation() source.Location {
 
 func (*Call) expression() {}
 
-func (*Call) functionStatement() {}
-
 var _ Expression = (*Call)(nil)

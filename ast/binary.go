@@ -27,6 +27,4 @@ func (b *Binary) SourceLocation() source.Location {
 
 func (*Binary) expression() {}
 
-func (*Binary) functionStatement() {}
-
 var _ Expression = (*Binary)(nil)

@@ -34,6 +34,8 @@ type Visitor interface {
 	VisitElseIf(*ElseIf) error
 	// VisitElse visits an [Else] node.
 	VisitElse(*Else) error
+	// VisitExpressionStatement visits an [ExpressionStatement] node.
+	VisitExpressionStatement(*ExpressionStatement) error
 	// VisitImport visits an [Import] node.
 	VisitImport(*Import) error
 	// VisitIndex visits an [Index] node.

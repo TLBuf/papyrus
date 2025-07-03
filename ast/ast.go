@@ -28,7 +28,7 @@ type FunctionStatement interface {
 
 // Expression is a common interface for all expression nodes.
 type Expression interface {
-	FunctionStatement
+	Node
 	expression()
 }
 
@@ -77,3 +77,27 @@ type Trivia struct {
 	// after the node, but which are not assocaited with another node.
 	TrailingComments []LooseComment
 }
+
+// ExpressionStatement is a special function
+// statement that is just an expression.
+type ExpressionStatement struct {
+	Trivia
+	// Expression is the expression that makes up the statement.
+	Expression Expression
+	// Location is the source range of the node.
+	Location source.Location
+}
+
+// Accept calls the appropriate visitor method for the node.
+func (s *ExpressionStatement) Accept(v Visitor) error {
+	return v.VisitExpressionStatement(s)
+}
+
+// SourceLocation returns the source location of the node.
+func (s *ExpressionStatement) SourceLocation() source.Location {
+	return s.Location
+}
+
+func (*ExpressionStatement) functionStatement() {}
+
+var _ FunctionStatement = (*ExpressionStatement)(nil)

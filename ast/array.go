@@ -31,6 +31,4 @@ func (a *ArrayCreation) SourceLocation() source.Location {
 
 func (*ArrayCreation) expression() {}
 
-func (*ArrayCreation) functionStatement() {}
-
 var _ Expression = (*ArrayCreation)(nil)
