@@ -7,8 +7,9 @@ import "github.com/TLBuf/papyrus/source"
 // false.
 type If struct {
 	LineTrivia
-	// Keyword is the If keyword that starts the statement.
-	Keyword *Token
+	// StartKeywordLocation is the location of the If keyword that starts the
+	// statement.
+	StartKeywordLocation source.Location
 	// Condition is the expression that defines the first condition to check.
 	Condition Expression
 	// Statements is the list of statements that should be evaluated if the first
@@ -19,8 +20,9 @@ type If struct {
 	// Else is the block that should be executed if the first [Condition] and all
 	// [ElseIf] conditions evaluate to false or nil if there is no else block.
 	Else *Else
-	// EndKeyword is the EndIf keyword that ends the statement.
-	EndKeyword *Token
+	// EndKeywordLocation is the location of the EndIf keyword that ends the
+	// statement.
+	EndKeywordLocation source.Location
 	// NodeLocation is the source location of the node.
 	NodeLocation source.Location
 }
@@ -57,8 +59,9 @@ var _ FunctionStatement = (*If)(nil)
 // and all previous conditions evaluate to false.
 type ElseIf struct {
 	LineTrivia
-	// Keyword is the ElseIf keyword that starts the block.
-	Keyword *Token
+	// KeywordLocation is the location of the ElseIf keyword that starts the
+	// block.
+	KeywordLocation source.Location
 	// Condition is the expression that defines the condition to check.
 	Condition Expression
 	// Statements is the list of statements that should be evaluated if the
@@ -96,8 +99,8 @@ var _ Node = (*ElseIf)(nil)
 // evaluate to false.
 type Else struct {
 	LineTrivia
-	// Keyword is the Else keyword that starts the block.
-	Keyword *Token
+	// KeywordLocation is the location of the Else keyword that starts the block.
+	KeywordLocation source.Location
 	// Statements is the list of statements that should be evaluated.
 	Statements []FunctionStatement
 	// NodeLocation is the source location of the node.

@@ -1,6 +1,23 @@
 package ast
 
-import "github.com/TLBuf/papyrus/source"
+import (
+	"github.com/TLBuf/papyrus/source"
+	"github.com/TLBuf/papyrus/token"
+)
+
+// PropertyKind is the type of property.
+type PropertyKind uint8
+
+const (
+	// Full is a full property definition that defines either a get or set
+	// function or both.
+	Full = PropertyKind(0)
+	// Auto is a mutable property that has implicity defined get and set
+	// functions.
+	Auto = PropertyKind(token.Auto)
+	// AutoReadOnly is an immutable property that has an implicit get function.
+	AutoReadOnly = PropertyKind(token.AutoReadOnly)
+)
 
 // Property defines a script property.
 //
@@ -8,72 +25,68 @@ import "github.com/TLBuf/papyrus/source"
 // referenced by the engine.
 type Property struct {
 	LineTrivia
+	// Kind is the kind of property this statement represents.
+	Kind PropertyKind
 	// Type is the type of this property.
 	Type *TypeLiteral
-	// Keyword is the Property keyword that starts the definition.
-	Keyword *Token
+	// StartKeywordLocation is the location of the Property keyword that starts
+	// the statement.
+	StartKeywordLocation source.Location
 	// Name is the name of the property.
 	Name *Identifier
-	// Operator is the assign operator that defines an initial value or nil if
-	// the property uses the type's default value.
+	// OperatorLocation is the location of the assignment operator that defines an
+	// initial value.
 	//
-	// If this is non-nil, [Value] will be non-nil (and vice versa). If [Auto] and
-	// [AutoReadOnly] are nil, this must be nil.
-	Operator *Token
+	// This is only valid if Value is not nil.
+	OperatorLocation source.Location
 	// Value is the literal that defines the initial value of the property.
 	//
-	// If [Auto] and [AutoReadOnly] are nil, this must be nil.
+	// If Kind is [Full] this is nil.
 	Value Literal
-	// Auto is the Auto token that defines that this is an auto property or nil
-	// if this property is a read-only auto property or full property.
+	// AutoLocation is the Auto/AutoReadOnly keyword that defines that this is an
+	// auto (or read-only) property
 	//
-	// If non-nil, [Get], [Set], and [AutoReadOnly] will be nil.
-	Auto *Token
-	// AutoReadOnly is the AutoReadOnly token that defines that this is a
-	// read-only auto property or nil if this property is an auto property or full
-	// property.
-	//
-	// If non-nil, [Get], [Set], and [Auto] will be nil. If non-nil, [Operator]
-	// and [Value] must also be non-nil.
-	AutoReadOnly *Token
-	// Hidden are the Hidden tokens that define that this property is hidden (i.e.
-	// it doesn't appear in the editor) or empty if this property is not hidden.
+	// This is only valid if Kind is not [Auto] or [AutoReadOnly].
+	AutoLocation source.Location
+	// HiddenLocations are the locations of the Hidden keywords that mark this
+	// property as hidden (i.e. it doesn't appear in the editor) or empty if this
+	// property is not hidden.
 	//
 	// Errata: This being multiple values is due to the offical Papyrus parser
 	// accepting any number of flag tokens. They are all included here for
 	// completeness, but only one is required to consider the property hidden.
-	Hidden []*Token
-	// Conditional are the Conditional tokens that define that this property is
-	// conditional (i.e. it can appear in conditions) or empty if this property is
-	// not conditional.
+	HiddenLocations []source.Location
+	// ConditionalLocations are the locations of the Conditional keywords that
+	// mark this property as conditional (i.e. it can appear in conditions) or
+	// empty if this property is not conditional.
 	//
 	// Errata: This being multiple values is due to the offical Papyrus parser
 	// accepting any number of flag tokens. They are all included here for
 	// completeness, but only one is required to consider the property
 	// conditional.
-	Conditional []*Token
-	// Comment is the optional documentation comment for this property.
-	Comment *Documentation
+	ConditionalLocations []source.Location
+	// Documentation is the documentation comment for this property or nil if
+	// there is not one.
+	Documentation *Documentation
 	// Get is the get function for this property or nil if undefined.
 	//
-	// If [Auto] and [AutoReadOnly] are nil, either Get or Set (or both) will be
-	// non-nil.
+	// If Kind is [Full] are nil, either Get or Set (or both) will be non-nil.
 	//
 	// This function is never global or native, has no parameters, and returns the
 	// same type as this property's type.
 	Get *Function
 	// Set is the set function for this property or nil if undefined.
 	//
-	// If [Auto] and [AutoReadOnly] are nil, either Get or Set (or both) will be
-	// non-nil.
+	// If Kind is [Full] are nil, either Get or Set (or both) will be non-nil.
 	//
 	// This function is never global or native, has one parameter that is the same
 	// type as this property's type, and returns nothing.
 	Set *Function
-	// EndKeyword is the EndProperty keyword that ends the definition or nil if
-	// the property is Auto or AutoReadOnly (and thus has no Get or Set
-	// functions).
-	EndKeyword *Token
+	// EndKeywordLocation is the location of the EndProperty keyword that ends the
+	// statement.
+	//
+	// This is only valid if Kind is [Full].
+	EndKeywordLocation source.Location
 	// NodeLocation is the source location of the node.
 	NodeLocation source.Location
 }

@@ -5,8 +5,6 @@ import "github.com/TLBuf/papyrus/source"
 // BoolLiteral is a boolean literal (i.e. true or false).
 type BoolLiteral struct {
 	InfixTrivia
-	// Text is the BoolLiteral token.
-	Text *Token
 	// Value is the parsed value of the string literal.
 	Value bool
 	// NodeLocation is the source location of the node.
@@ -37,8 +35,6 @@ var _ Literal = (*BoolLiteral)(nil)
 // IntLiteral is an integer literal.
 type IntLiteral struct {
 	InfixTrivia
-	// Text is the IntLiteral token.
-	Text *Token
 	// Value is the parsed value of the string literal.
 	Value int
 	// NodeLocation is the source location of the node.
@@ -69,8 +65,6 @@ var _ Literal = (*IntLiteral)(nil)
 // FloatLiteral is a floating-point literal.
 type FloatLiteral struct {
 	InfixTrivia
-	// Text is the FloatLiteral token.
-	Text *Token
 	// Value is the parsed value of the string literal.
 	Value float32
 	// NodeLocation is the source location of the node.
@@ -101,8 +95,6 @@ var _ Literal = (*FloatLiteral)(nil)
 // StringLiteral is a string literal.
 type StringLiteral struct {
 	InfixTrivia
-	// Text is the StringLiteral token.
-	Text *Token
 	// Value is the parsed value of the string literal.
 	Value string
 	// NodeLocation is the source location of the node.
@@ -133,8 +125,6 @@ var _ Literal = (*StringLiteral)(nil)
 // NoneLiteral is the none literal (i.e. the null object literal).
 type NoneLiteral struct {
 	InfixTrivia
-	// Text is the None token.
-	Text *Token
 	// NodeLocation is the source location of the node.
 	NodeLocation source.Location
 }

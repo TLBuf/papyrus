@@ -6,16 +6,18 @@ import "github.com/TLBuf/papyrus/source"
 // as a condition is true.
 type While struct {
 	LineTrivia
-	// Keyword is the While keyword that starts the statement.
-	Keyword *Token
+	// StartKeywordLocation is the location of the While keyword that starts
+	// the statement.
+	StartKeywordLocation source.Location
 	// Condition is the expression that defines the condition to check before each
 	// iteration.
 	Condition Expression
 	// Statements is the list of function statements that constitute the body of
 	// the while.
 	Statements []FunctionStatement
-	// Keyword is the EndWhile keyword that ends the statement.
-	EndKeyword *Token
+	// EndKeywordLocation is the location of the EndWhile keyword that ends the
+	// statement.
+	EndKeywordLocation source.Location
 	// NodeLocation is the source location of the node.
 	NodeLocation source.Location
 }

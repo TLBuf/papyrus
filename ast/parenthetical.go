@@ -5,12 +5,12 @@ import "github.com/TLBuf/papyrus/source"
 // Parenthetical represents a parenthesized expression.
 type Parenthetical struct {
 	InfixTrivia
-	// Open is the open parenthesis token.
-	Open *Token
+	// OpenLocation is the location of the opening parenthesis.
+	OpenLocation source.Location
 	// Value is the expression within the parentheses.
 	Value Expression
-	// Close is the close parenthesis token.
-	Close *Token
+	// CloseLocation is the location of the closing parenthesis.
+	CloseLocation source.Location
 	// NodeLocation is the source location of the node.
 	NodeLocation source.Location
 }

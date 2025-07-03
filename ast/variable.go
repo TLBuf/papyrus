@@ -9,20 +9,22 @@ type ScriptVariable struct {
 	Type *TypeLiteral
 	// Name is the name of the variable.
 	Name *Identifier
-	// Operator is the assignment operator or nil if no inital value is assigned.
-	Operator *Token
+	// OperatorLocation is the location of the assignment operator.
+	//
+	// This is only valid if Value is not nil.
+	OperatorLocation source.Location
 	// Value is the literal the script variable is assigned or nil if there isn't
 	// one (and the variable should have the default value for its type).
 	Value Literal
-	// Conditional are the Conditional tokens that define that this variable is
-	// conditional (i.e. it can appear in conditions) or empty if this variable is
-	// not conditional.
+	// ConditionalLocations are the locations of the Conditional keywords that
+	// mark this variable as conditional (i.e. it can appear in conditions) or
+	// empty if this variable is not conditional.
 	//
 	// Errata: This being multiple values is due to the offical Papyrus parser
 	// accepting any number of flag tokens. They are all included here for
 	// completeness, but only one is required to consider the variable
 	// conditional.
-	Conditional []*Token
+	ConditionalLocations []source.Location
 	// NodeLocation is the source location of the node.
 	NodeLocation source.Location
 }
@@ -56,8 +58,10 @@ type FunctionVariable struct {
 	Type *TypeLiteral
 	// Name is the name of the variable.
 	Name *Identifier
-	// Operator is the assignment operator or nil if no inital value is assigned.
-	Operator *Token
+	// OperatorLocation is the location of the assignment operator.
+	//
+	// This is only valid if Value is not nil.
+	OperatorLocation source.Location
 	// Value is the expression the variable is assigned or nil if there isn't one
 	// (and the variable should have the default value for its type).
 	Value Expression

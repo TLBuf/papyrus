@@ -7,33 +7,40 @@ import "github.com/TLBuf/papyrus/source"
 // Events are like functions that are predefined by the engine.
 type Event struct {
 	LineTrivia
-	// Keyword is the Event keyword that starts the definition.
-	Keyword *Token
+	// StartKeywordLocation is the location of the Event keyword that starts the
+	// statement.
+	StartKeywordLocation source.Location
 	// Name is the name of the event.
 	Name *Identifier
-	// Open is the open parenthesis token that starts the parameter list.
-	Open *Token
+	// OpenLocation is the location of the opening parenthesis that starts the
+	// parameter list.
+	OpenLocation source.Location
 	// ParameterList is the list of parameters this event defines in order.
 	ParameterList []*Parameter
-	// Close is the close parenthesis token that ends the parameter list.
-	Close *Token
-	// Native are the Native tokens that define that this is a native event or
-	// empty if this event in non-native.
+	// CloseLocation is the location of the closing parenthesis that starts the
+	// parameter list.
+	CloseLocation source.Location
+	// NativeLocations are the locations of the Native keywords that mark this as
+	// a native event or empty if this event in non-native.
 	//
-	// If non-empty, [Statements] will be empty and [EndKeyword] will be nil.
+	// If non-empty, Statements will be empty and EndKeywordLocation will be
+	// invalid.
 	//
 	// Errata: This being multiple values is due to the offical Papyrus parser
 	// accepting any number of flag tokens. They are all included here for
 	// completeness, but only one is required to consider the event native.
-	Native []*Token
-	// Comment is the optional documentation comment for this event.
-	Comment *Documentation
+	NativeLocations []source.Location
+	// Documentation is the documentation comment for this event or nil if there
+	// is not one.
+	Documentation *Documentation
 	// Statements is the list of function statements that constitute the body of
 	// the event.
 	Statements []FunctionStatement
-	// EndKeyword is the EndEvent keyword that ends the definition or nil if the
-	// event is native (and thus has no body).
-	EndKeyword *Token
+	// EndKeywordLocation is the location of the EndEvent keyword that ends the
+	// statement.
+	//
+	// This is only valid if NativeLocations is empty.
+	EndKeywordLocation source.Location
 	// NodeLocation is the source location of the node.
 	NodeLocation source.Location
 }

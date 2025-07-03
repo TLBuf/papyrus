@@ -8,9 +8,10 @@ type Argument struct {
 	// Name is the name of the parameter for this argument or nil if using
 	// positional syntax.
 	Name *Identifier
-	// Operator is the assignment operator token between the name and value or
-	// nil if using positional syntax.
-	Operator *Token
+	// OperatorLocation is the location of the assignment operator.
+	//
+	// This is only valid if Name is not nil.
+	OperatorLocation source.Location
 	// Value is the expression that defines the value of this argument.
 	Value Expression
 	// NodeLocation is the source location of the node.

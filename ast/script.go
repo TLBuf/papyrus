@@ -6,34 +6,38 @@ import "github.com/TLBuf/papyrus/source"
 // Script represents a single Papyrus script file.
 type Script struct {
 	LineTrivia
-	// Keyword is the ScriptName keyword token that starts the script.
-	Keyword *Token
+	// KeywordLocation is the location of the ScriptName keyword that starts the
+	// script.
+	KeywordLocation source.Location
 	// Name is the name of script.
 	Name *Identifier
-	// Extends is the Extends token that indicates this script extends another.
+	// ExtendsLocation is the location of the Extends keyword that indicates this
+	// script extends another.
 	//
-	// If this is non-nil, [Parent] will also be non-nil (and vice versa).
-	Extends *Token
+	// This is only valid if Parent is not nil.
+	ExtendsLocation source.Location
 	// Parent is the name of the script this one extends from or nil if this
 	// script doesn't extend another.
 	Parent *Identifier
-	// Hidden are the Hidden tokens that define that this script is hidden (i.e.
-	// it doesn't appear in the editor) or empty if this script is not hidden.
+	// HiddenLocations are the locations of the Hidden keywords that mark this
+	// script as hidden (i.e. it doesn't appear in the editor) or empty if this
+	// script is not hidden.
 	//
 	// Errata: This being multiple values is due to the offical Papyrus parser
 	// accepting any number of flag tokens. They are all included here for
 	// completeness, but only one is required to consider the script hidden.
-	Hidden []*Token
-	// Conditional are the Conditional tokens that define that this script is
-	// conditional (i.e. conditional properties it defines can appear in
-	// conditions) or empty if this script is not conditional.
+	HiddenLocations []source.Location
+	// ConditionalLocations are the locations of the Conditional keywords that
+	// mark this script as conditional (i.e. conditional properties it defines can
+	// appear in conditions) or empty if this script is not conditional.
 	//
 	// Errata: This being multiple values is due to the offical Papyrus parser
 	// accepting any number of flag tokens. They are all included here for
 	// completeness, but only one is required to consider the script conditional.
-	Conditional []*Token
-	// Comment is the documentation comment for this script.
-	Comment *Documentation
+	ConditionalLocations []source.Location
+	// Documentation is the documentation comment for this script or nil if there
+	// is not one.
+	Documentation *Documentation
 	// Statements is the list of statements that constitute the body of the
 	// script.
 	Statements []ScriptStatement

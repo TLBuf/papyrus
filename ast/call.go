@@ -7,13 +7,15 @@ type Call struct {
 	InfixTrivia
 	// Function is the reference to the function being called.
 	Function Expression
-	// Open is the open parenthesis token.
-	Open *Token
+	// OpenLocation is the location of the opening parenthesis that starts the
+	// argument list.
+	OpenLocation source.Location
 	// Arguments is the list of arguments being passed to the function being
 	// called.
 	Arguments []*Argument
-	// Close is the close parenthesis token.
-	Close *Token
+	// CloseLocation is the location of the closing parenthesis that starts the
+	// argument list.
+	CloseLocation source.Location
 	// NodeLocation is the source location of the node.
 	NodeLocation source.Location
 }

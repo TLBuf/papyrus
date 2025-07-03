@@ -2,7 +2,6 @@ package ast
 
 import (
 	"fmt"
-	"slices"
 )
 
 // PostorderVisitor is a [Visitor] that calls visit methods on
@@ -21,9 +20,6 @@ func (v *PostorderVisitor) VisitAccess(a *Access) error {
 	}
 	if err := a.Accept(v); err != nil {
 		return fmt.Errorf("value: %w", err)
-	}
-	if err := a.Operator.Accept(v); err != nil {
-		return fmt.Errorf("operator: %w", err)
 	}
 	if err := a.Name.Accept(v); err != nil {
 		return fmt.Errorf("name: %w", err)
@@ -50,9 +46,6 @@ func (v *PostorderVisitor) VisitArgument(a *Argument) error {
 	if err := a.Name.Accept(v); err != nil {
 		return fmt.Errorf("name: %w", err)
 	}
-	if err := a.Operator.Accept(v); err != nil {
-		return fmt.Errorf("operator: %w", err)
-	}
 	if err := a.Accept(v); err != nil {
 		return fmt.Errorf("value: %w", err)
 	}
@@ -75,20 +68,11 @@ func (v *PostorderVisitor) VisitArrayCreation(a *ArrayCreation) error {
 			return fmt.Errorf("leading comment: %w", err)
 		}
 	}
-	if err := a.New.Accept(v); err != nil {
-		return fmt.Errorf("new operator: %w", err)
-	}
 	if err := a.Type.Accept(v); err != nil {
 		return fmt.Errorf("type: %w", err)
 	}
-	if err := a.Open.Accept(v); err != nil {
-		return fmt.Errorf("open: %w", err)
-	}
 	if err := a.Size.Accept(v); err != nil {
 		return fmt.Errorf("size: %w", err)
-	}
-	if err := a.Close.Accept(v); err != nil {
-		return fmt.Errorf("close: %w", err)
 	}
 	for _, c := range a.Comments.Trailing() {
 		if err := c.Accept(v); err != nil {
@@ -111,9 +95,6 @@ func (v *PostorderVisitor) VisitAssignment(a *Assignment) error {
 	}
 	if err := a.Assignee.Accept(v); err != nil {
 		return fmt.Errorf("assignee: %w", err)
-	}
-	if err := a.Operator.Accept(v); err != nil {
-		return fmt.Errorf("operator: %w", err)
 	}
 	if err := a.Accept(v); err != nil {
 		return fmt.Errorf("value: %w", err)
@@ -140,9 +121,6 @@ func (v *PostorderVisitor) VisitBinary(b *Binary) error {
 	if err := b.LeftOperand.Accept(v); err != nil {
 		return fmt.Errorf("left operand: %w", err)
 	}
-	if err := b.Operator.Accept(v); err != nil {
-		return fmt.Errorf("operator: %w", err)
-	}
 	if err := b.RightOperand.Accept(v); err != nil {
 		return fmt.Errorf("right operand: %w", err)
 	}
@@ -168,16 +146,10 @@ func (v *PostorderVisitor) VisitCall(c *Call) error {
 	if err := c.Function.Accept(v); err != nil {
 		return fmt.Errorf("reciever: %w", err)
 	}
-	if err := c.Open.Accept(v); err != nil {
-		return fmt.Errorf("open: %w", err)
-	}
 	for _, a := range c.Arguments {
 		if err := a.Accept(v); err != nil {
 			return fmt.Errorf("argument: %w", err)
 		}
-	}
-	if err := c.Close.Accept(v); err != nil {
-		return fmt.Errorf("close: %w", err)
 	}
 	for _, c := range c.Comments.Trailing() {
 		if err := c.Accept(v); err != nil {
@@ -201,9 +173,6 @@ func (v *PostorderVisitor) VisitCast(c *Cast) error {
 	if err := c.Accept(v); err != nil {
 		return fmt.Errorf("value: %w", err)
 	}
-	if err := c.Operator.Accept(v); err != nil {
-		return fmt.Errorf("operator: %w", err)
-	}
 	if err := c.Type.Accept(v); err != nil {
 		return fmt.Errorf("type: %w", err)
 	}
@@ -221,15 +190,6 @@ func (v *PostorderVisitor) VisitCast(c *Cast) error {
 // VisitDocumentation visits the [Documentation] node then all children nodes
 // and returns an error if any call returns an error.
 func (v *PostorderVisitor) VisitDocumentation(c *Documentation) error {
-	if err := c.Open.Accept(v); err != nil {
-		return fmt.Errorf("open: %w", err)
-	}
-	if err := c.Text.Accept(v); err != nil {
-		return fmt.Errorf("text: %w", err)
-	}
-	if err := c.Close.Accept(v); err != nil {
-		return fmt.Errorf("type: %w", err)
-	}
 	if err := v.Delegate.VisitDocumentation(c); err != nil {
 		return fmt.Errorf("delegate: %w", err)
 	}
@@ -239,15 +199,6 @@ func (v *PostorderVisitor) VisitDocumentation(c *Documentation) error {
 // VisitBlockComment visits the [BlockComment] node then all children nodes and
 // returns an error if any call returns an error.
 func (v *PostorderVisitor) VisitBlockComment(c *BlockComment) error {
-	if err := c.Open.Accept(v); err != nil {
-		return fmt.Errorf("open: %w", err)
-	}
-	if err := c.Text.Accept(v); err != nil {
-		return fmt.Errorf("text: %w", err)
-	}
-	if err := c.Close.Accept(v); err != nil {
-		return fmt.Errorf("type: %w", err)
-	}
 	if err := v.Delegate.VisitBlockComment(c); err != nil {
 		return fmt.Errorf("delegate: %w", err)
 	}
@@ -257,12 +208,6 @@ func (v *PostorderVisitor) VisitBlockComment(c *BlockComment) error {
 // VisitLineComment visits the [LineComment] node then all children nodes and
 // returns an error if any call returns an error.
 func (v *PostorderVisitor) VisitLineComment(c *LineComment) error {
-	if err := c.Open.Accept(v); err != nil {
-		return fmt.Errorf("open: %w", err)
-	}
-	if err := c.Text.Accept(v); err != nil {
-		return fmt.Errorf("text: %w", err)
-	}
 	if err := v.Delegate.VisitLineComment(c); err != nil {
 		return fmt.Errorf("delegate: %w", err)
 	}
@@ -277,38 +222,21 @@ func (v *PostorderVisitor) VisitEvent(e *Event) error {
 			return fmt.Errorf("leading comment: %w", err)
 		}
 	}
-	if err := e.Keyword.Accept(v); err != nil {
-		return fmt.Errorf("keyword: %w", err)
-	}
 	if err := e.Name.Accept(v); err != nil {
 		return fmt.Errorf("name: %w", err)
-	}
-	if err := e.Open.Accept(v); err != nil {
-		return fmt.Errorf("open: %w", err)
 	}
 	for _, p := range e.ParameterList {
 		if err := p.Accept(v); err != nil {
 			return fmt.Errorf("parameter: %w", err)
 		}
 	}
-	if err := e.Close.Accept(v); err != nil {
-		return fmt.Errorf("close: %w", err)
-	}
-	for _, t := range e.Native {
-		if err := t.Accept(v); err != nil {
-			return fmt.Errorf("native: %w", err)
-		}
-	}
-	if err := e.Comment.Accept(v); err != nil {
+	if err := e.Documentation.Accept(v); err != nil {
 		return fmt.Errorf("doc comment: %w", err)
 	}
 	for _, s := range e.Statements {
 		if err := s.Accept(v); err != nil {
 			return fmt.Errorf("statement: %w", err)
 		}
-	}
-	if err := e.EndKeyword.Accept(v); err != nil {
-		return fmt.Errorf("end keyword: %w", err)
 	}
 	for _, c := range e.Comments.Trailing() {
 		if err := c.Accept(v); err != nil {
@@ -334,40 +262,21 @@ func (v *PostorderVisitor) VisitFunction(f *Function) error {
 			return fmt.Errorf("return type: %w", err)
 		}
 	}
-	if err := f.Keyword.Accept(v); err != nil {
-		return fmt.Errorf("keyword: %w", err)
-	}
 	if err := f.Name.Accept(v); err != nil {
 		return fmt.Errorf("name: %w", err)
-	}
-	if err := f.Open.Accept(v); err != nil {
-		return fmt.Errorf("open: %w", err)
 	}
 	for _, p := range f.ParameterList {
 		if err := p.Accept(v); err != nil {
 			return fmt.Errorf("parameter: %w", err)
 		}
 	}
-	if err := f.Close.Accept(v); err != nil {
-		return fmt.Errorf("close: %w", err)
-	}
-	flags := append(f.Global, f.Native...)
-	slices.SortFunc(flags, func(a, b *Token) int { return a.Location().Compare(b.Location()) })
-	for _, t := range flags {
-		if err := t.Accept(v); err != nil {
-			return fmt.Errorf("flag: %w", err)
-		}
-	}
-	if err := f.Comment.Accept(v); err != nil {
+	if err := f.Documentation.Accept(v); err != nil {
 		return fmt.Errorf("doc comment: %w", err)
 	}
 	for _, s := range f.Statements {
 		if err := s.Accept(v); err != nil {
 			return fmt.Errorf("statement: %w", err)
 		}
-	}
-	if err := f.EndKeyword.Accept(v); err != nil {
-		return fmt.Errorf("end keyword: %w", err)
 	}
 	for _, c := range f.Comments.Trailing() {
 		if err := c.Accept(v); err != nil {
@@ -388,9 +297,6 @@ func (v *PostorderVisitor) VisitIdentifier(i *Identifier) error {
 			return fmt.Errorf("leading comment: %w", err)
 		}
 	}
-	if err := i.Text.Accept(v); err != nil {
-		return fmt.Errorf("text: %w", err)
-	}
 	for _, c := range i.Comments.Trailing() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("trailing comment: %w", err)
@@ -410,9 +316,6 @@ func (v *PostorderVisitor) VisitIf(i *If) error {
 			return fmt.Errorf("leading comment: %w", err)
 		}
 	}
-	if err := i.Keyword.Accept(v); err != nil {
-		return fmt.Errorf("keyword: %w", err)
-	}
 	if err := i.Condition.Accept(v); err != nil {
 		return fmt.Errorf("condition: %w", err)
 	}
@@ -430,9 +333,6 @@ func (v *PostorderVisitor) VisitIf(i *If) error {
 		if err := i.Else.Accept(v); err != nil {
 			return fmt.Errorf("else: %w", err)
 		}
-	}
-	if err := i.EndKeyword.Accept(v); err != nil {
-		return fmt.Errorf("end keyword: %w", err)
 	}
 	for _, c := range i.Comments.Trailing() {
 		if err := c.Accept(v); err != nil {
@@ -452,9 +352,6 @@ func (v *PostorderVisitor) VisitElseIf(e *ElseIf) error {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
 		}
-	}
-	if err := e.Keyword.Accept(v); err != nil {
-		return fmt.Errorf("keyword: %w", err)
 	}
 	if err := e.Condition.Accept(v); err != nil {
 		return fmt.Errorf("condition: %w", err)
@@ -482,9 +379,6 @@ func (v *PostorderVisitor) VisitElse(e *Else) error {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
 		}
-	}
-	if err := e.Keyword.Accept(v); err != nil {
-		return fmt.Errorf("keyword: %w", err)
 	}
 	for _, s := range e.Statements {
 		if err := s.Accept(v); err != nil {
@@ -532,9 +426,6 @@ func (v *PostorderVisitor) VisitImport(i *Import) error {
 			return fmt.Errorf("leading comment: %w", err)
 		}
 	}
-	if err := i.Keyword.Accept(v); err != nil {
-		return fmt.Errorf("keyword: %w", err)
-	}
 	if err := i.Name.Accept(v); err != nil {
 		return fmt.Errorf("name: %w", err)
 	}
@@ -560,14 +451,8 @@ func (v *PostorderVisitor) VisitIndex(i *Index) error {
 	if err := i.Accept(v); err != nil {
 		return fmt.Errorf("value: %w", err)
 	}
-	if err := i.Open.Accept(v); err != nil {
-		return fmt.Errorf("open: %w", err)
-	}
 	if err := i.Index.Accept(v); err != nil {
 		return fmt.Errorf("index: %w", err)
-	}
-	if err := i.Close.Accept(v); err != nil {
-		return fmt.Errorf("close: %w", err)
 	}
 	for _, c := range i.Comments.Trailing() {
 		if err := c.Accept(v); err != nil {
@@ -588,9 +473,6 @@ func (v *PostorderVisitor) VisitBoolLiteral(l *BoolLiteral) error {
 			return fmt.Errorf("leading comment: %w", err)
 		}
 	}
-	if err := l.Text.Accept(v); err != nil {
-		return fmt.Errorf("text: %w", err)
-	}
 	for _, c := range l.Comments.Trailing() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("trailing comment: %w", err)
@@ -609,9 +491,6 @@ func (v *PostorderVisitor) VisitIntLiteral(l *IntLiteral) error {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
 		}
-	}
-	if err := l.Text.Accept(v); err != nil {
-		return fmt.Errorf("text: %w", err)
 	}
 	for _, c := range l.Comments.Trailing() {
 		if err := c.Accept(v); err != nil {
@@ -632,9 +511,6 @@ func (v *PostorderVisitor) VisitFloatLiteral(l *FloatLiteral) error {
 			return fmt.Errorf("leading comment: %w", err)
 		}
 	}
-	if err := l.Text.Accept(v); err != nil {
-		return fmt.Errorf("text: %w", err)
-	}
 	for _, c := range l.Comments.Trailing() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("trailing comment: %w", err)
@@ -654,9 +530,6 @@ func (v *PostorderVisitor) VisitStringLiteral(l *StringLiteral) error {
 			return fmt.Errorf("leading comment: %w", err)
 		}
 	}
-	if err := l.Text.Accept(v); err != nil {
-		return fmt.Errorf("text: %w", err)
-	}
 	for _, c := range l.Comments.Trailing() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("trailing comment: %w", err)
@@ -675,9 +548,6 @@ func (v *PostorderVisitor) VisitNoneLiteral(l *NoneLiteral) error {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
 		}
-	}
-	if err := l.Text.Accept(v); err != nil {
-		return fmt.Errorf("text: %w", err)
 	}
 	for _, c := range l.Comments.Trailing() {
 		if err := c.Accept(v); err != nil {
@@ -704,13 +574,8 @@ func (v *PostorderVisitor) VisitParameter(p *Parameter) error {
 	if err := p.Name.Accept(v); err != nil {
 		return fmt.Errorf("name: %w", err)
 	}
-	if p.Operator != nil {
-		if err := p.Operator.Accept(v); err != nil {
-			return fmt.Errorf("operator: %w", err)
-		}
-	}
-	if p.Value != nil {
-		if err := p.Value.Accept(v); err != nil {
+	if p.DefaultValue != nil {
+		if err := p.DefaultValue.Accept(v); err != nil {
 			return fmt.Errorf("value: %w", err)
 		}
 	}
@@ -733,14 +598,8 @@ func (v *PostorderVisitor) VisitParenthetical(p *Parenthetical) error {
 			return fmt.Errorf("leading comment: %w", err)
 		}
 	}
-	if err := p.Open.Accept(v); err != nil {
-		return fmt.Errorf("open: %w", err)
-	}
 	if err := p.Accept(v); err != nil {
 		return fmt.Errorf("value: %w", err)
-	}
-	if err := p.Close.Accept(v); err != nil {
-		return fmt.Errorf("close: %w", err)
 	}
 	for _, c := range p.Comments.Trailing() {
 		if err := c.Accept(v); err != nil {
@@ -764,40 +623,15 @@ func (v *PostorderVisitor) VisitProperty(p *Property) error {
 	if err := p.Type.Accept(v); err != nil {
 		return fmt.Errorf("type: %w", err)
 	}
-	if err := p.Keyword.Accept(v); err != nil {
-		return fmt.Errorf("keyword: %w", err)
-	}
 	if err := p.Name.Accept(v); err != nil {
 		return fmt.Errorf("name: %w", err)
-	}
-	if p.Operator != nil {
-		if err := p.Operator.Accept(v); err != nil {
-			return fmt.Errorf("operator: %w", err)
-		}
 	}
 	if p.Value != nil {
 		if err := p.Accept(v); err != nil {
 			return fmt.Errorf("value: %w", err)
 		}
 	}
-	if p.Auto != nil {
-		if err := p.Auto.Accept(v); err != nil {
-			return fmt.Errorf("auto: %w", err)
-		}
-	}
-	if p.AutoReadOnly != nil {
-		if err := p.AutoReadOnly.Accept(v); err != nil {
-			return fmt.Errorf("autoreadonly: %w", err)
-		}
-	}
-	flags := append(p.Hidden, p.Conditional...)
-	slices.SortFunc(flags, func(a, b *Token) int { return a.Location().Compare(b.Location()) })
-	for _, t := range flags {
-		if err := t.Accept(v); err != nil {
-			return fmt.Errorf("flag: %w", err)
-		}
-	}
-	if err := p.Comment.Accept(v); err != nil {
+	if err := p.Documentation.Accept(v); err != nil {
 		return fmt.Errorf("doc comment: %w", err)
 	}
 	first := p.Get
@@ -815,9 +649,6 @@ func (v *PostorderVisitor) VisitProperty(p *Property) error {
 		if err := second.Accept(v); err != nil {
 			return fmt.Errorf("function: %w", err)
 		}
-	}
-	if err := p.EndKeyword.Accept(v); err != nil {
-		return fmt.Errorf("end keyword: %w", err)
 	}
 	for _, c := range p.Comments.Trailing() {
 		if err := c.Accept(v); err != nil {
@@ -838,9 +669,6 @@ func (v *PostorderVisitor) VisitReturn(r *Return) error {
 			return fmt.Errorf("leading comment: %w", err)
 		}
 	}
-	if err := r.Keyword.Accept(v); err != nil {
-		return fmt.Errorf("keyword: %w", err)
-	}
 	if r.Value != nil {
 		if err := r.Accept(v); err != nil {
 			return fmt.Errorf("value: %w", err)
@@ -860,30 +688,15 @@ func (v *PostorderVisitor) VisitScript(s *Script) error {
 			return fmt.Errorf("leading comment: %w", err)
 		}
 	}
-	if err := s.Keyword.Accept(v); err != nil {
-		return fmt.Errorf("keyword: %w", err)
-	}
 	if err := s.Name.Accept(v); err != nil {
 		return fmt.Errorf("name: %w", err)
-	}
-	if s.Extends != nil {
-		if err := s.Extends.Accept(v); err != nil {
-			return fmt.Errorf("extends: %w", err)
-		}
 	}
 	if s.Parent != nil {
 		if err := s.Parent.Accept(v); err != nil {
 			return fmt.Errorf("parent: %w", err)
 		}
 	}
-	flags := append(s.Hidden, s.Conditional...)
-	slices.SortFunc(flags, func(a, b *Token) int { return a.Location().Compare(b.Location()) })
-	for _, t := range flags {
-		if err := t.Accept(v); err != nil {
-			return fmt.Errorf("flag: %w", err)
-		}
-	}
-	if err := s.Comment.Accept(v); err != nil {
+	if err := s.Documentation.Accept(v); err != nil {
 		return fmt.Errorf("doc comment: %w", err)
 	}
 	for _, s := range s.Statements {
@@ -910,14 +723,6 @@ func (v *PostorderVisitor) VisitState(s *State) error {
 			return fmt.Errorf("leading comment: %w", err)
 		}
 	}
-	if s.Auto != nil {
-		if err := s.Auto.Accept(v); err != nil {
-			return fmt.Errorf("auto: %w", err)
-		}
-	}
-	if err := s.Keyword.Accept(v); err != nil {
-		return fmt.Errorf("keyword: %w", err)
-	}
 	if err := s.Name.Accept(v); err != nil {
 		return fmt.Errorf("name: %w", err)
 	}
@@ -925,9 +730,6 @@ func (v *PostorderVisitor) VisitState(s *State) error {
 		if err := s.Accept(v); err != nil {
 			return fmt.Errorf("invokable: %w", err)
 		}
-	}
-	if err := s.EndKeyword.Accept(v); err != nil {
-		return fmt.Errorf("end keyword: %w", err)
 	}
 	for _, c := range s.Comments.Trailing() {
 		if err := c.Accept(v); err != nil {
@@ -940,34 +742,12 @@ func (v *PostorderVisitor) VisitState(s *State) error {
 	return nil
 }
 
-// VisitToken visits the [Token] node and returns an error if the delegate call
-// returns an error.
-func (v *PostorderVisitor) VisitToken(t *Token) error {
-	if err := v.Delegate.VisitToken(t); err != nil {
-		return fmt.Errorf("delegate: %w", err)
-	}
-	return nil
-}
-
 // VisitTypeLiteral visits the [TypeLiteral] node then all children nodes and
 // returns an error if any call returns an error.
 func (v *PostorderVisitor) VisitTypeLiteral(t *TypeLiteral) error {
 	for _, c := range t.Comments.Leading() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
-		}
-	}
-	if err := t.Text.Accept(v); err != nil {
-		return fmt.Errorf("text: %w", err)
-	}
-	if t.Open != nil {
-		if err := t.Open.Accept(v); err != nil {
-			return fmt.Errorf("open: %w", err)
-		}
-	}
-	if t.Close != nil {
-		if err := t.Close.Accept(v); err != nil {
-			return fmt.Errorf("close: %w", err)
 		}
 	}
 	if err := v.Delegate.VisitTypeLiteral(t); err != nil {
@@ -983,9 +763,6 @@ func (v *PostorderVisitor) VisitUnary(u *Unary) error {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
 		}
-	}
-	if err := u.Operator.Accept(v); err != nil {
-		return fmt.Errorf("operator: %w", err)
 	}
 	if err := u.Operand.Accept(v); err != nil {
 		return fmt.Errorf("operand: %w", err)
@@ -1010,19 +787,9 @@ func (v *PostorderVisitor) VisitScriptVariable(s *ScriptVariable) error {
 	if err := s.Name.Accept(v); err != nil {
 		return fmt.Errorf("name: %w", err)
 	}
-	if s.Operator != nil {
-		if err := s.Operator.Accept(v); err != nil {
-			return fmt.Errorf("operator: %w", err)
-		}
-	}
 	if s.Value != nil {
 		if err := s.Value.Accept(v); err != nil {
 			return fmt.Errorf("value: %w", err)
-		}
-	}
-	for _, c := range s.Conditional {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("conditional: %w", err)
 		}
 	}
 	if err := v.Delegate.VisitScriptVariable(s); err != nil {
@@ -1045,11 +812,6 @@ func (v *PostorderVisitor) VisitFunctionVariable(f *FunctionVariable) error {
 	if err := f.Name.Accept(v); err != nil {
 		return fmt.Errorf("name: %w", err)
 	}
-	if f.Operator != nil {
-		if err := f.Operator.Accept(v); err != nil {
-			return fmt.Errorf("operator: %w", err)
-		}
-	}
 	if f.Value != nil {
 		if err := f.Accept(v); err != nil {
 			return fmt.Errorf("value: %w", err)
@@ -1069,9 +831,6 @@ func (v *PostorderVisitor) VisitWhile(w *While) error {
 			return fmt.Errorf("leading comment: %w", err)
 		}
 	}
-	if err := w.Keyword.Accept(v); err != nil {
-		return fmt.Errorf("keyword: %w", err)
-	}
 	if err := w.Condition.Accept(v); err != nil {
 		return fmt.Errorf("condition: %w", err)
 	}
@@ -1079,9 +838,6 @@ func (v *PostorderVisitor) VisitWhile(w *While) error {
 		if err := s.Accept(v); err != nil {
 			return fmt.Errorf("statement: %w", err)
 		}
-	}
-	if err := w.EndKeyword.Accept(v); err != nil {
-		return fmt.Errorf("end keyword: %w", err)
 	}
 	for _, c := range w.Comments.Trailing() {
 		if err := c.Accept(v); err != nil {

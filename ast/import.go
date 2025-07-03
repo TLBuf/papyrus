@@ -10,8 +10,9 @@ import (
 // scope of another script.
 type Import struct {
 	LineTrivia
-	// Keyword is the Import keyword token that starts the statement.
-	Keyword *Token
+	// KeywordLocation is the location of the Import keyword that starts the
+	// statement.
+	KeywordLocation source.Location
 	// Name is the name of the script being imported.
 	Name *Identifier
 	// NodeLocation is the source location of the node.

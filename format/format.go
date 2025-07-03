@@ -95,13 +95,13 @@ type formatter struct {
 
 func (f *formatter) VisitAccess(node *ast.Access) error {
 	if err := node.Value.Accept(f); err != nil {
-		return fmt.Errorf("failed to format Value: %w", err)
+		return fmt.Errorf("failed to format value: %w", err)
 	}
-	if err := node.Operator.Accept(f); err != nil {
-		return fmt.Errorf("failed to format Operator: %w", err)
+	if err := f.str(token.Dot.Symbol()); err != nil {
+		return fmt.Errorf("failed to format dot operator: %w", err)
 	}
 	if err := node.Name.Accept(f); err != nil {
-		return fmt.Errorf("failed to format Name: %w", err)
+		return fmt.Errorf("failed to format name: %w", err)
 	}
 	return nil
 }
@@ -109,90 +109,90 @@ func (f *formatter) VisitAccess(node *ast.Access) error {
 func (f *formatter) VisitArgument(node *ast.Argument) error {
 	if node.Name != nil {
 		if err := node.Name.Accept(f); err != nil {
-			return fmt.Errorf("failed to format Name: %w", err)
+			return fmt.Errorf("failed to format name: %w", err)
 		}
 		if err := f.space(); err != nil {
 			return fmt.Errorf("failed to format space: %w", err)
 		}
-		if err := node.Operator.Accept(f); err != nil {
-			return fmt.Errorf("failed to format Operator: %w", err)
+		if err := f.str(token.Assign.Symbol()); err != nil {
+			return fmt.Errorf("failed to format assign operator: %w", err)
 		}
 		if err := f.space(); err != nil {
 			return fmt.Errorf("failed to format space: %w", err)
 		}
 	}
 	if err := node.Value.Accept(f); err != nil {
-		return fmt.Errorf("failed to format Value: %w", err)
+		return fmt.Errorf("failed to format value: %w", err)
 	}
 	return nil
 }
 
 func (f *formatter) VisitArrayCreation(node *ast.ArrayCreation) error {
-	if err := node.New.Accept(f); err != nil {
-		return fmt.Errorf("failed to format New: %w", err)
+	if err := f.str(f.keywords.New); err != nil {
+		return fmt.Errorf("failed to format new operator: %w", err)
 	}
 	if err := f.space(); err != nil {
 		return fmt.Errorf("failed to format space: %w", err)
 	}
 	if err := node.Type.Accept(f); err != nil {
-		return fmt.Errorf("failed to format Operator: %w", err)
+		return fmt.Errorf("failed to format type: %w", err)
 	}
-	if err := node.Open.Accept(f); err != nil {
-		return fmt.Errorf("failed to format Open: %w", err)
+	if err := f.str(token.BracketOpen.Symbol()); err != nil {
+		return fmt.Errorf("failed to format open bracket: %w", err)
 	}
 	if err := node.Size.Accept(f); err != nil {
-		return fmt.Errorf("failed to format Size: %w", err)
+		return fmt.Errorf("failed to format size: %w", err)
 	}
-	if err := node.Close.Accept(f); err != nil {
-		return fmt.Errorf("failed to format Close: %w", err)
+	if err := f.str(token.BracketClose.Symbol()); err != nil {
+		return fmt.Errorf("failed to format close bracket: %w", err)
 	}
 	return nil
 }
 
 func (f *formatter) VisitAssignment(node *ast.Assignment) error {
 	if err := node.Assignee.Accept(f); err != nil {
-		return fmt.Errorf("failed to format Assignee: %w", err)
+		return fmt.Errorf("failed to format assignee: %w", err)
 	}
 	if err := f.space(); err != nil {
 		return fmt.Errorf("failed to format space: %w", err)
 	}
-	if err := node.Operator.Accept(f); err != nil {
-		return fmt.Errorf("failed to format Operator: %w", err)
+	if err := f.str(node.Kind.Symbol()); err != nil {
+		return fmt.Errorf("failed to format operator: %w", err)
 	}
 	if err := f.space(); err != nil {
 		return fmt.Errorf("failed to format space: %w", err)
 	}
 	if err := node.Value.Accept(f); err != nil {
-		return fmt.Errorf("failed to format Value: %w", err)
+		return fmt.Errorf("failed to format value: %w", err)
 	}
 	return nil
 }
 
 func (f *formatter) VisitBinary(node *ast.Binary) error {
 	if err := node.LeftOperand.Accept(f); err != nil {
-		return fmt.Errorf("failed to format Operand: %w", err)
+		return fmt.Errorf("failed to format left operand: %w", err)
 	}
 	if err := f.space(); err != nil {
 		return fmt.Errorf("failed to format space: %w", err)
 	}
-	if err := node.Operator.Accept(f); err != nil {
-		return fmt.Errorf("failed to format Operator: %w", err)
+	if err := f.str(node.Kind.Symbol()); err != nil {
+		return fmt.Errorf("failed to format operator: %w", err)
 	}
 	if err := f.space(); err != nil {
 		return fmt.Errorf("failed to format space: %w", err)
 	}
 	if err := node.RightOperand.Accept(f); err != nil {
-		return fmt.Errorf("failed to format Operand: %w", err)
+		return fmt.Errorf("failed to format right operand: %w", err)
 	}
 	return nil
 }
 
 func (f *formatter) VisitCall(node *ast.Call) error {
 	if err := node.Function.Accept(f); err != nil {
-		return fmt.Errorf("failed to format Function: %w", err)
+		return fmt.Errorf("failed to format function: %w", err)
 	}
-	if err := node.Open.Accept(f); err != nil {
-		return fmt.Errorf("failed to format Open: %w", err)
+	if err := f.str(token.ParenthesisOpen.Symbol()); err != nil {
+		return fmt.Errorf("failed to format open parenthesis: %w", err)
 	}
 	for i, argument := range node.Arguments {
 		if i > 0 {
@@ -204,39 +204,39 @@ func (f *formatter) VisitCall(node *ast.Call) error {
 			}
 		}
 		if err := argument.Accept(f); err != nil {
-			return fmt.Errorf("failed to format Argument: %w", err)
+			return fmt.Errorf("failed to format argument: %w", err)
 		}
 	}
-	if err := node.Close.Accept(f); err != nil {
-		return fmt.Errorf("failed to format Close: %w", err)
+	if err := f.str(token.ParenthesisClose.Symbol()); err != nil {
+		return fmt.Errorf("failed to format close parenthesis: %w", err)
 	}
 	return nil
 }
 
 func (f *formatter) VisitCast(node *ast.Cast) error {
 	if err := node.Value.Accept(f); err != nil {
-		return fmt.Errorf("failed to format Value: %w", err)
+		return fmt.Errorf("failed to format value: %w", err)
 	}
 	if err := f.space(); err != nil {
 		return fmt.Errorf("failed to format space: %w", err)
 	}
-	if err := node.Operator.Accept(f); err != nil {
-		return fmt.Errorf("failed to format Operator: %w", err)
+	if err := f.str(f.keywords.As); err != nil {
+		return fmt.Errorf("failed to format as operator: %w", err)
 	}
 	if err := f.space(); err != nil {
 		return fmt.Errorf("failed to format space: %w", err)
 	}
 	if err := node.Type.Accept(f); err != nil {
-		return fmt.Errorf("failed to format Type: %w", err)
+		return fmt.Errorf("failed to format type: %w", err)
 	}
 	return nil
 }
 
 func (f *formatter) VisitDocumentation(node *ast.Documentation) error {
-	if err := node.Open.Accept(f); err != nil {
-		return fmt.Errorf("failed for format Open: %w", err)
+	if err := f.str(token.BraceOpen.Symbol()); err != nil {
+		return fmt.Errorf("failed for format open brace: %w", err)
 	}
-	text := trimRight(node.Text.Location().Text())
+	text := trimRight(node.TextLocation.Text())
 	if bytes.ContainsRune(text, '\n') {
 		f.level++
 		if err := f.newline(); err != nil {
@@ -268,17 +268,17 @@ func (f *formatter) VisitDocumentation(node *ast.Documentation) error {
 			return fmt.Errorf("failed to format space: %w", err)
 		}
 	}
-	if err := node.Close.Accept(f); err != nil {
-		return fmt.Errorf("failed for format Close: %w", err)
+	if err := f.str(token.BraceClose.Symbol()); err != nil {
+		return fmt.Errorf("failed for format close brace: %w", err)
 	}
 	return nil
 }
 
 func (f *formatter) VisitBlockComment(node *ast.BlockComment) error {
-	if err := node.Open.Accept(f); err != nil {
-		return fmt.Errorf("failed for format Open: %w", err)
+	if err := f.str(token.BlockCommentOpen.Symbol()); err != nil {
+		return fmt.Errorf("failed for format block comment open: %w", err)
 	}
-	text := trimRight(node.Text.Location().Text())
+	text := trimRight(node.TextLocation.Text())
 	if bytes.ContainsRune(text, '\n') {
 		f.level++
 		if err := f.newline(); err != nil {
@@ -310,37 +310,37 @@ func (f *formatter) VisitBlockComment(node *ast.BlockComment) error {
 			return fmt.Errorf("failed to format space: %w", err)
 		}
 	}
-	if err := node.Close.Accept(f); err != nil {
-		return fmt.Errorf("failed for format Close: %w", err)
+	if err := f.str(token.BlockCommentClose.Symbol()); err != nil {
+		return fmt.Errorf("failed for format block comment close: %w", err)
 	}
 	return nil
 }
 
 func (f *formatter) VisitLineComment(node *ast.LineComment) error {
-	if err := node.Open.Accept(f); err != nil {
-		return fmt.Errorf("failed for format Open: %w", err)
+	if err := f.str(token.Semicolon.Symbol()); err != nil {
+		return fmt.Errorf("failed for format semicolon: %w", err)
 	}
 	if err := f.space(); err != nil {
 		return fmt.Errorf("failed to format space: %w", err)
 	}
-	if err := f.bytes(trimRight(node.Text.Location().Text())); err != nil {
+	if err := f.bytes(trimRight(node.TextLocation.Text())); err != nil {
 		return fmt.Errorf("failed to format comment text: %w", err)
 	}
 	return nil
 }
 
 func (f *formatter) VisitEvent(node *ast.Event) error {
-	if err := node.Keyword.Accept(f); err != nil {
-		return fmt.Errorf("failed for format Keyword: %w", err)
+	if err := f.str(f.keywords.Event); err != nil {
+		return fmt.Errorf("failed for format start keyword: %w", err)
 	}
 	if err := f.space(); err != nil {
 		return fmt.Errorf("failed to format space: %w", err)
 	}
 	if err := node.Name.Accept(f); err != nil {
-		return fmt.Errorf("failed for format Name: %w", err)
+		return fmt.Errorf("failed for format name: %w", err)
 	}
-	if err := node.Open.Accept(f); err != nil {
-		return fmt.Errorf("failed for format Open: %w", err)
+	if err := f.str(token.ParenthesisOpen.Symbol()); err != nil {
+		return fmt.Errorf("failed for format open parenthesis: %w", err)
 	}
 	for i, parameter := range node.ParameterList {
 		if i > 0 {
@@ -352,30 +352,30 @@ func (f *formatter) VisitEvent(node *ast.Event) error {
 			}
 		}
 		if err := parameter.Accept(f); err != nil {
-			return fmt.Errorf("failed to format Parameter: %w", err)
+			return fmt.Errorf("failed to format parameter: %w", err)
 		}
 	}
-	if err := node.Close.Accept(f); err != nil {
-		return fmt.Errorf("failed for format Close: %w", err)
+	if err := f.str(token.ParenthesisClose.Symbol()); err != nil {
+		return fmt.Errorf("failed for format close parenthesis: %w", err)
 	}
-	if len(node.Native) > 0 {
+	if len(node.NativeLocations) > 0 {
 		if err := f.space(); err != nil {
 			return fmt.Errorf("failed to format space: %w", err)
 		}
 		if err := f.str(token.Native.String()); err != nil {
-			return fmt.Errorf("failed to format Native: %w", err)
+			return fmt.Errorf("failed to format native keyword: %w", err)
 		}
 	}
-	if node.Comment != nil {
+	if node.Documentation != nil {
 		if err := f.newline(); err != nil {
 			return fmt.Errorf("failed to format newline: %w", err)
 		}
-		if err := node.Comment.Accept(f); err != nil {
-			return fmt.Errorf("failed to format Comment: %w", err)
+		if err := node.Documentation.Accept(f); err != nil {
+			return fmt.Errorf("failed to format documentation: %w", err)
 		}
 	}
-	if len(node.Native) == 0 {
-		if node.Comment != nil {
+	if len(node.NativeLocations) == 0 {
+		if node.Documentation != nil {
 			if err := f.newline(); err != nil {
 				return fmt.Errorf("failed to format newline: %w", err)
 			}
@@ -391,15 +391,15 @@ func (f *formatter) VisitEvent(node *ast.Event) error {
 				}
 			}
 			if err := statement.Accept(f); err != nil {
-				return fmt.Errorf("failed to format Statement: %w", err)
+				return fmt.Errorf("failed to format statement: %w", err)
 			}
 		}
 		f.level--
 		if err := f.newline(); err != nil {
 			return fmt.Errorf("failed to format newline: %w", err)
 		}
-		if err := node.EndKeyword.Accept(f); err != nil {
-			return fmt.Errorf("failed for format EndKeyword: %w", err)
+		if err := f.str(f.keywords.EndEvent); err != nil {
+			return fmt.Errorf("failed for format end keyword: %w", err)
 		}
 	}
 	return nil
@@ -414,17 +414,17 @@ func (f *formatter) VisitFunction(node *ast.Function) error {
 			return fmt.Errorf("failed to format space: %w", err)
 		}
 	}
-	if err := node.Keyword.Accept(f); err != nil {
-		return fmt.Errorf("failed for format Keyword: %w", err)
+	if err := f.str(f.keywords.Function); err != nil {
+		return fmt.Errorf("failed for format start keyword: %w", err)
 	}
 	if err := f.space(); err != nil {
 		return fmt.Errorf("failed to format space: %w", err)
 	}
 	if err := node.Name.Accept(f); err != nil {
-		return fmt.Errorf("failed for format Name: %w", err)
+		return fmt.Errorf("failed for format name: %w", err)
 	}
-	if err := node.Open.Accept(f); err != nil {
-		return fmt.Errorf("failed for format Open: %w", err)
+	if err := f.str(token.ParenthesisClose.Symbol()); err != nil {
+		return fmt.Errorf("failed for format close parenthesis: %w", err)
 	}
 	for i, parameter := range node.ParameterList {
 		if i > 0 {
@@ -436,38 +436,38 @@ func (f *formatter) VisitFunction(node *ast.Function) error {
 			}
 		}
 		if err := parameter.Accept(f); err != nil {
-			return fmt.Errorf("failed to format Parameter: %w", err)
+			return fmt.Errorf("failed to format parameter: %w", err)
 		}
 	}
-	if err := node.Close.Accept(f); err != nil {
-		return fmt.Errorf("failed for format Close: %w", err)
+	if err := f.str(token.ParenthesisClose.Symbol()); err != nil {
+		return fmt.Errorf("failed for format close parenthesis: %w", err)
 	}
-	if len(node.Global) > 0 {
+	if len(node.GlobalLocations) > 0 {
 		if err := f.space(); err != nil {
 			return fmt.Errorf("failed to format space: %w", err)
 		}
 		if err := f.str(token.Global.String()); err != nil {
-			return fmt.Errorf("failed to format Global: %w", err)
+			return fmt.Errorf("failed to format global keyword: %w", err)
 		}
 	}
-	if len(node.Native) > 0 {
+	if len(node.NativeLocations) > 0 {
 		if err := f.space(); err != nil {
 			return fmt.Errorf("failed to format space: %w", err)
 		}
 		if err := f.str(token.Native.String()); err != nil {
-			return fmt.Errorf("failed to format Native: %w", err)
+			return fmt.Errorf("failed to format native keyword: %w", err)
 		}
 	}
-	if node.Comment != nil {
+	if node.Documentation != nil {
 		if err := f.newline(); err != nil {
 			return fmt.Errorf("failed to format newline: %w", err)
 		}
-		if err := node.Comment.Accept(f); err != nil {
-			return fmt.Errorf("failed to format Comment: %w", err)
+		if err := node.Documentation.Accept(f); err != nil {
+			return fmt.Errorf("failed to format documentation: %w", err)
 		}
 	}
-	if len(node.Native) == 0 {
-		if node.Comment != nil {
+	if len(node.NativeLocations) == 0 {
+		if node.Documentation != nil {
 			if err := f.newline(); err != nil {
 				return fmt.Errorf("failed to format newline: %w", err)
 			}
@@ -483,15 +483,15 @@ func (f *formatter) VisitFunction(node *ast.Function) error {
 				}
 			}
 			if err := statement.Accept(f); err != nil {
-				return fmt.Errorf("failed to format Statement: %w", err)
+				return fmt.Errorf("failed to format statement: %w", err)
 			}
 		}
 		f.level--
 		if err := f.newline(); err != nil {
 			return fmt.Errorf("failed to format newline: %w", err)
 		}
-		if err := node.EndKeyword.Accept(f); err != nil {
-			return fmt.Errorf("failed for format EndKeyword: %w", err)
+		if err := f.str(f.keywords.EndFunction); err != nil {
+			return fmt.Errorf("failed for format end keyword: %w", err)
 		}
 	}
 	return nil
@@ -502,14 +502,14 @@ func (f *formatter) VisitIdentifier(node *ast.Identifier) error {
 }
 
 func (f *formatter) VisitIf(node *ast.If) error {
-	if err := node.Keyword.Accept(f); err != nil {
-		return fmt.Errorf("failed for format Keyword: %w", err)
+	if err := f.str(f.keywords.If); err != nil {
+		return fmt.Errorf("failed for format start keyword: %w", err)
 	}
 	if err := f.space(); err != nil {
 		return fmt.Errorf("failed to format space: %w", err)
 	}
 	if err := node.Condition.Accept(f); err != nil {
-		return fmt.Errorf("failed for format Condition: %w", err)
+		return fmt.Errorf("failed for format condition: %w", err)
 	}
 	f.level++
 	if err := f.newline(); err != nil {
@@ -522,7 +522,7 @@ func (f *formatter) VisitIf(node *ast.If) error {
 			}
 		}
 		if err := statement.Accept(f); err != nil {
-			return fmt.Errorf("failed to format Statement: %w", err)
+			return fmt.Errorf("failed to format statement: %w", err)
 		}
 	}
 	f.level--
@@ -531,7 +531,7 @@ func (f *formatter) VisitIf(node *ast.If) error {
 	}
 	for _, elseif := range node.ElseIfs {
 		if err := elseif.Accept(f); err != nil {
-			return fmt.Errorf("failed to format ElseIf: %w", err)
+			return fmt.Errorf("failed to format elseif: %w", err)
 		}
 		if err := f.newline(); err != nil {
 			return fmt.Errorf("failed to format newline: %w", err)
@@ -539,27 +539,27 @@ func (f *formatter) VisitIf(node *ast.If) error {
 	}
 	if node.Else != nil {
 		if err := node.Else.Accept(f); err != nil {
-			return fmt.Errorf("failed to format Else: %w", err)
+			return fmt.Errorf("failed to format else: %w", err)
 		}
 		if err := f.newline(); err != nil {
 			return fmt.Errorf("failed to format newline: %w", err)
 		}
 	}
-	if err := node.EndKeyword.Accept(f); err != nil {
-		return fmt.Errorf("failed for format EndKeyword: %w", err)
+	if err := f.str(f.keywords.EndIf); err != nil {
+		return fmt.Errorf("failed for format end keyword: %w", err)
 	}
 	return nil
 }
 
 func (f *formatter) VisitElseIf(node *ast.ElseIf) error {
-	if err := node.Keyword.Accept(f); err != nil {
-		return fmt.Errorf("failed for format Keyword: %w", err)
+	if err := f.str(f.keywords.ElseIf); err != nil {
+		return fmt.Errorf("failed for format keyword: %w", err)
 	}
 	if err := f.space(); err != nil {
 		return fmt.Errorf("failed to format space: %w", err)
 	}
 	if err := node.Condition.Accept(f); err != nil {
-		return fmt.Errorf("failed for format Condition: %w", err)
+		return fmt.Errorf("failed for format condition: %w", err)
 	}
 	f.level++
 	if err := f.newline(); err != nil {
@@ -572,7 +572,7 @@ func (f *formatter) VisitElseIf(node *ast.ElseIf) error {
 			}
 		}
 		if err := statement.Accept(f); err != nil {
-			return fmt.Errorf("failed to format Statement: %w", err)
+			return fmt.Errorf("failed to format statement: %w", err)
 		}
 	}
 	f.level--
@@ -580,8 +580,8 @@ func (f *formatter) VisitElseIf(node *ast.ElseIf) error {
 }
 
 func (f *formatter) VisitElse(node *ast.Else) error {
-	if err := node.Keyword.Accept(f); err != nil {
-		return fmt.Errorf("failed for format Keyword: %w", err)
+	if err := f.str(f.keywords.Else); err != nil {
+		return fmt.Errorf("failed for format keyword: %w", err)
 	}
 	f.level++
 	if err := f.newline(); err != nil {
@@ -594,7 +594,7 @@ func (f *formatter) VisitElse(node *ast.Else) error {
 			}
 		}
 		if err := statement.Accept(f); err != nil {
-			return fmt.Errorf("failed to format Statement: %w", err)
+			return fmt.Errorf("failed to format statement: %w", err)
 		}
 	}
 	f.level--
@@ -603,14 +603,14 @@ func (f *formatter) VisitElse(node *ast.Else) error {
 
 func (f *formatter) VisitExpressionStatement(node *ast.ExpressionStatement) error {
 	if err := node.Expression.Accept(f); err != nil {
-		return fmt.Errorf("failed for format Expression: %w", err)
+		return fmt.Errorf("failed for format expression: %w", err)
 	}
 	return nil
 }
 
 func (f *formatter) VisitImport(node *ast.Import) error {
-	if err := node.Keyword.Accept(f); err != nil {
-		return fmt.Errorf("failed for format Keyword: %w", err)
+	if err := f.str(f.keywords.Import); err != nil {
+		return fmt.Errorf("failed for format keyword: %w", err)
 	}
 	if err := f.space(); err != nil {
 		return fmt.Errorf("failed to format space: %w", err)
@@ -623,16 +623,16 @@ func (f *formatter) VisitImport(node *ast.Import) error {
 
 func (f *formatter) VisitIndex(node *ast.Index) error {
 	if err := node.Value.Accept(f); err != nil {
-		return fmt.Errorf("failed for format Value: %w", err)
+		return fmt.Errorf("failed for format value: %w", err)
 	}
-	if err := node.Open.Accept(f); err != nil {
-		return fmt.Errorf("failed for format Open: %w", err)
+	if err := f.str(token.BracketOpen.Symbol()); err != nil {
+		return fmt.Errorf("failed to format open bracket: %w", err)
 	}
 	if err := node.Index.Accept(f); err != nil {
-		return fmt.Errorf("failed for format Index: %w", err)
+		return fmt.Errorf("failed for format index: %w", err)
 	}
-	if err := node.Close.Accept(f); err != nil {
-		return fmt.Errorf("failed for format Close: %w", err)
+	if err := f.str(token.BracketClose.Symbol()); err != nil {
+		return fmt.Errorf("failed to format close bracket: %w", err)
 	}
 	return nil
 }
@@ -643,151 +643,151 @@ func (f *formatter) VisitBoolLiteral(node *ast.BoolLiteral) error {
 		text = f.keywords.True
 	}
 	if err := f.str(text); err != nil {
-		return fmt.Errorf("failed to format BoolLiteral: %w", err)
+		return fmt.Errorf("failed to format text: %w", err)
 	}
 	return nil
 }
 
 func (f *formatter) VisitIntLiteral(node *ast.IntLiteral) error {
 	if err := f.bytes(node.Location().Text()); err != nil {
-		return fmt.Errorf("failed to format IntLiteral: %w", err)
+		return fmt.Errorf("failed to format text: %w", err)
 	}
 	return nil
 }
 
 func (f *formatter) VisitFloatLiteral(node *ast.FloatLiteral) error {
 	if err := f.bytes(node.Location().Text()); err != nil {
-		return fmt.Errorf("failed to format FloatLiteral: %w", err)
+		return fmt.Errorf("failed to format text: %w", err)
 	}
 	return nil
 }
 
 func (f *formatter) VisitStringLiteral(node *ast.StringLiteral) error {
 	if err := f.bytes(node.Location().Text()); err != nil {
-		return fmt.Errorf("failed to format StringLiteral: %w", err)
+		return fmt.Errorf("failed to format text: %w", err)
 	}
 	return nil
 }
 
 func (f *formatter) VisitNoneLiteral(node *ast.NoneLiteral) error {
 	if err := f.str(f.keywords.None); err != nil {
-		return fmt.Errorf("failed to format None: %w", err)
+		return fmt.Errorf("failed to format None keyword: %w", err)
 	}
 	return nil
 }
 
 func (f *formatter) VisitParameter(node *ast.Parameter) error {
 	if err := node.Type.Accept(f); err != nil {
-		return fmt.Errorf("failed to format Type: %w", err)
+		return fmt.Errorf("failed to format type: %w", err)
 	}
 	if err := f.space(); err != nil {
 		return fmt.Errorf("failed to format space: %w", err)
 	}
 	if err := node.Name.Accept(f); err != nil {
-		return fmt.Errorf("failed to format Name: %w", err)
+		return fmt.Errorf("failed to format name: %w", err)
 	}
-	if node.Operator != nil {
+	if node.DefaultValue != nil {
 		if err := f.space(); err != nil {
 			return fmt.Errorf("failed to format space: %w", err)
 		}
-		if err := node.Operator.Accept(f); err != nil {
-			return fmt.Errorf("failed to format Operator: %w", err)
+		if err := f.str(token.Assign.Symbol()); err != nil {
+			return fmt.Errorf("failed to format assign operator: %w", err)
 		}
 		if err := f.space(); err != nil {
 			return fmt.Errorf("failed to format space: %w", err)
 		}
-		if err := node.Value.Accept(f); err != nil {
-			return fmt.Errorf("failed to format Value: %w", err)
+		if err := node.DefaultValue.Accept(f); err != nil {
+			return fmt.Errorf("failed to format value: %w", err)
 		}
 	}
 	return nil
 }
 
 func (f *formatter) VisitParenthetical(node *ast.Parenthetical) error {
-	if err := node.Open.Accept(f); err != nil {
-		return fmt.Errorf("failed to format Open: %w", err)
+	if err := f.str(token.ParenthesisOpen.Symbol()); err != nil {
+		return fmt.Errorf("failed for format open parenthesis: %w", err)
 	}
 	if err := node.Value.Accept(f); err != nil {
 		return fmt.Errorf("failed to format Value: %w", err)
 	}
-	if err := node.Close.Accept(f); err != nil {
-		return fmt.Errorf("failed to format Close: %w", err)
+	if err := f.str(token.ParenthesisClose.Symbol()); err != nil {
+		return fmt.Errorf("failed for format close parenthesis: %w", err)
 	}
 	return nil
 }
 
 func (f *formatter) VisitProperty(node *ast.Property) error {
 	if err := node.Type.Accept(f); err != nil {
-		return fmt.Errorf("failed to format Type: %w", err)
+		return fmt.Errorf("failed to format type: %w", err)
 	}
 	if err := f.space(); err != nil {
 		return fmt.Errorf("failed to format space: %w", err)
 	}
-	if err := node.Keyword.Accept(f); err != nil {
-		return fmt.Errorf("failed to format Keyword: %w", err)
+	if err := f.str(f.keywords.Property); err != nil {
+		return fmt.Errorf("failed for format start keyword: %w", err)
 	}
 	if err := f.space(); err != nil {
 		return fmt.Errorf("failed to format space: %w", err)
 	}
 	if err := node.Name.Accept(f); err != nil {
-		return fmt.Errorf("failed to format Name: %w", err)
+		return fmt.Errorf("failed to format name: %w", err)
 	}
-	if node.Operator != nil {
+	if node.Value != nil {
 		if err := f.space(); err != nil {
 			return fmt.Errorf("failed to format space: %w", err)
 		}
-		if err := node.Operator.Accept(f); err != nil {
-			return fmt.Errorf("failed to format Operator: %w", err)
+		if err := f.str(token.Assign.Symbol()); err != nil {
+			return fmt.Errorf("failed to format assign operator: %w", err)
 		}
 		if err := f.space(); err != nil {
 			return fmt.Errorf("failed to format space: %w", err)
 		}
 		if err := node.Value.Accept(f); err != nil {
-			return fmt.Errorf("failed to format Value: %w", err)
+			return fmt.Errorf("failed to format value: %w", err)
 		}
 	}
-	if node.Auto != nil {
+	if node.Kind == ast.Auto {
 		if err := f.space(); err != nil {
 			return fmt.Errorf("failed to format space: %w", err)
 		}
-		if err := node.Auto.Accept(f); err != nil {
-			return fmt.Errorf("failed to format Auto: %w", err)
+		if err := f.str(f.keywords.Auto); err != nil {
+			return fmt.Errorf("failed to format Auto keyword: %w", err)
 		}
 	}
-	if node.AutoReadOnly != nil {
+	if node.Kind == ast.AutoReadOnly {
 		if err := f.space(); err != nil {
 			return fmt.Errorf("failed to format space: %w", err)
 		}
-		if err := node.AutoReadOnly.Accept(f); err != nil {
-			return fmt.Errorf("failed to format AutoReadOnly: %w", err)
+		if err := f.str(f.keywords.AutoReadOnly); err != nil {
+			return fmt.Errorf("failed to format AutoReadOnly keyword: %w", err)
 		}
 	}
-	if len(node.Hidden) > 0 {
+	if len(node.HiddenLocations) > 0 {
 		if err := f.space(); err != nil {
 			return fmt.Errorf("failed to format space: %w", err)
 		}
 		if err := f.str(f.keywords.Hidden); err != nil {
-			return fmt.Errorf("failed to format Hidden: %w", err)
+			return fmt.Errorf("failed to format Hidden keyword: %w", err)
 		}
 	}
-	if len(node.Conditional) > 0 {
+	if len(node.ConditionalLocations) > 0 {
 		if err := f.space(); err != nil {
 			return fmt.Errorf("failed to format space: %w", err)
 		}
 		if err := f.str(f.keywords.Conditional); err != nil {
-			return fmt.Errorf("failed to format Conditional: %w", err)
+			return fmt.Errorf("failed to format Conditional keyword: %w", err)
 		}
 	}
-	if node.Comment != nil {
+	if node.Documentation != nil {
 		if err := f.newline(); err != nil {
 			return fmt.Errorf("failed to format newline: %w", err)
 		}
-		if err := node.Comment.Accept(f); err != nil {
-			return fmt.Errorf("failed to format Comment: %w", err)
+		if err := node.Documentation.Accept(f); err != nil {
+			return fmt.Errorf("failed to format documentation: %w", err)
 		}
 	}
 	if node.Get != nil || node.Set != nil {
-		if node.Comment != nil {
+		if node.Documentation != nil {
 			if err := f.newline(); err != nil {
 				return fmt.Errorf("failed to format newline: %w", err)
 			}
@@ -816,16 +816,16 @@ func (f *formatter) VisitProperty(node *ast.Property) error {
 		if err := f.newline(); err != nil {
 			return fmt.Errorf("failed to format newline: %w", err)
 		}
-		if err := node.EndKeyword.Accept(f); err != nil {
-			return fmt.Errorf("failed to format EndKeyword: %w", err)
+		if err := f.str(f.keywords.EndProperty); err != nil {
+			return fmt.Errorf("failed for format end keyword: %w", err)
 		}
 	}
 	return nil
 }
 
 func (f *formatter) VisitReturn(node *ast.Return) error {
-	if err := node.Keyword.Accept(f); err != nil {
-		return fmt.Errorf("failed to format Keyword: %w", err)
+	if err := f.str(f.keywords.Return); err != nil {
+		return fmt.Errorf("failed for format keyword: %w", err)
 	}
 	if node.Value != nil {
 		if err := f.space(); err != nil {
@@ -839,51 +839,51 @@ func (f *formatter) VisitReturn(node *ast.Return) error {
 }
 
 func (f *formatter) VisitScript(node *ast.Script) error {
-	if err := node.Keyword.Accept(f); err != nil {
-		return fmt.Errorf("failed to format Keyword: %w", err)
+	if err := f.str(f.keywords.ScriptName); err != nil {
+		return fmt.Errorf("failed for format ScriptName keyword: %w", err)
 	}
 	if err := f.space(); err != nil {
 		return fmt.Errorf("failed to format space: %w", err)
 	}
 	if err := node.Name.Accept(f); err != nil {
-		return fmt.Errorf("failed to format Name: %w", err)
+		return fmt.Errorf("failed to format name: %w", err)
 	}
-	if node.Extends != nil {
+	if node.Parent != nil {
 		if err := f.space(); err != nil {
 			return fmt.Errorf("failed to format space: %w", err)
 		}
-		if err := node.Extends.Accept(f); err != nil {
-			return fmt.Errorf("failed to format Extends: %w", err)
+		if err := f.str(f.keywords.Extends); err != nil {
+			return fmt.Errorf("failed for format Extends keyword: %w", err)
 		}
 		if err := f.space(); err != nil {
 			return fmt.Errorf("failed to format space: %w", err)
 		}
 		if err := node.Parent.Accept(f); err != nil {
-			return fmt.Errorf("failed to format Parent: %w", err)
+			return fmt.Errorf("failed to format parent: %w", err)
 		}
 	}
-	if len(node.Hidden) > 0 {
+	if len(node.HiddenLocations) > 0 {
 		if err := f.space(); err != nil {
 			return fmt.Errorf("failed to format space: %w", err)
 		}
 		if err := f.str(f.keywords.Hidden); err != nil {
-			return fmt.Errorf("failed to format Hidden: %w", err)
+			return fmt.Errorf("failed to format Hidden keyword: %w", err)
 		}
 	}
-	if len(node.Conditional) > 0 {
+	if len(node.ConditionalLocations) > 0 {
 		if err := f.space(); err != nil {
 			return fmt.Errorf("failed to format space: %w", err)
 		}
 		if err := f.str(f.keywords.Conditional); err != nil {
-			return fmt.Errorf("failed to format Conditional: %w", err)
+			return fmt.Errorf("failed to format Conditional keyword: %w", err)
 		}
 	}
 	if err := f.newline(); err != nil {
 		return fmt.Errorf("failed to format newline: %w", err)
 	}
-	if node.Comment != nil {
-		if err := node.Comment.Accept(f); err != nil {
-			return fmt.Errorf("failed to format Comment: %w", err)
+	if node.Documentation != nil {
+		if err := node.Documentation.Accept(f); err != nil {
+			return fmt.Errorf("failed to format documentation: %w", err)
 		}
 		if err := f.newline(); err != nil {
 			return fmt.Errorf("failed to format newline: %w", err)
@@ -917,7 +917,7 @@ func (f *formatter) VisitScript(node *ast.Script) error {
 	slices.SortFunc(imports, func(a, b *ast.Import) int { return strings.Compare(a.Name.Normalized, b.Name.Normalized) })
 	for i, state := range states {
 		// Always pull the Auto state to the top, but otherwise maintain order.
-		if state.Auto != nil {
+		if state.IsAuto {
 			if i == 0 {
 				break
 			}
@@ -929,7 +929,7 @@ func (f *formatter) VisitScript(node *ast.Script) error {
 	}
 	for _, i := range imports {
 		if err := i.Accept(f); err != nil {
-			return fmt.Errorf("failed to format Import: %w", err)
+			return fmt.Errorf("failed to format import: %w", err)
 		}
 		if err := f.newline(); err != nil {
 			return fmt.Errorf("failed to format newline: %w", err)
@@ -942,12 +942,12 @@ func (f *formatter) VisitScript(node *ast.Script) error {
 	}
 	for _, p := range properties {
 		if err := p.Accept(f); err != nil {
-			return fmt.Errorf("failed to format Property: %w", err)
+			return fmt.Errorf("failed to format property: %w", err)
 		}
 		if err := f.newline(); err != nil {
 			return fmt.Errorf("failed to format newline: %w", err)
 		}
-		if (p.Auto == nil && p.AutoReadOnly == nil) || p.Comment != nil {
+		if p.Kind == ast.Full || p.Documentation != nil {
 			if err := f.newline(); err != nil {
 				return fmt.Errorf("failed to format newline: %w", err)
 			}
@@ -960,7 +960,7 @@ func (f *formatter) VisitScript(node *ast.Script) error {
 	}
 	for _, v := range variables {
 		if err := v.Accept(f); err != nil {
-			return fmt.Errorf("failed to format ScriptVariable: %w", err)
+			return fmt.Errorf("failed to format variable: %w", err)
 		}
 		if err := f.newline(); err != nil {
 			return fmt.Errorf("failed to format newline: %w", err)
@@ -973,7 +973,7 @@ func (f *formatter) VisitScript(node *ast.Script) error {
 	}
 	for _, i := range invokables {
 		if err := i.Accept(f); err != nil {
-			return fmt.Errorf("failed to format Invokable: %w", err)
+			return fmt.Errorf("failed to format invokable: %w", err)
 		}
 		if err := f.newline(); err != nil {
 			return fmt.Errorf("failed to format newline: %w", err)
@@ -984,7 +984,7 @@ func (f *formatter) VisitScript(node *ast.Script) error {
 	}
 	for _, s := range states {
 		if err := s.Accept(f); err != nil {
-			return fmt.Errorf("failed to format State: %w", err)
+			return fmt.Errorf("failed to format state: %w", err)
 		}
 		if err := f.newline(); err != nil {
 			return fmt.Errorf("failed to format newline: %w", err)
@@ -997,16 +997,16 @@ func (f *formatter) VisitScript(node *ast.Script) error {
 }
 
 func (f *formatter) VisitState(node *ast.State) error {
-	if node.Auto != nil {
-		if err := node.Auto.Accept(f); err != nil {
-			return fmt.Errorf("failed to format Auto: %w", err)
+	if node.IsAuto {
+		if err := f.str(f.keywords.Auto); err != nil {
+			return fmt.Errorf("failed to format Auto keyword: %w", err)
 		}
 		if err := f.space(); err != nil {
 			return fmt.Errorf("failed to format space: %w", err)
 		}
 	}
-	if err := node.Keyword.Accept(f); err != nil {
-		return fmt.Errorf("failed to format Keyword: %w", err)
+	if err := f.str(f.keywords.State); err != nil {
+		return fmt.Errorf("failed for format start keyword: %w", err)
 	}
 	if err := f.space(); err != nil {
 		return fmt.Errorf("failed to format space: %w", err)
@@ -1035,26 +1035,10 @@ func (f *formatter) VisitState(node *ast.State) error {
 	if err := f.newline(); err != nil {
 		return fmt.Errorf("failed to format newline: %w", err)
 	}
-	if err := node.EndKeyword.Accept(f); err != nil {
-		return fmt.Errorf("failed to format EndKeyword: %w", err)
+	if err := f.str(f.keywords.EndState); err != nil {
+		return fmt.Errorf("failed for format end keyword: %w", err)
 	}
 	return nil
-}
-
-func (f *formatter) VisitToken(node *ast.Token) error {
-	if node.Kind.IsSymbol() {
-		if err := f.str(node.Kind.Symbol()); err != nil {
-			return fmt.Errorf("failed to format symbol token: %w", err)
-		}
-		return nil
-	}
-	if node.Kind.IsKeyword() {
-		if err := f.str(f.keywords.Text(node.Kind)); err != nil {
-			return fmt.Errorf("failed to format keyword token: %w", err)
-		}
-		return nil
-	}
-	return fmt.Errorf("unexpected token: %s", node.Kind)
 }
 
 func (f *formatter) VisitTypeLiteral(node *ast.TypeLiteral) error {
@@ -1073,30 +1057,22 @@ func (f *formatter) VisitTypeLiteral(node *ast.TypeLiteral) error {
 	case types.String:
 		text = f.keywords.String
 	case types.Object:
-		text = string(node.Text.Location().Text())
+		text = string(node.Location().Text())
 	default:
 		return fmt.Errorf("unexpected types: %T", baseType)
 	}
 	if err := f.str(text); err != nil {
 		return fmt.Errorf("failed to format type: %w", err)
 	}
-	if node.Open != nil {
-		if err := node.Open.Accept(f); err != nil {
-			return fmt.Errorf("failed to format Open: %w", err)
-		}
-		if err := node.Close.Accept(f); err != nil {
-			return fmt.Errorf("failed to format Close: %w", err)
-		}
-	}
 	return nil
 }
 
 func (f *formatter) VisitUnary(node *ast.Unary) error {
-	if err := node.Operator.Accept(f); err != nil {
-		return fmt.Errorf("failed to format Operator: %w", err)
+	if err := f.str(node.Kind.Symbol()); err != nil {
+		return fmt.Errorf("failed to format operator: %w", err)
 	}
 	if err := node.Operand.Accept(f); err != nil {
-		return fmt.Errorf("failed to format Operand: %w", err)
+		return fmt.Errorf("failed to format operand: %w", err)
 	}
 	return nil
 }
@@ -1109,28 +1085,28 @@ func (f *formatter) VisitScriptVariable(node *ast.ScriptVariable) error {
 		return fmt.Errorf("failed to format space: %w", err)
 	}
 	if err := node.Name.Accept(f); err != nil {
-		return fmt.Errorf("failed to format Name: %w", err)
+		return fmt.Errorf("failed to format name: %w", err)
 	}
 	if node.Value != nil {
 		if err := f.space(); err != nil {
 			return fmt.Errorf("failed to format space: %w", err)
 		}
-		if err := node.Operator.Accept(f); err != nil {
-			return fmt.Errorf("failed to format Operator: %w", err)
+		if err := f.str(token.Assign.Symbol()); err != nil {
+			return fmt.Errorf("failed to format assign operator: %w", err)
 		}
 		if err := f.space(); err != nil {
 			return fmt.Errorf("failed to format space: %w", err)
 		}
 		if err := node.Value.Accept(f); err != nil {
-			return fmt.Errorf("failed to format Value: %w", err)
+			return fmt.Errorf("failed to format value: %w", err)
 		}
 	}
-	if len(node.Conditional) > 0 {
+	if len(node.ConditionalLocations) > 0 {
 		if err := f.space(); err != nil {
 			return fmt.Errorf("failed to format space: %w", err)
 		}
 		if err := f.str(f.keywords.Conditional); err != nil {
-			return fmt.Errorf("failed to format Conditional: %w", err)
+			return fmt.Errorf("failed to format Conditional keyword: %w", err)
 		}
 	}
 	return nil
@@ -1144,28 +1120,28 @@ func (f *formatter) VisitFunctionVariable(node *ast.FunctionVariable) error {
 		return fmt.Errorf("failed to format space: %w", err)
 	}
 	if err := node.Name.Accept(f); err != nil {
-		return fmt.Errorf("failed to format Name: %w", err)
+		return fmt.Errorf("failed to format name: %w", err)
 	}
 	if node.Value != nil {
 		if err := f.space(); err != nil {
 			return fmt.Errorf("failed to format space: %w", err)
 		}
-		if err := node.Operator.Accept(f); err != nil {
-			return fmt.Errorf("failed to format Operator: %w", err)
+		if err := f.str(token.Assign.Symbol()); err != nil {
+			return fmt.Errorf("failed to format assign operator: %w", err)
 		}
 		if err := f.space(); err != nil {
 			return fmt.Errorf("failed to format space: %w", err)
 		}
 		if err := node.Value.Accept(f); err != nil {
-			return fmt.Errorf("failed to format Value: %w", err)
+			return fmt.Errorf("failed to format value: %w", err)
 		}
 	}
 	return nil
 }
 
 func (f *formatter) VisitWhile(node *ast.While) error {
-	if err := node.Keyword.Accept(f); err != nil {
-		return fmt.Errorf("failed for format Keyword: %w", err)
+	if err := f.str(f.keywords.While); err != nil {
+		return fmt.Errorf("failed for format start keyword: %w", err)
 	}
 	if err := f.space(); err != nil {
 		return fmt.Errorf("failed to format space: %w", err)
@@ -1191,8 +1167,8 @@ func (f *formatter) VisitWhile(node *ast.While) error {
 	if err := f.newline(); err != nil {
 		return fmt.Errorf("failed to format newline: %w", err)
 	}
-	if err := node.EndKeyword.Accept(f); err != nil {
-		return fmt.Errorf("failed for format EndKeyword: %w", err)
+	if err := f.str(f.keywords.EndWhile); err != nil {
+		return fmt.Errorf("failed for format start keyword: %w", err)
 	}
 	return nil
 }

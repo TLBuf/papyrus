@@ -5,8 +5,6 @@ import "github.com/TLBuf/papyrus/source"
 // Identifier represents an arbitrary identifier.
 type Identifier struct {
 	InfixTrivia
-	// Text is the Identifier token.
-	Text *Token
 	// Normalized is the normalized text of the identifier.
 	Normalized string
 	// NodeLocation is the source location of the node.

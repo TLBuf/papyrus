@@ -5,16 +5,16 @@ import "github.com/TLBuf/papyrus/source"
 // ArrayCreation is an expression that creates a new array of a fixed length.
 type ArrayCreation struct {
 	InfixTrivia
-	// New is the new operator token.
-	New *Token
+	// NewLocation is the location of the new operator.
+	NewLocation source.Location
 	// Type is the type of elements the array can contain.
 	Type *TypeLiteral
-	// OpenOperator is the open bracket token.
-	Open *Token
+	// OpenLocation is the location of the opening bracket.
+	OpenLocation source.Location
 	// Size is the length of the array (between 1 and 128 inclusive).
 	Size *IntLiteral
-	// CloseOperator is the close bracket token
-	Close *Token
+	// CloseLocation is the location of the closing bracket.
+	CloseLocation source.Location
 	// NodeLocation is the source location of the node.
 	NodeLocation source.Location
 }

@@ -7,8 +7,8 @@ type Cast struct {
 	InfixTrivia
 	// Value is the expression being cast to a new type.
 	Value Expression
-	// Operator is the As operator token.
-	Operator *Token
+	// AsLocation is the location of the As operator.
+	AsLocation source.Location
 	// Type is the type the value is being cast to.
 	Type *TypeLiteral
 	// NodeLocation is the source location of the node.

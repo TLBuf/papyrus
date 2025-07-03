@@ -8,8 +8,8 @@ type Access struct {
 	InfixTrivia
 	// Value is the expression that defines the value have something accessed.
 	Value Expression
-	// Operator is the dot operator token for this access.
-	Operator *Token
+	// DotLocation is the location of the dot operator.
+	DotLocation source.Location
 	// Name is the name of the variable or function being accessed in value.
 	Name *Identifier
 	// NodeLocation is the source location of the node.

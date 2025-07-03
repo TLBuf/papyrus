@@ -10,18 +10,13 @@ type Comment interface {
 
 // BlockComment represents block comment.
 type BlockComment struct {
-	// Open is the opening brace token for the block comment.
-	//
-	// This is always of kind [token.BlockCommentOpen].
-	Open *Token
-	// Text is the token for the text of the comment (which may include newlines).
-	//
-	// This is always of kind [token.Comment].
-	Text *Token
-	// Close is the closing brace token for the block comment.
-	//
-	// This is always of kind [token.BlockCommentClose].
-	Close *Token
+	// OpenLocation is the location of the opening block comment token.
+	OpenLocation source.Location
+	// TextLocation is the location of the text of the comment (which may include
+	// newlines).
+	TextLocation source.Location
+	// CloseLocation is the location of the closing block comment token.
+	CloseLocation source.Location
 	// NodeLocation is the source location of the node.
 	NodeLocation source.Location
 }
@@ -42,14 +37,11 @@ var _ Comment = (*BlockComment)(nil)
 
 // LineComment represents line comment.
 type LineComment struct {
-	// Open is the semicolon that starts the comment.
-	//
-	// This is always of kind [token.Open].
-	Open *Token
-	// Text is the token for the text of the comment (which will never include a newline).
-	//
-	// This is always of kind [token.Comment].
-	Text *Token
+	// SemicolonLocation is the location of the semicolon that starts the comment.
+	SemicolonLocation source.Location
+	// TextLocation is the location of the text of the comment (which will never
+	// include newlines).
+	TextLocation source.Location
 	// NodeLocation is the source location of the node.
 	NodeLocation source.Location
 }
@@ -96,19 +88,13 @@ func (c *Comments) Trailing() []Comment {
 
 // Documentation represents a documentation comment.
 type Documentation struct {
-	// Open is the opening brace token for the documentation.
-	//
-	// This is always of kind [token.BraceOpen].
-	Open *Token
-	// Text is the token for the text of the documentation (which may include
+	// OpenLocation is the location of the opening brace.
+	OpenLocation source.Location
+	// TextLocation is the location of the text of the comment (which may include
 	// newlines).
-	//
-	// This is always of kind [token.Comment].
-	Text *Token
-	// Close is the closing brace token for the docdocumentation.
-	//
-	// This is always of kind [token.BraceClose].
-	Close *Token
+	TextLocation source.Location
+	// CloseLocation is the location of the closing brace.
+	CloseLocation source.Location
 	// NodeLocation is the source location of the node.
 	NodeLocation source.Location
 }

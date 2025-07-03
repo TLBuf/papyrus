@@ -8,17 +8,23 @@ import "github.com/TLBuf/papyrus/source"
 // time.
 type State struct {
 	LineTrivia
-	// Auto is the Auto keyword that identifies this state as the state the script
-	// should start in automatically.
-	Auto *Token
-	// Keyword is the State keyword that starts the definition.
-	Keyword *Token
+	// IsAuto is true if the script should start in this state automatically.
+	IsAuto bool
+	// AutoLocation is the location of the Auto keyword that identifies this state
+	// as the state the script should start in automatically.
+	//
+	// This is only valid if IsAuto is true.
+	AutoLocation source.Location
+	// StartKeywordLocation is the location of the State keyword that starts
+	// the statement.
+	StartKeywordLocation source.Location
 	// Name is the name of the variable.
 	Name *Identifier
 	// Invokables is the list of functions and events defined for this state.
 	Invokables []Invokable
-	// EndKeyword is the EndState keyword that ends the definition.
-	EndKeyword *Token
+	// EndKeywordLocation is the location of the EndState keyword that ends the
+	// statement.
+	EndKeywordLocation source.Location
 	// NodeLocation is the source location of the node.
 	NodeLocation source.Location
 }

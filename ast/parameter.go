@@ -9,11 +9,13 @@ type Parameter struct {
 	Type *TypeLiteral
 	// Name is the name of the parameter.
 	Name *Identifier
-	// Operator is the assignment operator or nil if no default value is defined.
-	Operator *Token
-	// Value is the optional default value of the parameter or nil if no default
-	// value is defined.
-	Value Literal
+	// OperatorLocation is the location of the assignment operator.
+	//
+	// This is only valid if DefaultValue is not nil.
+	OperatorLocation source.Location
+	// DefaultValue is the optional default value of the parameter or nil if no
+	// default value is defined.
+	DefaultValue Literal
 	// NodeLocation is the source location of the node.
 	NodeLocation source.Location
 }

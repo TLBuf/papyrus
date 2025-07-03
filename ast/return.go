@@ -5,8 +5,9 @@ import "github.com/TLBuf/papyrus/source"
 // Return is a statement that terminates a function potentially with a value.
 type Return struct {
 	LineTrivia
-	// Keyword is the Return keyword token.
-	Keyword *Token
+	// KeywordLocation is the location of the Return keyword that starts the
+	// statement.
+	KeywordLocation source.Location
 	// Value is the expression that defines the value to return or nil if there is
 	// none (i.e. the function doesn't return a value).
 	Value Expression

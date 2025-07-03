@@ -7,13 +7,13 @@ type Index struct {
 	InfixTrivia
 	// Value is the expression that defines the array to reference.
 	Value Expression
-	// Open is the open bracket token.
-	Open *Token
+	// OpenLocation is the location of the opening bracket.
+	OpenLocation source.Location
 	// Index is the expression that defines the index of the element to reference
 	// in the array.
 	Index Expression
-	// Close is the close bracket token.
-	Close *Token
+	// CloseLocation is the location of the closing bracket.
+	CloseLocation source.Location
 	// NodeLocation is the source location of the node.
 	NodeLocation source.Location
 }
