@@ -25,8 +25,6 @@ type ScriptVariable struct {
 	// completeness, but only one is required to consider the variable
 	// conditional.
 	ConditionalLocations []source.Location
-	// NodeLocation is the source location of the node.
-	NodeLocation source.Location
 }
 
 // Trivia returns the [LineTrivia] assocaited with this node.
@@ -41,7 +39,14 @@ func (s *ScriptVariable) Accept(v Visitor) error {
 
 // Location returns the source location of the node.
 func (s *ScriptVariable) Location() source.Location {
-	return s.NodeLocation
+	end := s.Name.Location()
+	if s.Value != nil {
+		end = s.Value.Location()
+	}
+	if len(s.ConditionalLocations) > 0 {
+		end = s.ConditionalLocations[len(s.ConditionalLocations)-1]
+	}
+	return source.Span(s.Type.Location(), end)
 }
 
 func (*ScriptVariable) statement() {}

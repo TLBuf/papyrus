@@ -11,8 +11,6 @@ type Cast struct {
 	AsLocation source.Location
 	// Type is the type the value is being cast to.
 	Type *TypeLiteral
-	// NodeLocation is the source location of the node.
-	NodeLocation source.Location
 }
 
 // Trivia returns the [InfixTrivia] assocaited with this node.
@@ -27,7 +25,7 @@ func (c *Cast) Accept(v Visitor) error {
 
 // Location returns the source location of the node.
 func (c *Cast) Location() source.Location {
-	return c.NodeLocation
+	return source.Span(c.Value.Location(), c.Type.Location())
 }
 
 func (*Cast) expression() {}

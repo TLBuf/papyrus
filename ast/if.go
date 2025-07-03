@@ -23,8 +23,6 @@ type If struct {
 	// EndKeywordLocation is the location of the EndIf keyword that ends the
 	// statement.
 	EndKeywordLocation source.Location
-	// NodeLocation is the source location of the node.
-	NodeLocation source.Location
 }
 
 // Body returns the nodes that comprise the body of this block.
@@ -44,7 +42,7 @@ func (i *If) Accept(v Visitor) error {
 
 // Location returns the source location of the node.
 func (i *If) Location() source.Location {
-	return i.NodeLocation
+	return source.Span(i.StartKeywordLocation, i.EndKeywordLocation)
 }
 
 func (*If) block() {}
@@ -67,8 +65,6 @@ type ElseIf struct {
 	// Statements is the list of statements that should be evaluated if the
 	// condition is true.
 	Statements []FunctionStatement
-	// NodeLocation is the source location of the node.
-	NodeLocation source.Location
 }
 
 // Trivia returns the [LineTrivia] assocaited with this node.
@@ -88,7 +84,7 @@ func (e *ElseIf) Accept(v Visitor) error {
 
 // Location returns the source location of the node.
 func (e *ElseIf) Location() source.Location {
-	return e.NodeLocation
+	return source.Span(e.KeywordLocation, e.Statements[len(e.Statements)-1].Location())
 }
 
 func (*ElseIf) block() {}
@@ -103,8 +99,6 @@ type Else struct {
 	KeywordLocation source.Location
 	// Statements is the list of statements that should be evaluated.
 	Statements []FunctionStatement
-	// NodeLocation is the source location of the node.
-	NodeLocation source.Location
 }
 
 // Trivia returns the [LineTrivia] assocaited with this node.
@@ -124,7 +118,7 @@ func (e *Else) Accept(v Visitor) error {
 
 // Location returns the source location of the node.
 func (e *Else) Location() source.Location {
-	return e.NodeLocation
+	return source.Span(e.KeywordLocation, e.Statements[len(e.Statements)-1].Location())
 }
 
 func (*Else) block() {}

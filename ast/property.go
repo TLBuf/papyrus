@@ -87,8 +87,6 @@ type Property struct {
 	//
 	// This is only valid if Kind is [Full].
 	EndKeywordLocation source.Location
-	// NodeLocation is the source location of the node.
-	NodeLocation source.Location
 }
 
 // Trivia returns the [LineTrivia] assocaited with this node.
@@ -103,7 +101,20 @@ func (p *Property) Accept(v Visitor) error {
 
 // Location returns the source location of the node.
 func (p *Property) Location() source.Location {
-	return p.NodeLocation
+	if p.Kind == Full {
+		return source.Span(p.Type.Location(), p.EndKeywordLocation)
+	}
+	end := p.AutoLocation
+	if len(p.HiddenLocations) > 0 {
+		end = p.HiddenLocations[len(p.HiddenLocations)-1]
+	}
+	if len(p.ConditionalLocations) > 0 {
+		last := p.ConditionalLocations[len(p.ConditionalLocations)-1]
+		if last.ByteOffset > end.ByteOffset {
+			end = last
+		}
+	}
+	return source.Span(p.Type.Location(), end)
 }
 
 func (*Property) statement() {}

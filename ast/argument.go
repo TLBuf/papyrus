@@ -14,8 +14,6 @@ type Argument struct {
 	OperatorLocation source.Location
 	// Value is the expression that defines the value of this argument.
 	Value Expression
-	// NodeLocation is the source location of the node.
-	NodeLocation source.Location
 }
 
 // Trivia returns the [InfixTrivia] assocaited with this node.
@@ -30,7 +28,10 @@ func (a *Argument) Accept(v Visitor) error {
 
 // Location returns the source location of the node.
 func (a *Argument) Location() source.Location {
-	return a.NodeLocation
+	if a.Name == nil {
+		return a.Value.Location()
+	}
+	return source.Span(a.Name.Location(), a.Value.Location())
 }
 
 var _ Node = (*Argument)(nil)

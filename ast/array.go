@@ -15,8 +15,6 @@ type ArrayCreation struct {
 	Size *IntLiteral
 	// CloseLocation is the location of the closing bracket.
 	CloseLocation source.Location
-	// NodeLocation is the source location of the node.
-	NodeLocation source.Location
 }
 
 // Trivia returns the [InfixTrivia] assocaited with this node.
@@ -31,7 +29,7 @@ func (a *ArrayCreation) Accept(v Visitor) error {
 
 // Location returns the source location of the node.
 func (a *ArrayCreation) Location() source.Location {
-	return a.NodeLocation
+	return source.Span(a.NewLocation, a.CloseLocation)
 }
 
 func (*ArrayCreation) expression() {}

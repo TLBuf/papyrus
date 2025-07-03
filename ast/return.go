@@ -11,8 +11,6 @@ type Return struct {
 	// Value is the expression that defines the value to return or nil if there is
 	// none (i.e. the function doesn't return a value).
 	Value Expression
-	// NodeLocation is the source location of the node.
-	NodeLocation source.Location
 }
 
 // Trivia returns the [LineTrivia] assocaited with this node.
@@ -27,7 +25,10 @@ func (r *Return) Accept(v Visitor) error {
 
 // Location returns the source location of the node.
 func (r *Return) Location() source.Location {
-	return r.NodeLocation
+	if r.Value == nil {
+		return r.KeywordLocation
+	}
+	return source.Span(r.KeywordLocation, r.Value.Location())
 }
 
 func (*Return) statement() {}

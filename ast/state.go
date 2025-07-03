@@ -25,8 +25,6 @@ type State struct {
 	// EndKeywordLocation is the location of the EndState keyword that ends the
 	// statement.
 	EndKeywordLocation source.Location
-	// NodeLocation is the source location of the node.
-	NodeLocation source.Location
 }
 
 // Trivia returns the [LineTrivia] assocaited with this node.
@@ -41,7 +39,10 @@ func (s *State) Accept(v Visitor) error {
 
 // Location returns the source location of the node.
 func (s *State) Location() source.Location {
-	return s.NodeLocation
+	if s.IsAuto {
+		return source.Span(s.AutoLocation, s.EndKeywordLocation)
+	}
+	return source.Span(s.StartKeywordLocation, s.EndKeywordLocation)
 }
 
 func (*State) statement() {}

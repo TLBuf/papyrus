@@ -41,8 +41,6 @@ type Event struct {
 	//
 	// This is only valid if NativeLocations is empty.
 	EndKeywordLocation source.Location
-	// NodeLocation is the source location of the node.
-	NodeLocation source.Location
 }
 
 // Parameters returns the list of parameters defined for this invokable.
@@ -67,7 +65,14 @@ func (e *Event) Accept(v Visitor) error {
 
 // Location returns the source location of the node.
 func (e *Event) Location() source.Location {
-	return e.NodeLocation
+	if len(e.NativeLocations) == 0 {
+		return source.Span(e.StartKeywordLocation, e.EndKeywordLocation)
+	}
+	end := e.NativeLocations[len(e.NativeLocations)-1]
+	if e.Documentation != nil {
+		end = e.Documentation.Location()
+	}
+	return source.Span(e.StartKeywordLocation, end)
 }
 
 func (*Event) block() {}

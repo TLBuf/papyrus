@@ -17,8 +17,6 @@ type BlockComment struct {
 	TextLocation source.Location
 	// CloseLocation is the location of the closing block comment token.
 	CloseLocation source.Location
-	// NodeLocation is the source location of the node.
-	NodeLocation source.Location
 }
 
 // Accept calls the appropriate method on the [Visitor] for the node.
@@ -28,7 +26,7 @@ func (c *BlockComment) Accept(v Visitor) error {
 
 // Location returns the source location of the node.
 func (c *BlockComment) Location() source.Location {
-	return c.NodeLocation
+	return source.Span(c.OpenLocation, c.CloseLocation)
 }
 
 func (*BlockComment) comment() {}
@@ -42,8 +40,6 @@ type LineComment struct {
 	// TextLocation is the location of the text of the comment (which will never
 	// include newlines).
 	TextLocation source.Location
-	// NodeLocation is the source location of the node.
-	NodeLocation source.Location
 }
 
 // Accept calls the appropriate method on the [Visitor] for the node.
@@ -53,7 +49,7 @@ func (c *LineComment) Accept(v Visitor) error {
 
 // Location returns the source location of the node.
 func (c *LineComment) Location() source.Location {
-	return c.NodeLocation
+	return source.Span(c.SemicolonLocation, c.TextLocation)
 }
 
 func (*LineComment) comment() {}
@@ -95,8 +91,6 @@ type Documentation struct {
 	TextLocation source.Location
 	// CloseLocation is the location of the closing brace.
 	CloseLocation source.Location
-	// NodeLocation is the source location of the node.
-	NodeLocation source.Location
 }
 
 // Accept calls the appropriate visitor method for the node.
@@ -106,7 +100,7 @@ func (c *Documentation) Accept(v Visitor) error {
 
 // Location returns the source location of the node.
 func (c *Documentation) Location() source.Location {
-	return c.NodeLocation
+	return source.Span(c.OpenLocation, c.CloseLocation)
 }
 
 var _ Node = (*Documentation)(nil)

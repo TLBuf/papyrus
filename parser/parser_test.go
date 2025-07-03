@@ -295,10 +295,6 @@ func TestHeader(t *testing.T) {
 								Length:     3,
 							},
 						},
-						NodeLocation: source.Location{
-							ByteOffset: 18,
-							Length:     10,
-						},
 					},
 				},
 				NodeLocation: source.Location{
@@ -340,10 +336,6 @@ func TestHeader(t *testing.T) {
 						EndKeywordLocation: source.Location{
 							ByteOffset: 31,
 							Length:     8,
-						},
-						NodeLocation: source.Location{
-							ByteOffset: 18,
-							Length:     21,
 						},
 					},
 				},
@@ -391,10 +383,6 @@ func TestHeader(t *testing.T) {
 						EndKeywordLocation: source.Location{
 							ByteOffset: 36,
 							Length:     8,
-						},
-						NodeLocation: source.Location{
-							ByteOffset: 18,
-							Length:     26,
 						},
 					},
 				},

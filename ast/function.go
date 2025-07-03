@@ -50,8 +50,6 @@ type Function struct {
 	//
 	// This is only valid if NativeLocations is empty.
 	EndKeywordLocation source.Location
-	// NodeLocation is the source location of the node.
-	NodeLocation source.Location
 }
 
 // Parameters returns the list of parameters defined for this invokable.
@@ -76,7 +74,20 @@ func (f *Function) Accept(v Visitor) error {
 
 // Location returns the source location of the node.
 func (f *Function) Location() source.Location {
-	return f.NodeLocation
+	if len(f.NativeLocations) == 0 {
+		return source.Span(f.StartKeywordLocation, f.EndKeywordLocation)
+	}
+	end := f.NativeLocations[len(f.NativeLocations)-1]
+	if len(f.GlobalLocations) > 0 {
+		last := f.GlobalLocations[len(f.GlobalLocations)-1]
+		if last.ByteOffset > end.ByteOffset {
+			end = last
+		}
+	}
+	if f.Documentation != nil {
+		end = f.Documentation.Location()
+	}
+	return source.Span(f.StartKeywordLocation, end)
 }
 
 func (*Function) block() {}

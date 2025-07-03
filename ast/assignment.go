@@ -58,8 +58,6 @@ type Assignment struct {
 	OperatorLocation source.Location
 	// Value is the expression that defines the value to use in the assignment.
 	Value Expression
-	// NodeLocation is the source location of the node.
-	NodeLocation source.Location
 }
 
 // Trivia returns the [LineTrivia] assocaited with this node.
@@ -74,7 +72,7 @@ func (a *Assignment) Accept(v Visitor) error {
 
 // Location returns the source location of the node.
 func (a *Assignment) Location() source.Location {
-	return a.NodeLocation
+	return source.Span(a.Assignee.Location(), a.Value.Location())
 }
 
 func (*Assignment) statement() {}

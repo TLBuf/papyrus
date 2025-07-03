@@ -92,8 +92,6 @@ type Binary struct {
 	OperatorLocation source.Location
 	// RightOperand is the operand on the right of the operator.
 	RightOperand Expression
-	// NodeLocation is the source location of the node.
-	NodeLocation source.Location
 }
 
 // Trivia returns the [InfixTrivia] assocaited with this node.
@@ -108,7 +106,7 @@ func (b *Binary) Accept(v Visitor) error {
 
 // Location returns the source location of the node.
 func (b *Binary) Location() source.Location {
-	return b.NodeLocation
+	return source.Span(b.LeftOperand.Location(), b.RightOperand.Location())
 }
 
 func (*Binary) expression() {}

@@ -12,8 +12,6 @@ type Access struct {
 	DotLocation source.Location
 	// Name is the name of the variable or function being accessed in value.
 	Name *Identifier
-	// NodeLocation is the source location of the node.
-	NodeLocation source.Location
 }
 
 // Trivia returns the [InfixTrivia] assocaited with this node.
@@ -28,7 +26,7 @@ func (a *Access) Accept(v Visitor) error {
 
 // Location returns the source location of the node.
 func (a *Access) Location() source.Location {
-	return a.NodeLocation
+	return source.Span(a.Value.Location(), a.Name.Location())
 }
 
 func (*Access) expression() {}

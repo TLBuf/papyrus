@@ -16,8 +16,6 @@ type Parameter struct {
 	// DefaultValue is the optional default value of the parameter or nil if no
 	// default value is defined.
 	DefaultValue Literal
-	// NodeLocation is the source location of the node.
-	NodeLocation source.Location
 }
 
 // Accept calls the appropriate visitor method for the node.
@@ -27,7 +25,10 @@ func (p *Parameter) Accept(v Visitor) error {
 
 // Location returns the source location of the node.
 func (p *Parameter) Location() source.Location {
-	return p.NodeLocation
+	if p.DefaultValue == nil {
+		return source.Span(p.Type.Location(), p.Name.Location())
+	}
+	return source.Span(p.Type.Location(), p.DefaultValue.Location())
 }
 
 var _ Node = (*Parameter)(nil)

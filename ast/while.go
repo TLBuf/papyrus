@@ -18,8 +18,6 @@ type While struct {
 	// EndKeywordLocation is the location of the EndWhile keyword that ends the
 	// statement.
 	EndKeywordLocation source.Location
-	// NodeLocation is the source location of the node.
-	NodeLocation source.Location
 }
 
 // Trivia returns the [LineTrivia] assocaited with this node.
@@ -39,7 +37,7 @@ func (w *While) Accept(v Visitor) error {
 
 // Location returns the source location of the node.
 func (w *While) Location() source.Location {
-	return w.NodeLocation
+	return source.Span(w.StartKeywordLocation, w.EndKeywordLocation)
 }
 
 func (*While) block() {}

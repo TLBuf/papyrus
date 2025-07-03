@@ -38,8 +38,6 @@ type Unary struct {
 	OperatorLocation source.Location
 	// Operand is the operand.
 	Operand Expression
-	// NodeLocation is the source location of the node.
-	NodeLocation source.Location
 }
 
 // Trivia returns the [InfixTrivia] assocaited with this node.
@@ -54,7 +52,7 @@ func (u *Unary) Accept(v Visitor) error {
 
 // Location returns the source location of the node.
 func (u *Unary) Location() source.Location {
-	return u.NodeLocation
+	return source.Span(u.OperatorLocation, u.Operand.Location())
 }
 
 func (*Unary) expression() {}
