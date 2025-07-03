@@ -60,6 +60,8 @@ func (f *Function) SourceLocation() source.Location {
 	return f.Location
 }
 
+func (*Function) statement() {}
+
 func (*Function) scriptStatement() {}
 
 func (*Function) invokable() {}

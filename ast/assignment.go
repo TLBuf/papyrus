@@ -26,6 +26,8 @@ func (a *Assignment) SourceLocation() source.Location {
 	return a.Location
 }
 
+func (*Assignment) statement() {}
+
 func (*Assignment) functionStatement() {}
 
 var _ FunctionStatement = (*Assignment)(nil)

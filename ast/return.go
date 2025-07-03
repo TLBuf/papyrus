@@ -24,6 +24,8 @@ func (r *Return) SourceLocation() source.Location {
 	return r.Location
 }
 
+func (*Return) statement() {}
+
 func (*Return) functionStatement() {}
 
 var _ FunctionStatement = (*Return)(nil)

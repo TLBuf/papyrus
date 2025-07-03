@@ -88,6 +88,8 @@ func (p *Property) SourceLocation() source.Location {
 	return p.Location
 }
 
+func (*Property) statement() {}
+
 func (*Property) scriptStatement() {}
 
 var _ ScriptStatement = (*Property)(nil)

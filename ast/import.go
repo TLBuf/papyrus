@@ -28,6 +28,8 @@ func (i *Import) SourceLocation() source.Location {
 	return i.Location
 }
 
+func (*Import) statement() {}
+
 func (*Import) scriptStatement() {}
 
 var _ ScriptStatement = (*Import)(nil)

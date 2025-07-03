@@ -26,6 +26,8 @@ func (e *ErrorScriptStatement) ErrorMessage() string {
 	return e.Message
 }
 
+func (*ErrorScriptStatement) statement() {}
+
 func (*ErrorScriptStatement) scriptStatement() {}
 
 func (*ErrorScriptStatement) invokable() {}
@@ -54,5 +56,7 @@ func (e *ErrorFunctionStatement) SourceLocation() source.Location {
 func (e *ErrorFunctionStatement) ErrorMessage() string {
 	return e.Message
 }
+
+func (*ErrorFunctionStatement) statement() {}
 
 func (*ErrorFunctionStatement) functionStatement() {}

@@ -33,6 +33,8 @@ func (s *State) SourceLocation() source.Location {
 	return s.Location
 }
 
+func (*State) statement() {}
+
 func (*State) scriptStatement() {}
 
 var _ ScriptStatement = (*State)(nil)

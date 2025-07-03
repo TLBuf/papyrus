@@ -13,16 +13,22 @@ type Node interface {
 	SourceLocation() source.Location
 }
 
+// Statement is a common interface for all statement nodes.
+type Statement interface {
+	Node
+	statement()
+}
+
 // ScriptStatement is a common interface for all script statement nodes.
 type ScriptStatement interface {
-	Node
+	Statement
 	scriptStatement()
 }
 
 // FunctionStatement is a common interface for all function (and event)
 // statement nodes.
 type FunctionStatement interface {
-	Node
+	Statement
 	functionStatement()
 }
 
@@ -97,6 +103,8 @@ func (s *ExpressionStatement) Accept(v Visitor) error {
 func (s *ExpressionStatement) SourceLocation() source.Location {
 	return s.Location
 }
+
+func (*ExpressionStatement) statement() {}
 
 func (*ExpressionStatement) functionStatement() {}
 

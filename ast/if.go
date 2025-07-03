@@ -35,6 +35,8 @@ func (i *If) SourceLocation() source.Location {
 	return i.Location
 }
 
+func (*If) statement() {}
+
 func (*If) functionStatement() {}
 
 var _ FunctionStatement = (*If)(nil)

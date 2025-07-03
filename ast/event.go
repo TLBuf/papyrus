@@ -48,6 +48,8 @@ func (e *Event) SourceLocation() source.Location {
 	return e.Location
 }
 
+func (*Event) statement() {}
+
 func (*Event) scriptStatement() {}
 
 func (*Event) invokable() {}

@@ -30,6 +30,8 @@ func (w *While) SourceLocation() source.Location {
 	return w.Location
 }
 
+func (*While) statement() {}
+
 func (*While) functionStatement() {}
 
 var _ FunctionStatement = (*While)(nil)

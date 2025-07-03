@@ -37,6 +37,8 @@ func (s *ScriptVariable) SourceLocation() source.Location {
 	return s.Location
 }
 
+func (*ScriptVariable) statement() {}
+
 func (*ScriptVariable) scriptStatement() {}
 
 var _ ScriptStatement = (*ScriptVariable)(nil)
@@ -67,6 +69,8 @@ func (f *FunctionVariable) Accept(v Visitor) error {
 func (f *FunctionVariable) SourceLocation() source.Location {
 	return f.Location
 }
+
+func (*FunctionVariable) statement() {}
 
 func (*FunctionVariable) functionStatement() {}
 
