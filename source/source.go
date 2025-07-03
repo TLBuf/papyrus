@@ -56,6 +56,13 @@ func (l Location) String() string {
 	return fmt.Sprintf("%s:%d:%d", l.File.Path, l.StartLine, l.StartColumn)
 }
 
+// Compare returns 0 if this location has the same byte offset as the given
+// location, a negative number if this location has a smaller byte offset, or a
+// positive number of this location has a larger byte offset.
+func (l Location) Compare(o Location) int {
+	return int(l.ByteOffset) - int(o.ByteOffset)
+}
+
 // Span returns a Range that spans two given Ranges.
 func Span(start, end Location) Location {
 	return Location{
