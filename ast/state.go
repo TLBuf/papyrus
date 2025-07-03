@@ -7,7 +7,7 @@ import "github.com/TLBuf/papyrus/source"
 // States define which implementation of functions and events are run at a given
 // time.
 type State struct {
-	Trivia
+	LineTrivia
 	// Auto is the Auto keyword that identifies this state as the state the script
 	// should start in automatically.
 	Auto *Token
@@ -21,6 +21,11 @@ type State struct {
 	EndKeyword *Token
 	// Location is the source range of the node.
 	Location source.Location
+}
+
+// Trivia returns the [LineTrivia] assocaited with this node.
+func (s *State) Trivia() LineTrivia {
+	return s.LineTrivia
 }
 
 // Accept calls the appropriate visitor method for the node.

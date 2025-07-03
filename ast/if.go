@@ -6,7 +6,7 @@ import "github.com/TLBuf/papyrus/source"
 // true and potentially a different set of statements if that condition is
 // false.
 type If struct {
-	Trivia
+	LineTrivia
 	// Keyword is the If keyword that starts the statement.
 	Keyword *Token
 	// Condition is the expression that defines the first condition to check.
@@ -25,6 +25,16 @@ type If struct {
 	Location source.Location
 }
 
+// Body returns the nodes that comprise the body of this block.
+func (i *If) Body() []FunctionStatement {
+	return i.Statements
+}
+
+// Trivia returns the [LineTrivia] assocaited with this node.
+func (i *If) Trivia() LineTrivia {
+	return i.LineTrivia
+}
+
 // Accept calls the appropriate visitor method for the node.
 func (i *If) Accept(v Visitor) error {
 	return v.VisitIf(i)
@@ -35,6 +45,8 @@ func (i *If) SourceLocation() source.Location {
 	return i.Location
 }
 
+func (*If) block() {}
+
 func (*If) statement() {}
 
 func (*If) functionStatement() {}
@@ -44,7 +56,7 @@ var _ FunctionStatement = (*If)(nil)
 // ElseIf is a list of statements that may be executed if a condition is true
 // and all previous conditions evaluate to false.
 type ElseIf struct {
-	Trivia
+	LineTrivia
 	// Keyword is the ElseIf keyword that starts the block.
 	Keyword *Token
 	// Condition is the expression that defines the condition to check.
@@ -54,6 +66,16 @@ type ElseIf struct {
 	Statements []FunctionStatement
 	// Location is the source range of the node.
 	Location source.Location
+}
+
+// Trivia returns the [LineTrivia] assocaited with this node.
+func (e *ElseIf) Trivia() LineTrivia {
+	return e.LineTrivia
+}
+
+// Body returns the nodes that comprise the body of this block.
+func (e *ElseIf) Body() []FunctionStatement {
+	return e.Statements
 }
 
 // Accept calls the appropriate method on the [Visitor] for the node.
@@ -66,18 +88,30 @@ func (e *ElseIf) SourceLocation() source.Location {
 	return e.Location
 }
 
+func (*ElseIf) block() {}
+
 var _ Node = (*ElseIf)(nil)
 
 // Else is a list of statements that may be executed if all previous conditions
 // evaluate to false.
 type Else struct {
-	Trivia
+	LineTrivia
 	// Keyword is the Else keyword that starts the block.
 	Keyword *Token
 	// Statements is the list of statements that should be evaluated.
 	Statements []FunctionStatement
 	// Location is the source range of the node.
 	Location source.Location
+}
+
+// Trivia returns the [LineTrivia] assocaited with this node.
+func (e *Else) Trivia() LineTrivia {
+	return e.LineTrivia
+}
+
+// Body returns the nodes that comprise the body of this block.
+func (e *Else) Body() []FunctionStatement {
+	return e.Statements
 }
 
 // Accept calls the appropriate method on the [Visitor] for the node.
@@ -89,5 +123,7 @@ func (e *Else) Accept(v Visitor) error {
 func (e *Else) SourceLocation() source.Location {
 	return e.Location
 }
+
+func (*Else) block() {}
 
 var _ Node = (*Else)(nil)

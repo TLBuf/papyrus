@@ -9,13 +9,18 @@ import (
 // These are used to bring identifiers available within one script into the
 // scope of another script.
 type Import struct {
-	Trivia
+	LineTrivia
 	// Keyword is the Import keyword token that starts the statement.
 	Keyword *Token
 	// Name is the name of the script being imported.
 	Name *Identifier
 	// Location is the source range of the node.
 	Location source.Location
+}
+
+// Trivia returns the [LineTrivia] assocaited with this node.
+func (i *Import) Trivia() LineTrivia {
+	return i.LineTrivia
 }
 
 // Accept calls the appropriate visitor method for the node.

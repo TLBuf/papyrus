@@ -5,7 +5,7 @@ import "github.com/TLBuf/papyrus/source"
 
 // Script represents a single Papyrus script file.
 type Script struct {
-	Trivia
+	LineTrivia
 	// Keyword is the ScriptName keyword token that starts the script.
 	Keyword *Token
 	// Name is the name of script.
@@ -33,12 +33,17 @@ type Script struct {
 	// completeness, but only one is required to consider the script conditional.
 	Conditional []*Token
 	// Comment is the documentation comment for this script.
-	Comment *DocComment
+	Comment *Documentation
 	// Statements is the list of statements that constitute the body of the
 	// script.
 	Statements []ScriptStatement
 	// Location is the source range of the node.
 	Location source.Location
+}
+
+// Trivia returns the [LineTrivia] assocaited with this node.
+func (s *Script) Trivia() LineTrivia {
+	return s.LineTrivia
 }
 
 // Accept calls the appropriate visitor method for the node.

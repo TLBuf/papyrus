@@ -2,61 +2,44 @@ package ast
 
 import "github.com/TLBuf/papyrus/source"
 
-// ScriptStatement is a common interface for all script statement nodes.
-type ErrorScriptStatement struct {
-	Trivia
+// ErrorStatement is a statement that failed to parse.
+type ErrorStatement struct {
+	LineTrivia
 	// Message is a human-readable message describing the error encountered.
 	Message string
 	// Location is the source range of the node.
 	Location source.Location
 }
 
-// Accept calls the appropriate visitor method for the node.
-func (e *ErrorScriptStatement) Accept(v Visitor) error {
-	return v.VisitErrorScriptStatement(e)
-}
-
-// SourceLocation returns the source location of the node.
-func (e *ErrorScriptStatement) SourceLocation() source.Location {
-	return e.Location
-}
-
 // Message returns a human-readable message describing the error encountered.
-func (e *ErrorScriptStatement) ErrorMessage() string {
+func (e *ErrorStatement) ErrorMessage() string {
 	return e.Message
 }
 
-func (*ErrorScriptStatement) statement() {}
+// Parameters implements the [Invokable] interface and always returns nil.
+func (*ErrorStatement) Parameters() []*Parameter {
+	return nil
+}
 
-func (*ErrorScriptStatement) scriptStatement() {}
-
-func (*ErrorScriptStatement) invokable() {}
-
-// FunctionStatement is a common interface for all function (and event)
-// statement nodes.
-type ErrorFunctionStatement struct {
-	Trivia
-	// Message is a human-readable message describing the error encountered.
-	Message string
-	// Location is the source range of the node.
-	Location source.Location
+// Trivia returns the [LineTrivia] assocaited with this node.
+func (e *ErrorStatement) Trivia() LineTrivia {
+	return e.LineTrivia
 }
 
 // Accept calls the appropriate visitor method for the node.
-func (e *ErrorFunctionStatement) Accept(v Visitor) error {
-	return v.VisitErrorFunctionStatement(e)
+func (e *ErrorStatement) Accept(v Visitor) error {
+	return v.VisitErrorStatement(e)
 }
 
 // SourceLocation returns the source location of the node.
-func (e *ErrorFunctionStatement) SourceLocation() source.Location {
+func (e *ErrorStatement) SourceLocation() source.Location {
 	return e.Location
 }
 
-// Message returns a human-readable message describing the error encountered.
-func (e *ErrorFunctionStatement) ErrorMessage() string {
-	return e.Message
-}
+func (*ErrorStatement) statement() {}
 
-func (*ErrorFunctionStatement) statement() {}
+func (*ErrorStatement) scriptStatement() {}
 
-func (*ErrorFunctionStatement) functionStatement() {}
+func (*ErrorStatement) functionStatement() {}
+
+func (*ErrorStatement) invokable() {}

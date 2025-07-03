@@ -4,7 +4,7 @@ import "github.com/TLBuf/papyrus/source"
 
 // ScriptVariable is a variable definition at the script level.
 type ScriptVariable struct {
-	Trivia
+	LineTrivia
 	// Type is the type literal that defines the type of the variable.
 	Type *TypeLiteral
 	// Name is the name of the variable.
@@ -27,6 +27,11 @@ type ScriptVariable struct {
 	Location source.Location
 }
 
+// Trivia returns the [LineTrivia] assocaited with this node.
+func (s *ScriptVariable) Trivia() LineTrivia {
+	return s.LineTrivia
+}
+
 // Accept calls the appropriate visitor method for the node.
 func (s *ScriptVariable) Accept(v Visitor) error {
 	return v.VisitScriptVariable(s)
@@ -46,7 +51,7 @@ var _ ScriptStatement = (*ScriptVariable)(nil)
 // FunctionVariable is a variable definition within the body of a function (or
 // event).
 type FunctionVariable struct {
-	Trivia
+	LineTrivia
 	// Type is the type literal that defines the type of the variable.
 	Type *TypeLiteral
 	// Name is the name of the variable.
@@ -58,6 +63,11 @@ type FunctionVariable struct {
 	Value Expression
 	// Location is the source range of the node.
 	Location source.Location
+}
+
+// Trivia returns the [LineTrivia] assocaited with this node.
+func (f *FunctionVariable) Trivia() LineTrivia {
+	return f.LineTrivia
 }
 
 // Accept calls the appropriate method on the [Visitor] for the node.

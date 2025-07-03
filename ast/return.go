@@ -4,7 +4,7 @@ import "github.com/TLBuf/papyrus/source"
 
 // Return is a statement that terminates a function potentially with a value.
 type Return struct {
-	Trivia
+	LineTrivia
 	// Keyword is the Return keyword token.
 	Keyword *Token
 	// Value is the expression that defines the value to return or nil if there is
@@ -12,6 +12,11 @@ type Return struct {
 	Value Expression
 	// Location is the source range of the node.
 	Location source.Location
+}
+
+// Trivia returns the [LineTrivia] assocaited with this node.
+func (r *Return) Trivia() LineTrivia {
+	return r.LineTrivia
 }
 
 // Accept calls the appropriate visitor method for the node.

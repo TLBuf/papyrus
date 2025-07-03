@@ -5,7 +5,7 @@ import "github.com/TLBuf/papyrus/source"
 // While is a statement that evaluates some set of statements repeatedly so long
 // as a condition is true.
 type While struct {
-	Trivia
+	LineTrivia
 	// Keyword is the While keyword that starts the statement.
 	Keyword *Token
 	// Condition is the expression that defines the condition to check before each
@@ -20,6 +20,16 @@ type While struct {
 	Location source.Location
 }
 
+// Trivia returns the [LineTrivia] assocaited with this node.
+func (w *While) Trivia() LineTrivia {
+	return w.LineTrivia
+}
+
+// Body returns the nodes that comprise the body of this block.
+func (w *While) Body() []FunctionStatement {
+	return w.Statements
+}
+
 // Accept calls the appropriate visitor method for the node.
 func (w *While) Accept(v Visitor) error {
 	return v.VisitWhile(w)
@@ -29,6 +39,8 @@ func (w *While) Accept(v Visitor) error {
 func (w *While) SourceLocation() source.Location {
 	return w.Location
 }
+
+func (*While) block() {}
 
 func (*While) statement() {}
 

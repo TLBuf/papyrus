@@ -4,7 +4,7 @@ import "github.com/TLBuf/papyrus/source"
 
 // Argument is a named argument for a function call.
 type Argument struct {
-	Trivia
+	InfixTrivia
 	// Name is the name of the parameter for this argument or nil if using
 	// positional syntax.
 	Name *Identifier
@@ -15,6 +15,11 @@ type Argument struct {
 	Value Expression
 	// Location is the source range of the node.
 	Location source.Location
+}
+
+// Trivia returns the [InfixTrivia] assocaited with this node.
+func (a *Argument) Trivia() InfixTrivia {
+	return a.InfixTrivia
 }
 
 // Accept calls the appropriate visitor method for the node.

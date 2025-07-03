@@ -4,13 +4,18 @@ import "github.com/TLBuf/papyrus/source"
 
 // BoolLiteral is a boolean literal (i.e. true or false).
 type BoolLiteral struct {
-	Trivia
+	InfixTrivia
 	// Text is the BoolLiteral token.
 	Text *Token
 	// Value is the parsed value of the string literal.
 	Value bool
 	// Location is the source range of the node.
 	Location source.Location
+}
+
+// Trivia returns the [InfixTrivia] assocaited with this node.
+func (l *BoolLiteral) Trivia() InfixTrivia {
+	return l.InfixTrivia
 }
 
 // Accept calls the appropriate visitor method for the node.
@@ -31,13 +36,18 @@ var _ Literal = (*BoolLiteral)(nil)
 
 // IntLiteral is an integer literal.
 type IntLiteral struct {
-	Trivia
+	InfixTrivia
 	// Text is the IntLiteral token.
 	Text *Token
 	// Value is the parsed value of the string literal.
 	Value int
 	// Location is the source range of the node.
 	Location source.Location
+}
+
+// Trivia returns the [InfixTrivia] assocaited with this node.
+func (l *IntLiteral) Trivia() InfixTrivia {
+	return l.InfixTrivia
 }
 
 // Accept calls the appropriate method on the [Visitor] for the node.
@@ -58,13 +68,18 @@ var _ Literal = (*IntLiteral)(nil)
 
 // FloatLiteral is a floating-point literal.
 type FloatLiteral struct {
-	Trivia
+	InfixTrivia
 	// Text is the FloatLiteral token.
 	Text *Token
 	// Value is the parsed value of the string literal.
 	Value float32
 	// Location is the source range of the node.
 	Location source.Location
+}
+
+// Trivia returns the [InfixTrivia] assocaited with this node.
+func (l *FloatLiteral) Trivia() InfixTrivia {
+	return l.InfixTrivia
 }
 
 // Accept calls the appropriate method on the [Visitor] for the node.
@@ -85,13 +100,18 @@ var _ Literal = (*FloatLiteral)(nil)
 
 // StringLiteral is a string literal.
 type StringLiteral struct {
-	Trivia
+	InfixTrivia
 	// Text is the StringLiteral token.
 	Text *Token
 	// Value is the parsed value of the string literal.
 	Value string
 	// Location is the source range of the node.
 	Location source.Location
+}
+
+// Trivia returns the [InfixTrivia] assocaited with this node.
+func (l *StringLiteral) Trivia() InfixTrivia {
+	return l.InfixTrivia
 }
 
 // Accept calls the appropriate method on the [Visitor] for the node.
@@ -112,11 +132,16 @@ var _ Literal = (*StringLiteral)(nil)
 
 // NoneLiteral is the none literal (i.e. the null object literal).
 type NoneLiteral struct {
-	Trivia
+	InfixTrivia
 	// Text is the None token.
 	Text *Token
 	// Location is the source range of the node.
 	Location source.Location
+}
+
+// Trivia returns the [InfixTrivia] assocaited with this node.
+func (l *NoneLiteral) Trivia() InfixTrivia {
+	return l.InfixTrivia
 }
 
 // Accept calls the appropriate method on the [Visitor] for the node.

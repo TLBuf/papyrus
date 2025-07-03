@@ -14,14 +14,9 @@ type PostorderVisitor struct {
 // VisitAccess visits the [Access] node then all children nodes and returns an
 // error if any call returns an error.
 func (v *PostorderVisitor) VisitAccess(a *Access) error {
-	for _, c := range a.LeadingComments {
+	for _, c := range a.Comments.Leading() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
-		}
-	}
-	for _, c := range a.PrefixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("prefix comment: %w", err)
 		}
 	}
 	if err := a.Accept(v); err != nil {
@@ -33,12 +28,7 @@ func (v *PostorderVisitor) VisitAccess(a *Access) error {
 	if err := a.Name.Accept(v); err != nil {
 		return fmt.Errorf("name: %w", err)
 	}
-	for _, c := range a.SuffixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("suffix comment: %w", err)
-		}
-	}
-	for _, c := range a.TrailingComments {
+	for _, c := range a.Comments.Trailing() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("trailing comment: %w", err)
 		}
@@ -52,14 +42,9 @@ func (v *PostorderVisitor) VisitAccess(a *Access) error {
 // PostorderVisitor visits the [Argument] node then all children nodes and
 // returns an error if any call returns an error.
 func (v *PostorderVisitor) VisitArgument(a *Argument) error {
-	for _, c := range a.LeadingComments {
+	for _, c := range a.Comments.Leading() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
-		}
-	}
-	for _, c := range a.PrefixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("prefix comment: %w", err)
 		}
 	}
 	if err := a.Name.Accept(v); err != nil {
@@ -71,12 +56,7 @@ func (v *PostorderVisitor) VisitArgument(a *Argument) error {
 	if err := a.Accept(v); err != nil {
 		return fmt.Errorf("value: %w", err)
 	}
-	for _, c := range a.SuffixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("suffix comment: %w", err)
-		}
-	}
-	for _, c := range a.TrailingComments {
+	for _, c := range a.Comments.Trailing() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("trailing comment: %w", err)
 		}
@@ -90,14 +70,9 @@ func (v *PostorderVisitor) VisitArgument(a *Argument) error {
 // VisitArrayCreation visits the [ArrayCreation] node then all children nodes
 // and returns an error if any call returns an error.
 func (v *PostorderVisitor) VisitArrayCreation(a *ArrayCreation) error {
-	for _, c := range a.LeadingComments {
+	for _, c := range a.Comments.Leading() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
-		}
-	}
-	for _, c := range a.PrefixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("prefix comment: %w", err)
 		}
 	}
 	if err := a.New.Accept(v); err != nil {
@@ -115,12 +90,7 @@ func (v *PostorderVisitor) VisitArrayCreation(a *ArrayCreation) error {
 	if err := a.Close.Accept(v); err != nil {
 		return fmt.Errorf("close: %w", err)
 	}
-	for _, c := range a.SuffixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("suffix comment: %w", err)
-		}
-	}
-	for _, c := range a.TrailingComments {
+	for _, c := range a.Comments.Trailing() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("trailing comment: %w", err)
 		}
@@ -134,14 +104,9 @@ func (v *PostorderVisitor) VisitArrayCreation(a *ArrayCreation) error {
 // VisitAssignment visits the [Assignment] node then all children nodes and
 // returns an error if any call returns an error.
 func (v *PostorderVisitor) VisitAssignment(a *Assignment) error {
-	for _, c := range a.LeadingComments {
+	for _, c := range a.Comments.Leading() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
-		}
-	}
-	for _, c := range a.PrefixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("prefix comment: %w", err)
 		}
 	}
 	if err := a.Assignee.Accept(v); err != nil {
@@ -153,12 +118,7 @@ func (v *PostorderVisitor) VisitAssignment(a *Assignment) error {
 	if err := a.Accept(v); err != nil {
 		return fmt.Errorf("value: %w", err)
 	}
-	for _, c := range a.SuffixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("suffix comment: %w", err)
-		}
-	}
-	for _, c := range a.TrailingComments {
+	for _, c := range a.Comments.Trailing() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("trailing comment: %w", err)
 		}
@@ -172,14 +132,9 @@ func (v *PostorderVisitor) VisitAssignment(a *Assignment) error {
 // VisitBinary visits the [Binary] node then all children nodes and
 // returns an error if any call returns an error.
 func (v *PostorderVisitor) VisitBinary(b *Binary) error {
-	for _, c := range b.LeadingComments {
+	for _, c := range b.Comments.Leading() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
-		}
-	}
-	for _, c := range b.PrefixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("prefix comment: %w", err)
 		}
 	}
 	if err := b.LeftOperand.Accept(v); err != nil {
@@ -191,12 +146,7 @@ func (v *PostorderVisitor) VisitBinary(b *Binary) error {
 	if err := b.RightOperand.Accept(v); err != nil {
 		return fmt.Errorf("right operand: %w", err)
 	}
-	for _, c := range b.SuffixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("suffix comment: %w", err)
-		}
-	}
-	for _, c := range b.TrailingComments {
+	for _, c := range b.Comments.Trailing() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("trailing comment: %w", err)
 		}
@@ -210,14 +160,9 @@ func (v *PostorderVisitor) VisitBinary(b *Binary) error {
 // VisitCall visits the [Call] node then all children nodes and returns an
 // error if any call returns an error.
 func (v *PostorderVisitor) VisitCall(c *Call) error {
-	for _, c := range c.LeadingComments {
+	for _, c := range c.Comments.Leading() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
-		}
-	}
-	for _, c := range c.PrefixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("prefix comment: %w", err)
 		}
 	}
 	if err := c.Function.Accept(v); err != nil {
@@ -234,12 +179,7 @@ func (v *PostorderVisitor) VisitCall(c *Call) error {
 	if err := c.Close.Accept(v); err != nil {
 		return fmt.Errorf("close: %w", err)
 	}
-	for _, c := range c.SuffixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("suffix comment: %w", err)
-		}
-	}
-	for _, c := range c.TrailingComments {
+	for _, c := range c.Comments.Trailing() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("trailing comment: %w", err)
 		}
@@ -253,14 +193,9 @@ func (v *PostorderVisitor) VisitCall(c *Call) error {
 // VisitCast visits the [Cast] node then all children nodes and returns an error
 // if any call returns an error.
 func (v *PostorderVisitor) VisitCast(c *Cast) error {
-	for _, c := range c.LeadingComments {
+	for _, c := range c.Comments.Leading() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
-		}
-	}
-	for _, c := range c.PrefixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("prefix comment: %w", err)
 		}
 	}
 	if err := c.Accept(v); err != nil {
@@ -272,12 +207,7 @@ func (v *PostorderVisitor) VisitCast(c *Cast) error {
 	if err := c.Type.Accept(v); err != nil {
 		return fmt.Errorf("type: %w", err)
 	}
-	for _, c := range c.SuffixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("suffix comment: %w", err)
-		}
-	}
-	for _, c := range c.TrailingComments {
+	for _, c := range c.Comments.Trailing() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("trailing comment: %w", err)
 		}
@@ -288,9 +218,9 @@ func (v *PostorderVisitor) VisitCast(c *Cast) error {
 	return nil
 }
 
-// VisitDocComment visits the [DocComment] node then all children nodes and
-// returns an error if any call returns an error.
-func (v *PostorderVisitor) VisitDocComment(c *DocComment) error {
+// VisitDocumentation visits the [Documentation] node then all children nodes
+// and returns an error if any call returns an error.
+func (v *PostorderVisitor) VisitDocumentation(c *Documentation) error {
 	if err := c.Open.Accept(v); err != nil {
 		return fmt.Errorf("open: %w", err)
 	}
@@ -300,7 +230,7 @@ func (v *PostorderVisitor) VisitDocComment(c *DocComment) error {
 	if err := c.Close.Accept(v); err != nil {
 		return fmt.Errorf("type: %w", err)
 	}
-	if err := v.Delegate.VisitDocComment(c); err != nil {
+	if err := v.Delegate.VisitDocumentation(c); err != nil {
 		return fmt.Errorf("delegate: %w", err)
 	}
 	return nil
@@ -342,14 +272,9 @@ func (v *PostorderVisitor) VisitLineComment(c *LineComment) error {
 // VisitEvent visits the [Event] node then all children nodes and returns an
 // error if any call returns an error.
 func (v *PostorderVisitor) VisitEvent(e *Event) error {
-	for _, c := range e.LeadingComments {
+	for _, c := range e.Comments.Leading() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
-		}
-	}
-	for _, c := range e.PrefixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("prefix comment: %w", err)
 		}
 	}
 	if err := e.Keyword.Accept(v); err != nil {
@@ -361,7 +286,7 @@ func (v *PostorderVisitor) VisitEvent(e *Event) error {
 	if err := e.Open.Accept(v); err != nil {
 		return fmt.Errorf("open: %w", err)
 	}
-	for _, p := range e.Parameters {
+	for _, p := range e.ParameterList {
 		if err := p.Accept(v); err != nil {
 			return fmt.Errorf("parameter: %w", err)
 		}
@@ -385,12 +310,7 @@ func (v *PostorderVisitor) VisitEvent(e *Event) error {
 	if err := e.EndKeyword.Accept(v); err != nil {
 		return fmt.Errorf("end keyword: %w", err)
 	}
-	for _, c := range e.SuffixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("suffix comment: %w", err)
-		}
-	}
-	for _, c := range e.TrailingComments {
+	for _, c := range e.Comments.Trailing() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("trailing comment: %w", err)
 		}
@@ -404,14 +324,9 @@ func (v *PostorderVisitor) VisitEvent(e *Event) error {
 // VisitFunction visits the [Function] node then all children nodes and returns
 // an error if any call returns an error.
 func (v *PostorderVisitor) VisitFunction(f *Function) error {
-	for _, c := range f.LeadingComments {
+	for _, c := range f.Comments.Leading() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
-		}
-	}
-	for _, c := range f.PrefixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("prefix comment: %w", err)
 		}
 	}
 	if f.ReturnType != nil {
@@ -428,7 +343,7 @@ func (v *PostorderVisitor) VisitFunction(f *Function) error {
 	if err := f.Open.Accept(v); err != nil {
 		return fmt.Errorf("open: %w", err)
 	}
-	for _, p := range f.Parameters {
+	for _, p := range f.ParameterList {
 		if err := p.Accept(v); err != nil {
 			return fmt.Errorf("parameter: %w", err)
 		}
@@ -454,12 +369,7 @@ func (v *PostorderVisitor) VisitFunction(f *Function) error {
 	if err := f.EndKeyword.Accept(v); err != nil {
 		return fmt.Errorf("end keyword: %w", err)
 	}
-	for _, c := range f.SuffixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("suffix comment: %w", err)
-		}
-	}
-	for _, c := range f.TrailingComments {
+	for _, c := range f.Comments.Trailing() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("trailing comment: %w", err)
 		}
@@ -473,25 +383,15 @@ func (v *PostorderVisitor) VisitFunction(f *Function) error {
 // VisitIdentifier visits the [Identifier] node then all children nodes and
 // returns an error if any call returns an error.
 func (v *PostorderVisitor) VisitIdentifier(i *Identifier) error {
-	for _, c := range i.LeadingComments {
+	for _, c := range i.Comments.Leading() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
-		}
-	}
-	for _, c := range i.PrefixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("prefix comment: %w", err)
 		}
 	}
 	if err := i.Text.Accept(v); err != nil {
 		return fmt.Errorf("text: %w", err)
 	}
-	for _, c := range i.SuffixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("suffix comment: %w", err)
-		}
-	}
-	for _, c := range i.TrailingComments {
+	for _, c := range i.Comments.Trailing() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("trailing comment: %w", err)
 		}
@@ -505,14 +405,9 @@ func (v *PostorderVisitor) VisitIdentifier(i *Identifier) error {
 // VisitIf visits the [If] node then all children nodes and returns an error if
 // any call returns an error.
 func (v *PostorderVisitor) VisitIf(i *If) error {
-	for _, c := range i.LeadingComments {
+	for _, c := range i.Comments.Leading() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
-		}
-	}
-	for _, c := range i.PrefixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("prefix comment: %w", err)
 		}
 	}
 	if err := i.Keyword.Accept(v); err != nil {
@@ -539,12 +434,7 @@ func (v *PostorderVisitor) VisitIf(i *If) error {
 	if err := i.EndKeyword.Accept(v); err != nil {
 		return fmt.Errorf("end keyword: %w", err)
 	}
-	for _, c := range i.SuffixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("suffix comment: %w", err)
-		}
-	}
-	for _, c := range i.TrailingComments {
+	for _, c := range i.Comments.Trailing() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("trailing comment: %w", err)
 		}
@@ -558,14 +448,9 @@ func (v *PostorderVisitor) VisitIf(i *If) error {
 // VisitElseIf visits the [ElseIf] node then all children nodes and returns an
 // error if any call returns an error.
 func (v *PostorderVisitor) VisitElseIf(e *ElseIf) error {
-	for _, c := range e.LeadingComments {
+	for _, c := range e.Comments.Leading() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
-		}
-	}
-	for _, c := range e.PrefixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("prefix comment: %w", err)
 		}
 	}
 	if err := e.Keyword.Accept(v); err != nil {
@@ -579,12 +464,7 @@ func (v *PostorderVisitor) VisitElseIf(e *ElseIf) error {
 			return fmt.Errorf("statement: %w", err)
 		}
 	}
-	for _, c := range e.SuffixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("suffix comment: %w", err)
-		}
-	}
-	for _, c := range e.TrailingComments {
+	for _, c := range e.Comments.Trailing() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("trailing comment: %w", err)
 		}
@@ -598,14 +478,9 @@ func (v *PostorderVisitor) VisitElseIf(e *ElseIf) error {
 // VisitElse visits the [Else] node then all children nodes and returns an error
 // if any call returns an error.
 func (v *PostorderVisitor) VisitElse(e *Else) error {
-	for _, c := range e.LeadingComments {
+	for _, c := range e.Comments.Leading() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
-		}
-	}
-	for _, c := range e.PrefixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("prefix comment: %w", err)
 		}
 	}
 	if err := e.Keyword.Accept(v); err != nil {
@@ -616,12 +491,7 @@ func (v *PostorderVisitor) VisitElse(e *Else) error {
 			return fmt.Errorf("statement: %w", err)
 		}
 	}
-	for _, c := range e.SuffixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("suffix comment: %w", err)
-		}
-	}
-	for _, c := range e.TrailingComments {
+	for _, c := range e.Comments.Trailing() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("trailing comment: %w", err)
 		}
@@ -635,25 +505,15 @@ func (v *PostorderVisitor) VisitElse(e *Else) error {
 // VisitExpressionStatement visits the [ExpressionStatement] node then all
 // children nodes and returns an error if any call returns an error.
 func (v *PostorderVisitor) VisitExpressionStatement(s *ExpressionStatement) error {
-	for _, c := range s.LeadingComments {
+	for _, c := range s.Comments.Leading() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
-		}
-	}
-	for _, c := range s.PrefixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("prefix comment: %w", err)
 		}
 	}
 	if err := s.Expression.Accept(v); err != nil {
 		return fmt.Errorf("expression: %w", err)
 	}
-	for _, c := range s.SuffixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("suffix comment: %w", err)
-		}
-	}
-	for _, c := range s.TrailingComments {
+	for _, c := range s.Comments.Trailing() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("trailing comment: %w", err)
 		}
@@ -667,14 +527,9 @@ func (v *PostorderVisitor) VisitExpressionStatement(s *ExpressionStatement) erro
 // VisitImport visits the [Import] node then all children nodes and returns an
 // error if any call returns an error.
 func (v *PostorderVisitor) VisitImport(i *Import) error {
-	for _, c := range i.LeadingComments {
+	for _, c := range i.Comments.Leading() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
-		}
-	}
-	for _, c := range i.PrefixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("prefix comment: %w", err)
 		}
 	}
 	if err := i.Keyword.Accept(v); err != nil {
@@ -683,12 +538,7 @@ func (v *PostorderVisitor) VisitImport(i *Import) error {
 	if err := i.Name.Accept(v); err != nil {
 		return fmt.Errorf("name: %w", err)
 	}
-	for _, c := range i.SuffixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("suffix comment: %w", err)
-		}
-	}
-	for _, c := range i.TrailingComments {
+	for _, c := range i.Comments.Trailing() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("trailing comment: %w", err)
 		}
@@ -702,14 +552,9 @@ func (v *PostorderVisitor) VisitImport(i *Import) error {
 // VisitIndex visits the [Index] node then all children nodes and returns an
 // error if any call returns an error.
 func (v *PostorderVisitor) VisitIndex(i *Index) error {
-	for _, c := range i.LeadingComments {
+	for _, c := range i.Comments.Leading() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
-		}
-	}
-	for _, c := range i.PrefixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("prefix comment: %w", err)
 		}
 	}
 	if err := i.Accept(v); err != nil {
@@ -724,12 +569,7 @@ func (v *PostorderVisitor) VisitIndex(i *Index) error {
 	if err := i.Close.Accept(v); err != nil {
 		return fmt.Errorf("close: %w", err)
 	}
-	for _, c := range i.SuffixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("suffix comment: %w", err)
-		}
-	}
-	for _, c := range i.TrailingComments {
+	for _, c := range i.Comments.Trailing() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("trailing comment: %w", err)
 		}
@@ -743,25 +583,15 @@ func (v *PostorderVisitor) VisitIndex(i *Index) error {
 // VisitBoolLiteral visits the [BoolLiteral] node then all children nodes and
 // returns an error if any call returns an error.
 func (v *PostorderVisitor) VisitBoolLiteral(l *BoolLiteral) error {
-	for _, c := range l.LeadingComments {
+	for _, c := range l.Comments.Leading() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
-		}
-	}
-	for _, c := range l.PrefixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("prefix comment: %w", err)
 		}
 	}
 	if err := l.Text.Accept(v); err != nil {
 		return fmt.Errorf("text: %w", err)
 	}
-	for _, c := range l.SuffixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("suffix comment: %w", err)
-		}
-	}
-	for _, c := range l.TrailingComments {
+	for _, c := range l.Comments.Trailing() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("trailing comment: %w", err)
 		}
@@ -775,25 +605,15 @@ func (v *PostorderVisitor) VisitBoolLiteral(l *BoolLiteral) error {
 // VisitIntLiteral visits the [IntLiteral] node then all children nodes and
 // returns an error if any call returns an error.
 func (v *PostorderVisitor) VisitIntLiteral(l *IntLiteral) error {
-	for _, c := range l.LeadingComments {
+	for _, c := range l.Comments.Leading() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
-		}
-	}
-	for _, c := range l.PrefixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("prefix comment: %w", err)
 		}
 	}
 	if err := l.Text.Accept(v); err != nil {
 		return fmt.Errorf("text: %w", err)
 	}
-	for _, c := range l.SuffixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("suffix comment: %w", err)
-		}
-	}
-	for _, c := range l.TrailingComments {
+	for _, c := range l.Comments.Trailing() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("trailing comment: %w", err)
 		}
@@ -807,25 +627,15 @@ func (v *PostorderVisitor) VisitIntLiteral(l *IntLiteral) error {
 // VisitFloatLiteral visits the [FloatLiteral] node then all children nodes and
 // returns an error if any call returns an error.
 func (v *PostorderVisitor) VisitFloatLiteral(l *FloatLiteral) error {
-	for _, c := range l.LeadingComments {
+	for _, c := range l.Comments.Leading() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
-		}
-	}
-	for _, c := range l.PrefixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("prefix comment: %w", err)
 		}
 	}
 	if err := l.Text.Accept(v); err != nil {
 		return fmt.Errorf("text: %w", err)
 	}
-	for _, c := range l.SuffixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("suffix comment: %w", err)
-		}
-	}
-	for _, c := range l.TrailingComments {
+	for _, c := range l.Comments.Trailing() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("trailing comment: %w", err)
 		}
@@ -839,25 +649,15 @@ func (v *PostorderVisitor) VisitFloatLiteral(l *FloatLiteral) error {
 // VisitStringLiteral visits the [StringLiteral] node then all children nodes
 // and returns an error if any call returns an error.
 func (v *PostorderVisitor) VisitStringLiteral(l *StringLiteral) error {
-	for _, c := range l.LeadingComments {
+	for _, c := range l.Comments.Leading() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
-		}
-	}
-	for _, c := range l.PrefixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("prefix comment: %w", err)
 		}
 	}
 	if err := l.Text.Accept(v); err != nil {
 		return fmt.Errorf("text: %w", err)
 	}
-	for _, c := range l.SuffixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("suffix comment: %w", err)
-		}
-	}
-	for _, c := range l.TrailingComments {
+	for _, c := range l.Comments.Trailing() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("trailing comment: %w", err)
 		}
@@ -871,25 +671,15 @@ func (v *PostorderVisitor) VisitStringLiteral(l *StringLiteral) error {
 // VisitNoneLiteral visits the [NoneLiteral] node then all children nodes and
 // returns an error if any call returns an error.
 func (v *PostorderVisitor) VisitNoneLiteral(l *NoneLiteral) error {
-	for _, c := range l.LeadingComments {
+	for _, c := range l.Comments.Leading() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
-		}
-	}
-	for _, c := range l.PrefixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("prefix comment: %w", err)
 		}
 	}
 	if err := l.Text.Accept(v); err != nil {
 		return fmt.Errorf("text: %w", err)
 	}
-	for _, c := range l.SuffixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("suffix comment: %w", err)
-		}
-	}
-	for _, c := range l.TrailingComments {
+	for _, c := range l.Comments.Trailing() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("trailing comment: %w", err)
 		}
@@ -903,14 +693,9 @@ func (v *PostorderVisitor) VisitNoneLiteral(l *NoneLiteral) error {
 // VisitParameter visits the [Parameter] node then all children nodes and
 // returns an error if any call returns an error.
 func (v *PostorderVisitor) VisitParameter(p *Parameter) error {
-	for _, c := range p.LeadingComments {
+	for _, c := range p.Comments.Leading() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
-		}
-	}
-	for _, c := range p.PrefixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("prefix comment: %w", err)
 		}
 	}
 	if err := p.Type.Accept(v); err != nil {
@@ -929,12 +714,7 @@ func (v *PostorderVisitor) VisitParameter(p *Parameter) error {
 			return fmt.Errorf("value: %w", err)
 		}
 	}
-	for _, c := range p.SuffixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("suffix comment: %w", err)
-		}
-	}
-	for _, c := range p.TrailingComments {
+	for _, c := range p.Comments.Trailing() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("trailing comment: %w", err)
 		}
@@ -948,14 +728,9 @@ func (v *PostorderVisitor) VisitParameter(p *Parameter) error {
 // VisitParenthetical visits the [Parenthetical] node then all children nodes
 // and returns an error if any call returns an error.
 func (v *PostorderVisitor) VisitParenthetical(p *Parenthetical) error {
-	for _, c := range p.LeadingComments {
+	for _, c := range p.Comments.Leading() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
-		}
-	}
-	for _, c := range p.PrefixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("prefix comment: %w", err)
 		}
 	}
 	if err := p.Open.Accept(v); err != nil {
@@ -967,12 +742,7 @@ func (v *PostorderVisitor) VisitParenthetical(p *Parenthetical) error {
 	if err := p.Close.Accept(v); err != nil {
 		return fmt.Errorf("close: %w", err)
 	}
-	for _, c := range p.SuffixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("suffix comment: %w", err)
-		}
-	}
-	for _, c := range p.TrailingComments {
+	for _, c := range p.Comments.Trailing() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("trailing comment: %w", err)
 		}
@@ -986,14 +756,9 @@ func (v *PostorderVisitor) VisitParenthetical(p *Parenthetical) error {
 // VisitProperty visits the [Property] node then all children nodes and returns
 // an error if any call returns an error.
 func (v *PostorderVisitor) VisitProperty(p *Property) error {
-	for _, c := range p.LeadingComments {
+	for _, c := range p.Comments.Leading() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
-		}
-	}
-	for _, c := range p.PrefixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("prefix comment: %w", err)
 		}
 	}
 	if err := p.Type.Accept(v); err != nil {
@@ -1054,12 +819,7 @@ func (v *PostorderVisitor) VisitProperty(p *Property) error {
 	if err := p.EndKeyword.Accept(v); err != nil {
 		return fmt.Errorf("end keyword: %w", err)
 	}
-	for _, c := range p.SuffixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("suffix comment: %w", err)
-		}
-	}
-	for _, c := range p.TrailingComments {
+	for _, c := range p.Comments.Trailing() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("trailing comment: %w", err)
 		}
@@ -1073,14 +833,9 @@ func (v *PostorderVisitor) VisitProperty(p *Property) error {
 // VisitReturn visits the [Return] node then all children nodes and returns an
 // error if any call returns an error.
 func (v *PostorderVisitor) VisitReturn(r *Return) error {
-	for _, c := range r.LeadingComments {
+	for _, c := range r.Comments.Leading() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
-		}
-	}
-	for _, c := range r.PrefixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("prefix comment: %w", err)
 		}
 	}
 	if err := r.Keyword.Accept(v); err != nil {
@@ -1100,14 +855,9 @@ func (v *PostorderVisitor) VisitReturn(r *Return) error {
 // VisitScript visits the [Script] node then all children nodes and returns an
 // error if any call returns an error.
 func (v *PostorderVisitor) VisitScript(s *Script) error {
-	for _, c := range s.LeadingComments {
+	for _, c := range s.Comments.Leading() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
-		}
-	}
-	for _, c := range s.PrefixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("prefix comment: %w", err)
 		}
 	}
 	if err := s.Keyword.Accept(v); err != nil {
@@ -1141,12 +891,7 @@ func (v *PostorderVisitor) VisitScript(s *Script) error {
 			return fmt.Errorf("statement: %w", err)
 		}
 	}
-	for _, c := range s.SuffixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("suffix comment: %w", err)
-		}
-	}
-	for _, c := range s.TrailingComments {
+	for _, c := range s.Comments.Trailing() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("trailing comment: %w", err)
 		}
@@ -1160,14 +905,9 @@ func (v *PostorderVisitor) VisitScript(s *Script) error {
 // VisitState visits the [State] node then all children nodes and returns an
 // error if any call returns an error.
 func (v *PostorderVisitor) VisitState(s *State) error {
-	for _, c := range s.LeadingComments {
+	for _, c := range s.Comments.Leading() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
-		}
-	}
-	for _, c := range s.PrefixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("prefix comment: %w", err)
 		}
 	}
 	if s.Auto != nil {
@@ -1189,12 +929,7 @@ func (v *PostorderVisitor) VisitState(s *State) error {
 	if err := s.EndKeyword.Accept(v); err != nil {
 		return fmt.Errorf("end keyword: %w", err)
 	}
-	for _, c := range s.SuffixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("suffix comment: %w", err)
-		}
-	}
-	for _, c := range s.TrailingComments {
+	for _, c := range s.Comments.Trailing() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("trailing comment: %w", err)
 		}
@@ -1217,14 +952,9 @@ func (v *PostorderVisitor) VisitToken(t *Token) error {
 // VisitTypeLiteral visits the [TypeLiteral] node then all children nodes and
 // returns an error if any call returns an error.
 func (v *PostorderVisitor) VisitTypeLiteral(t *TypeLiteral) error {
-	for _, c := range t.LeadingComments {
+	for _, c := range t.Comments.Leading() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
-		}
-	}
-	for _, c := range t.PrefixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("prefix comment: %w", err)
 		}
 	}
 	if err := t.Text.Accept(v); err != nil {
@@ -1249,14 +979,9 @@ func (v *PostorderVisitor) VisitTypeLiteral(t *TypeLiteral) error {
 // VisitUnary visits the [Unary] node then all children nodes and returns an
 // error if any call returns an error.
 func (v *PostorderVisitor) VisitUnary(u *Unary) error {
-	for _, c := range u.LeadingComments {
+	for _, c := range u.Comments.Leading() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
-		}
-	}
-	for _, c := range u.PrefixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("prefix comment: %w", err)
 		}
 	}
 	if err := u.Operator.Accept(v); err != nil {
@@ -1274,14 +999,9 @@ func (v *PostorderVisitor) VisitUnary(u *Unary) error {
 // VisitScriptVariable visits the [ScriptVariable] node then all children nodes
 // and returns an error if any call returns an error.
 func (v *PostorderVisitor) VisitScriptVariable(s *ScriptVariable) error {
-	for _, c := range s.LeadingComments {
+	for _, c := range s.Comments.Leading() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
-		}
-	}
-	for _, c := range s.PrefixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("prefix comment: %w", err)
 		}
 	}
 	if err := s.Type.Accept(v); err != nil {
@@ -1314,14 +1034,9 @@ func (v *PostorderVisitor) VisitScriptVariable(s *ScriptVariable) error {
 // VisitFunctionVariable visits the [FunctionVariable] node then all children
 // nodes and returns an error if any call returns an error.
 func (v *PostorderVisitor) VisitFunctionVariable(f *FunctionVariable) error {
-	for _, c := range f.LeadingComments {
+	for _, c := range f.Comments.Leading() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
-		}
-	}
-	for _, c := range f.PrefixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("prefix comment: %w", err)
 		}
 	}
 	if err := f.Type.Accept(v); err != nil {
@@ -1349,14 +1064,9 @@ func (v *PostorderVisitor) VisitFunctionVariable(f *FunctionVariable) error {
 // VisitWhile visits the [While] node then all children nodes and returns an
 // error if any call returns an error.
 func (v *PostorderVisitor) VisitWhile(w *While) error {
-	for _, c := range w.LeadingComments {
+	for _, c := range w.Comments.Leading() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("leading comment: %w", err)
-		}
-	}
-	for _, c := range w.PrefixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("prefix comment: %w", err)
 		}
 	}
 	if err := w.Keyword.Accept(v); err != nil {
@@ -1373,12 +1083,7 @@ func (v *PostorderVisitor) VisitWhile(w *While) error {
 	if err := w.EndKeyword.Accept(v); err != nil {
 		return fmt.Errorf("end keyword: %w", err)
 	}
-	for _, c := range w.SuffixComments {
-		if err := c.Accept(v); err != nil {
-			return fmt.Errorf("suffix comment: %w", err)
-		}
-	}
-	for _, c := range w.TrailingComments {
+	for _, c := range w.Comments.Trailing() {
 		if err := c.Accept(v); err != nil {
 			return fmt.Errorf("trailing comment: %w", err)
 		}
@@ -1389,19 +1094,10 @@ func (v *PostorderVisitor) VisitWhile(w *While) error {
 	return nil
 }
 
-// VisitErrorScriptStatement visits the [ErrorScriptStatement] node and returns
+// VisitErrorStatement visits the [ErrorStatement] node and returns
 // an error if the delegate call returns an error.
-func (v *PostorderVisitor) VisitErrorScriptStatement(e *ErrorScriptStatement) error {
-	if err := v.Delegate.VisitErrorScriptStatement(e); err != nil {
-		return fmt.Errorf("delegate: %w", err)
-	}
-	return nil
-}
-
-// VisitErrorFunctionStatement visits the [ErrorFunctionStatement] node and
-// returns an error if the delegate call returns an error.
-func (v *PostorderVisitor) VisitErrorFunctionStatement(e *ErrorFunctionStatement) error {
-	if err := v.Delegate.VisitErrorFunctionStatement(e); err != nil {
+func (v *PostorderVisitor) VisitErrorStatement(e *ErrorStatement) error {
+	if err := v.Delegate.VisitErrorStatement(e); err != nil {
 		return fmt.Errorf("delegate: %w", err)
 	}
 	return nil

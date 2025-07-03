@@ -2,35 +2,11 @@ package ast
 
 import "github.com/TLBuf/papyrus/source"
 
-// DocComment represents a documentation comment.
-type DocComment struct {
-	// Open is the opening brace token for the doc comment.
-	//
-	// This is always of kind [token.BraceOpen].
-	Open *Token
-	// Text is the token for the text of the comment (which may include newlines).
-	//
-	// This is always of kind [token.Comment].
-	Text *Token
-	// Close is the closing brace token for the doc comment.
-	//
-	// This is always of kind [token.BraceClose].
-	Close *Token
-	// Location is the source range of the node.
-	Location source.Location
+// Comment is a common interface for non-doc comments.
+type Comment interface {
+	Node
+	comment()
 }
-
-// Accept calls the appropriate visitor method for the node.
-func (c *DocComment) Accept(v Visitor) error {
-	return v.VisitDocComment(c)
-}
-
-// SourceLocation returns the source location of the node.
-func (c *DocComment) SourceLocation() source.Location {
-	return c.Location
-}
-
-var _ Node = (*DocComment)(nil)
 
 // BlockComment represents block comment.
 type BlockComment struct {
@@ -60,9 +36,9 @@ func (c *BlockComment) SourceLocation() source.Location {
 	return c.Location
 }
 
-func (*BlockComment) looseComment() {}
+func (*BlockComment) comment() {}
 
-var _ LooseComment = (*BlockComment)(nil)
+var _ Comment = (*BlockComment)(nil)
 
 // LineComment represents line comment.
 type LineComment struct {
@@ -88,6 +64,63 @@ func (c *LineComment) SourceLocation() source.Location {
 	return c.Location
 }
 
-func (*LineComment) looseComment() {}
+func (*LineComment) comment() {}
 
-var _ LooseComment = (*LineComment)(nil)
+var _ Comment = (*LineComment)(nil)
+
+// Comments is a set of comments associated with a node.
+type Comments struct {
+	// LeadingComments are the loose comments that appear before a node.
+	LeadingComments []Comment
+	// TrailingComments are the loose comments that appear after a node, but which
+	// are not assocaited with another node.
+	TrailingComments []Comment
+}
+
+// Leading returns the loose comments that appear before a node.
+func (c *Comments) Leading() []Comment {
+	if c == nil {
+		return nil
+	}
+	return c.LeadingComments
+}
+
+// Trailing retunrs the loose comments that appear after a node, but which are
+// not assocaited with another node.
+func (c *Comments) Trailing() []Comment {
+	if c == nil {
+		return nil
+	}
+	return c.LeadingComments
+}
+
+// Documentation represents a documentation comment.
+type Documentation struct {
+	// Open is the opening brace token for the documentation.
+	//
+	// This is always of kind [token.BraceOpen].
+	Open *Token
+	// Text is the token for the text of the documentation (which may include
+	// newlines).
+	//
+	// This is always of kind [token.Comment].
+	Text *Token
+	// Close is the closing brace token for the docdocumentation.
+	//
+	// This is always of kind [token.BraceClose].
+	Close *Token
+	// Location is the source range of the node.
+	Location source.Location
+}
+
+// Accept calls the appropriate visitor method for the node.
+func (c *Documentation) Accept(v Visitor) error {
+	return v.VisitDocumentation(c)
+}
+
+// SourceLocation returns the source location of the node.
+func (c *Documentation) SourceLocation() source.Location {
+	return c.Location
+}
+
+var _ Node = (*Documentation)(nil)

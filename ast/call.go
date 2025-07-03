@@ -4,7 +4,7 @@ import "github.com/TLBuf/papyrus/source"
 
 // Call is an expression the calls a function defined elsewhere.
 type Call struct {
-	Trivia
+	InfixTrivia
 	// Function is the reference to the function being called.
 	Function Expression
 	// Open is the open parenthesis token.
@@ -16,6 +16,11 @@ type Call struct {
 	Close *Token
 	// Location is the source range of the node.
 	Location source.Location
+}
+
+// Trivia returns the [InfixTrivia] assocaited with this node.
+func (c *Call) Trivia() InfixTrivia {
+	return c.InfixTrivia
 }
 
 // Accept calls the appropriate visitor method for the node.

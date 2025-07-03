@@ -4,7 +4,7 @@ import "github.com/TLBuf/papyrus/source"
 
 // Function defines a Papyrus function.
 type Function struct {
-	Trivia
+	LineTrivia
 	// ReturnType is the type of value this function returns or nil if it doesn't
 	// return a value.
 	ReturnType *TypeLiteral
@@ -14,8 +14,8 @@ type Function struct {
 	Name *Identifier
 	// Open is the open parenthesis token that starts the parameter list.
 	Open *Token
-	// Parameters is the list of parameters this function defines in order.
-	Parameters []*Parameter
+	// ParameterList is the list of parameters this function defines in order.
+	ParameterList []*Parameter
 	// Close is the close parenthesis token that ends the parameter list.
 	Close *Token
 	// IsGlobal defines whether this function is considered global (i.e. it does
@@ -39,7 +39,7 @@ type Function struct {
 	// completeness, but only one is required to consider the function native.
 	Native []*Token
 	// Comment is the optional documentation comment for this function.
-	Comment *DocComment
+	Comment *Documentation
 	// Statements is the list of function statements that constitute the body of
 	// the function.
 	Statements []FunctionStatement
@@ -48,6 +48,21 @@ type Function struct {
 	EndKeyword *Token
 	// Location is the source range of the node.
 	Location source.Location
+}
+
+// Parameters returns the list of parameters defined for this invokable.
+func (f *Function) Parameters() []*Parameter {
+	return f.ParameterList
+}
+
+// Body returns the nodes that comprise the body of this block.
+func (f *Function) Body() []FunctionStatement {
+	return f.Statements
+}
+
+// Trivia returns the [LineTrivia] assocaited with this node.
+func (f *Function) Trivia() LineTrivia {
+	return f.LineTrivia
 }
 
 // Accept calls the appropriate visitor method for the node.
@@ -59,6 +74,8 @@ func (f *Function) Accept(v Visitor) error {
 func (f *Function) SourceLocation() source.Location {
 	return f.Location
 }
+
+func (*Function) block() {}
 
 func (*Function) statement() {}
 

@@ -4,7 +4,7 @@ import "github.com/TLBuf/papyrus/source"
 
 // Index represents the access of a specific element in an array.
 type Index struct {
-	Trivia
+	InfixTrivia
 	// Value is the expression that defines the array to reference.
 	Value Expression
 	// Open is the open bracket token.
@@ -16,6 +16,11 @@ type Index struct {
 	Close *Token
 	// Location is the source range of the node.
 	Location source.Location
+}
+
+// Trivia returns the [InfixTrivia] assocaited with this node.
+func (i *Index) Trivia() InfixTrivia {
+	return i.InfixTrivia
 }
 
 // Accept calls the appropriate visitor method for the node.

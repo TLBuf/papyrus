@@ -16,8 +16,8 @@ type Visitor interface {
 	VisitCall(*Call) error
 	// VisitCast visits a [Cast] node.
 	VisitCast(*Cast) error
-	// VisitDocComment visits a [DocComment] node.
-	VisitDocComment(*DocComment) error
+	// VisitDocumentation visits a [Documentation] node.
+	VisitDocumentation(*Documentation) error
 	// VisitBlockComment visits a [BlockComment] node.
 	VisitBlockComment(*BlockComment) error
 	// VisitLineComment visits a [LineComment] node.
@@ -74,8 +74,6 @@ type Visitor interface {
 	VisitFunctionVariable(*FunctionVariable) error
 	// VisitWhile visits a [While] node.
 	VisitWhile(*While) error
-	// VisitErrorScriptStatement visits an [ErrorScriptStatement] node.
-	VisitErrorScriptStatement(*ErrorScriptStatement) error
-	// VisitErrorFunctionStatement visits an [ErrorFunctionStatement] node.
-	VisitErrorFunctionStatement(*ErrorFunctionStatement) error
+	// VisitErrorStatement visits an [ErrorStatement] node.
+	VisitErrorStatement(*ErrorStatement) error
 }

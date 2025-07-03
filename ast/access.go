@@ -5,7 +5,7 @@ import "github.com/TLBuf/papyrus/source"
 // Access is an expression that reference a value or function that belongs to
 // some scope.
 type Access struct {
-	Trivia
+	InfixTrivia
 	// Value is the expression that defines the value have something accessed.
 	Value Expression
 	// Operator is the dot operator token for this access.
@@ -14,6 +14,11 @@ type Access struct {
 	Name *Identifier
 	// Location is the source range of the node.
 	Location source.Location
+}
+
+// Trivia returns the [InfixTrivia] assocaited with this node.
+func (a *Access) Trivia() InfixTrivia {
+	return a.InfixTrivia
 }
 
 // Accept calls the appropriate visitor method for the node.

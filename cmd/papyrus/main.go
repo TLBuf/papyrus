@@ -2,6 +2,9 @@
 package main
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/TLBuf/papyrus/cmd/papyrus/cmd"
 	"github.com/spf13/cobra"
 )
@@ -16,5 +19,8 @@ func main() {
 	root.AddCommand(cmd.Version())
 	root.AddCommand(cmd.Format())
 
-	root.Execute()
+	if err := root.Execute(); err != nil {
+		fmt.Fprintf(os.Stderr, "%v", err)
+		os.Exit(1)
+	}
 }

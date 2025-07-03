@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/TLBuf/papyrus/format"
@@ -55,7 +56,7 @@ func formatFiles(paths ...string) error {
 }
 
 func formatFile(path string) error {
-	text, err := os.ReadFile(path)
+	text, err := os.ReadFile(filepath.Clean(path))
 	if err != nil {
 		return fmt.Errorf("failed to read %q: %w", path, err)
 	}
@@ -71,7 +72,9 @@ func formatFile(path string) error {
 			return fmt.Errorf("failed to create snippet for parser error: %w: %w", serr, err)
 		}
 		var sb strings.Builder
-		source.Print(&sb, snip)
+		if err := source.Format(&sb, snip); err != nil {
+			return fmt.Errorf("failed to format snippet: %w", err)
+		}
 		return fmt.Errorf("failed to parse: %v\n\n%s\n%s", err.Err, err.Location, sb.String())
 	}
 	var formatted bytes.Buffer

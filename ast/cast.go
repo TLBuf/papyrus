@@ -4,7 +4,7 @@ import "github.com/TLBuf/papyrus/source"
 
 // Cast is an expression that casts a value of some type to another.
 type Cast struct {
-	Trivia
+	InfixTrivia
 	// Value is the expression being cast to a new type.
 	Value Expression
 	// Operator is the As operator token.
@@ -13,6 +13,11 @@ type Cast struct {
 	Type *TypeLiteral
 	// Location is the source range of the node.
 	Location source.Location
+}
+
+// Trivia returns the [InfixTrivia] assocaited with this node.
+func (c *Cast) Trivia() InfixTrivia {
+	return c.InfixTrivia
 }
 
 // Accept calls the appropriate visitor method for the node.

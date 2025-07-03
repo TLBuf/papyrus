@@ -60,7 +60,7 @@ func New(file *source.File) (*Lexer, error) {
 		line:            1,
 		column:          0,
 		lineStartOffset: 0,
-		length:          uint32(len(file.Text)),
+		length:          uint32(len(file.Text)), // #nosec G115 -- Checked at start of lexer.New.
 	}
 	l.lineEndOffset = l.findNextNewlineOffset()
 	if err := l.readChar(); err != nil {
@@ -598,9 +598,6 @@ func (l *Lexer) skipWhitespace() error {
 
 func (l *Lexer) readChar() error {
 	width := uint32(1)
-	if l.lineEndOffset < 0 {
-		l.lineEndOffset = l.findNextNewlineOffset()
-	}
 	if l.character == '\n' {
 		l.line++
 		l.column = 0
@@ -616,6 +613,9 @@ func (l *Lexer) readChar() error {
 			return newError(l.nextByteLocation(), "encountered invalid UTF-8 at byte %d", l.next)
 		}
 		l.character = r
+		if w < 1 || w > 4 {
+			return newError(l.nextByteLocation(), "encountered UTF-8 with width %d, expected width in range [1, 4]", w)
+		}
 		width = uint32(w)
 		l.column++
 	}

@@ -232,7 +232,7 @@ func (f *formatter) VisitCast(node *ast.Cast) error {
 	return nil
 }
 
-func (f *formatter) VisitDocComment(node *ast.DocComment) error {
+func (f *formatter) VisitDocumentation(node *ast.Documentation) error {
 	if err := node.Open.Accept(f); err != nil {
 		return fmt.Errorf("failed for format Open: %w", err)
 	}
@@ -342,7 +342,7 @@ func (f *formatter) VisitEvent(node *ast.Event) error {
 	if err := node.Open.Accept(f); err != nil {
 		return fmt.Errorf("failed for format Open: %w", err)
 	}
-	for i, parameter := range node.Parameters {
+	for i, parameter := range node.ParameterList {
 		if i > 0 {
 			if err := f.str(token.Comma.String()); err != nil {
 				return fmt.Errorf("failed to format comma: %w", err)
@@ -426,7 +426,7 @@ func (f *formatter) VisitFunction(node *ast.Function) error {
 	if err := node.Open.Accept(f); err != nil {
 		return fmt.Errorf("failed for format Open: %w", err)
 	}
-	for i, parameter := range node.Parameters {
+	for i, parameter := range node.ParameterList {
 		if i > 0 {
 			if err := f.str(token.Comma.String()); err != nil {
 				return fmt.Errorf("failed to format comma: %w", err)
@@ -1197,12 +1197,8 @@ func (f *formatter) VisitWhile(node *ast.While) error {
 	return nil
 }
 
-func (f *formatter) VisitErrorScriptStatement(node *ast.ErrorScriptStatement) error {
-	return fmt.Errorf("attempted to format error script statement: %s", node.Message)
-}
-
-func (f *formatter) VisitErrorFunctionStatement(node *ast.ErrorFunctionStatement) error {
-	return fmt.Errorf("attempted to format error function statement: %s", node.Message)
+func (f *formatter) VisitErrorStatement(node *ast.ErrorStatement) error {
+	return fmt.Errorf("attempted to format error statement: %s", node.Message)
 }
 
 var _ ast.Visitor = (*formatter)(nil)

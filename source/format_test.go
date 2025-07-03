@@ -8,7 +8,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-func TestPrint(t *testing.T) {
+func TestFormat(t *testing.T) {
 	tests := []struct {
 		name    string
 		snippet source.Snippet
@@ -89,10 +89,12 @@ func TestPrint(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			var buf bytes.Buffer
-			source.Print(&buf, test.snippet)
+			if err := source.Format(&buf, test.snippet); err != nil {
+				t.Errorf("Format() returned an unexpected error: %v", err)
+			}
 			got := buf.String()
 			if diff := cmp.Diff(test.want[1:], got); diff != "" {
-				t.Errorf("Print() mismatch (-want +got):\n%s", diff)
+				t.Errorf("Format() mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}

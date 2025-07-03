@@ -5,7 +5,7 @@ import "github.com/TLBuf/papyrus/source"
 // Assignment is a statement that assigns a new value to a variable (or
 // property).
 type Assignment struct {
-	Trivia
+	LineTrivia
 	// Assignee is the reference to a variable to assign the value to.
 	Assignee Expression
 	// Operator defines the operator token this assignment uses.
@@ -14,6 +14,11 @@ type Assignment struct {
 	Value Expression
 	// Location is the source range of the node.
 	Location source.Location
+}
+
+// Trivia returns the [LineTrivia] assocaited with this node.
+func (a *Assignment) Trivia() LineTrivia {
+	return a.LineTrivia
 }
 
 // Accept calls the appropriate visitor method for the node.

@@ -7,7 +7,7 @@ import (
 
 // TypeLiteral represents a literal type name in source.
 type TypeLiteral struct {
-	Trivia
+	InfixTrivia
 	// Text is the type literal token.
 	Text *Token
 	// Open is the open bracket token that identifies an array type.
@@ -22,6 +22,11 @@ type TypeLiteral struct {
 	Type types.Type
 	// Location is the source range of the node.
 	Location source.Location
+}
+
+// Trivia returns the [InfixTrivia] assocaited with this node.
+func (t *TypeLiteral) Trivia() InfixTrivia {
+	return t.InfixTrivia
 }
 
 // Accept calls the appropriate visitor method for the node.

@@ -4,7 +4,7 @@ import "github.com/TLBuf/papyrus/source"
 
 // ArrayCreation is an expression that creates a new array of a fixed length.
 type ArrayCreation struct {
-	Trivia
+	InfixTrivia
 	// New is the new operator token.
 	New *Token
 	// Type is the type of elements the array can contain.
@@ -17,6 +17,11 @@ type ArrayCreation struct {
 	Close *Token
 	// Location is the source range of the node.
 	Location source.Location
+}
+
+// Trivia returns the [InfixTrivia] assocaited with this node.
+func (a *ArrayCreation) Trivia() InfixTrivia {
+	return a.InfixTrivia
 }
 
 // Accept calls the appropriate visitor method for the node.

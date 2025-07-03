@@ -4,7 +4,7 @@ import "github.com/TLBuf/papyrus/source"
 
 // Binary is an expression that computes a value from two operands.
 type Binary struct {
-	Trivia
+	InfixTrivia
 	// LeftOperand is the operand on the left of the operator.
 	LeftOperand Expression
 	// Operator defines the operator token this binary expression uses.
@@ -13,6 +13,11 @@ type Binary struct {
 	RightOperand Expression
 	// Location is the source range of the node.
 	Location source.Location
+}
+
+// Trivia returns the [InfixTrivia] assocaited with this node.
+func (b *Binary) Trivia() InfixTrivia {
+	return b.InfixTrivia
 }
 
 // Accept calls the appropriate visitor method for the node.

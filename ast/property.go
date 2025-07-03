@@ -7,7 +7,7 @@ import "github.com/TLBuf/papyrus/source"
 // Properties are like variables but which can be accessed in the editor and
 // referenced by the engine.
 type Property struct {
-	Trivia
+	LineTrivia
 	// Type is the type of this property.
 	Type *TypeLiteral
 	// Keyword is the Property keyword that starts the definition.
@@ -53,7 +53,7 @@ type Property struct {
 	// conditional.
 	Conditional []*Token
 	// Comment is the optional documentation comment for this property.
-	Comment *DocComment
+	Comment *Documentation
 	// Get is the get function for this property or nil if undefined.
 	//
 	// If [Auto] and [AutoReadOnly] are nil, either Get or Set (or both) will be
@@ -76,6 +76,11 @@ type Property struct {
 	EndKeyword *Token
 	// Location is the source range of the node.
 	Location source.Location
+}
+
+// Trivia returns the [LineTrivia] assocaited with this node.
+func (p *Property) Trivia() LineTrivia {
+	return p.LineTrivia
 }
 
 // Accept calls the appropriate visitor method for the node.
