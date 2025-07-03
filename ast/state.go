@@ -19,8 +19,8 @@ type State struct {
 	Invokables []Invokable
 	// EndKeyword is the EndState keyword that ends the definition.
 	EndKeyword *Token
-	// Location is the source range of the node.
-	Location source.Location
+	// NodeLocation is the source location of the node.
+	NodeLocation source.Location
 }
 
 // Trivia returns the [LineTrivia] assocaited with this node.
@@ -33,9 +33,9 @@ func (s *State) Accept(v Visitor) error {
 	return v.VisitState(s)
 }
 
-// SourceLocation returns the source location of the node.
-func (s *State) SourceLocation() source.Location {
-	return s.Location
+// Location returns the source location of the node.
+func (s *State) Location() source.Location {
+	return s.NodeLocation
 }
 
 func (*State) statement() {}

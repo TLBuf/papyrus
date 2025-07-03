@@ -22,8 +22,8 @@ type BlockComment struct {
 	//
 	// This is always of kind [token.BlockCommentClose].
 	Close *Token
-	// Location is the source range of the node.
-	Location source.Location
+	// NodeLocation is the source location of the node.
+	NodeLocation source.Location
 }
 
 // Accept calls the appropriate method on the [Visitor] for the node.
@@ -31,9 +31,9 @@ func (c *BlockComment) Accept(v Visitor) error {
 	return v.VisitBlockComment(c)
 }
 
-// SourceLocation returns the source location of the node.
-func (c *BlockComment) SourceLocation() source.Location {
-	return c.Location
+// Location returns the source location of the node.
+func (c *BlockComment) Location() source.Location {
+	return c.NodeLocation
 }
 
 func (*BlockComment) comment() {}
@@ -50,8 +50,8 @@ type LineComment struct {
 	//
 	// This is always of kind [token.Comment].
 	Text *Token
-	// Location is the source range of the node.
-	Location source.Location
+	// NodeLocation is the source location of the node.
+	NodeLocation source.Location
 }
 
 // Accept calls the appropriate method on the [Visitor] for the node.
@@ -59,9 +59,9 @@ func (c *LineComment) Accept(v Visitor) error {
 	return v.VisitLineComment(c)
 }
 
-// SourceLocation returns the source location of the node.
-func (c *LineComment) SourceLocation() source.Location {
-	return c.Location
+// Location returns the source location of the node.
+func (c *LineComment) Location() source.Location {
+	return c.NodeLocation
 }
 
 func (*LineComment) comment() {}
@@ -109,8 +109,8 @@ type Documentation struct {
 	//
 	// This is always of kind [token.BraceClose].
 	Close *Token
-	// Location is the source range of the node.
-	Location source.Location
+	// NodeLocation is the source location of the node.
+	NodeLocation source.Location
 }
 
 // Accept calls the appropriate visitor method for the node.
@@ -118,9 +118,9 @@ func (c *Documentation) Accept(v Visitor) error {
 	return v.VisitDocumentation(c)
 }
 
-// SourceLocation returns the source location of the node.
-func (c *Documentation) SourceLocation() source.Location {
-	return c.Location
+// Location returns the source location of the node.
+func (c *Documentation) Location() source.Location {
+	return c.NodeLocation
 }
 
 var _ Node = (*Documentation)(nil)

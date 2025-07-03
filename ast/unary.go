@@ -9,8 +9,8 @@ type Unary struct {
 	Operator *Token
 	// Operand is the operand.
 	Operand Expression
-	// Location is the source range of the node.
-	Location source.Location
+	// NodeLocation is the source location of the node.
+	NodeLocation source.Location
 }
 
 // Trivia returns the [InfixTrivia] assocaited with this node.
@@ -23,9 +23,9 @@ func (u *Unary) Accept(v Visitor) error {
 	return v.VisitUnary(u)
 }
 
-// SourceLocation returns the source location of the node.
-func (u *Unary) SourceLocation() source.Location {
-	return u.Location
+// Location returns the source location of the node.
+func (u *Unary) Location() source.Location {
+	return u.NodeLocation
 }
 
 func (*Unary) expression() {}

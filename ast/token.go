@@ -13,7 +13,7 @@ type Token struct {
 	// Kind defines the specific kind of token the text represents.
 	Kind token.Kind
 	// Location describes exactly where in a file the token is.
-	Location source.Location
+	NodeLocation source.Location
 }
 
 // Accept calls the appropriate visitor method for the node.
@@ -21,7 +21,7 @@ func (t *Token) Accept(v Visitor) error {
 	return v.VisitToken(t)
 }
 
-// SourceLocation returns the source location of the node.
-func (t *Token) SourceLocation() source.Location {
-	return t.Location
+// Location returns the source location of the node.
+func (t *Token) Location() source.Location {
+	return t.NodeLocation
 }

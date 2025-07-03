@@ -74,8 +74,8 @@ type Property struct {
 	// the property is Auto or AutoReadOnly (and thus has no Get or Set
 	// functions).
 	EndKeyword *Token
-	// Location is the source range of the node.
-	Location source.Location
+	// NodeLocation is the source location of the node.
+	NodeLocation source.Location
 }
 
 // Trivia returns the [LineTrivia] assocaited with this node.
@@ -88,9 +88,9 @@ func (p *Property) Accept(v Visitor) error {
 	return v.VisitProperty(p)
 }
 
-// SourceLocation returns the source location of the node.
-func (p *Property) SourceLocation() source.Location {
-	return p.Location
+// Location returns the source location of the node.
+func (p *Property) Location() source.Location {
+	return p.NodeLocation
 }
 
 func (*Property) statement() {}

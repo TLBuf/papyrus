@@ -38,8 +38,8 @@ type ExpressionStatement struct {
 	LineTrivia
 	// Expression is the expression that makes up the statement.
 	Expression Expression
-	// Location is the source range of the node.
-	Location source.Location
+	// NodeLocation is the source location of the node.
+	NodeLocation source.Location
 }
 
 // Trivia returns the [LineTrivia] assocaited with this node.
@@ -52,9 +52,9 @@ func (s *ExpressionStatement) Accept(v Visitor) error {
 	return v.VisitExpressionStatement(s)
 }
 
-// SourceLocation returns the source location of the node.
-func (s *ExpressionStatement) SourceLocation() source.Location {
-	return s.Location
+// Location returns the source location of the node.
+func (s *ExpressionStatement) Location() source.Location {
+	return s.NodeLocation
 }
 
 func (*ExpressionStatement) statement() {}

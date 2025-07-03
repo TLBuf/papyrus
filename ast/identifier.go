@@ -9,8 +9,8 @@ type Identifier struct {
 	Text *Token
 	// Normalized is the normalized text of the identifier.
 	Normalized string
-	// Location is the source range of the node.
-	Location source.Location
+	// NodeLocation is the source location of the node.
+	NodeLocation source.Location
 }
 
 // Trivia returns the [InfixTrivia] assocaited with this node.
@@ -23,9 +23,9 @@ func (i *Identifier) Accept(v Visitor) error {
 	return v.VisitIdentifier(i)
 }
 
-// SourceLocation returns the source location of the node.
-func (i *Identifier) SourceLocation() source.Location {
-	return i.Location
+// Location returns the source location of the node.
+func (i *Identifier) Location() source.Location {
+	return i.NodeLocation
 }
 
 func (*Identifier) expression() {}

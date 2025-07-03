@@ -16,8 +16,8 @@ type While struct {
 	Statements []FunctionStatement
 	// Keyword is the EndWhile keyword that ends the statement.
 	EndKeyword *Token
-	// Location is the source range of the node.
-	Location source.Location
+	// NodeLocation is the source location of the node.
+	NodeLocation source.Location
 }
 
 // Trivia returns the [LineTrivia] assocaited with this node.
@@ -35,9 +35,9 @@ func (w *While) Accept(v Visitor) error {
 	return v.VisitWhile(w)
 }
 
-// SourceLocation returns the source location of the node.
-func (w *While) SourceLocation() source.Location {
-	return w.Location
+// Location returns the source location of the node.
+func (w *While) Location() source.Location {
+	return w.NodeLocation
 }
 
 func (*While) block() {}

@@ -14,8 +14,8 @@ type Import struct {
 	Keyword *Token
 	// Name is the name of the script being imported.
 	Name *Identifier
-	// Location is the source range of the node.
-	Location source.Location
+	// NodeLocation is the source location of the node.
+	NodeLocation source.Location
 }
 
 // Trivia returns the [LineTrivia] assocaited with this node.
@@ -28,9 +28,9 @@ func (i *Import) Accept(v Visitor) error {
 	return v.VisitImport(i)
 }
 
-// SourceLocation returns the source location of the node.
-func (i *Import) SourceLocation() source.Location {
-	return i.Location
+// Location returns the source location of the node.
+func (i *Import) Location() source.Location {
+	return i.NodeLocation
 }
 
 func (*Import) statement() {}

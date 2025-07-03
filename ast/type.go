@@ -20,8 +20,8 @@ type TypeLiteral struct {
 	Close *Token
 	// Type is the type the literal represents.
 	Type types.Type
-	// Location is the source range of the node.
-	Location source.Location
+	// NodeLocation is the source location of the node.
+	NodeLocation source.Location
 }
 
 // Trivia returns the [InfixTrivia] assocaited with this node.
@@ -34,9 +34,9 @@ func (t *TypeLiteral) Accept(v Visitor) error {
 	return v.VisitTypeLiteral(t)
 }
 
-// SourceLocation returns the source location of the node.
-func (t *TypeLiteral) SourceLocation() source.Location {
-	return t.Location
+// Location returns the source location of the node.
+func (t *TypeLiteral) Location() source.Location {
+	return t.NodeLocation
 }
 
 var _ Node = (*TypeLiteral)(nil)

@@ -11,8 +11,8 @@ type Binary struct {
 	Operator *Token
 	// RightOperand is the operand on the right of the operator.
 	RightOperand Expression
-	// Location is the source range of the node.
-	Location source.Location
+	// NodeLocation is the source location of the node.
+	NodeLocation source.Location
 }
 
 // Trivia returns the [InfixTrivia] assocaited with this node.
@@ -25,9 +25,9 @@ func (b *Binary) Accept(v Visitor) error {
 	return v.VisitBinary(b)
 }
 
-// SourceLocation returns the source location of the node.
-func (b *Binary) SourceLocation() source.Location {
-	return b.Location
+// Location returns the source location of the node.
+func (b *Binary) Location() source.Location {
+	return b.NodeLocation
 }
 
 func (*Binary) expression() {}

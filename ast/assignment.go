@@ -12,8 +12,8 @@ type Assignment struct {
 	Operator *Token
 	// Value is the expression that defines the value to use in the assignment.
 	Value Expression
-	// Location is the source range of the node.
-	Location source.Location
+	// NodeLocation is the source location of the node.
+	NodeLocation source.Location
 }
 
 // Trivia returns the [LineTrivia] assocaited with this node.
@@ -26,9 +26,9 @@ func (a *Assignment) Accept(v Visitor) error {
 	return v.VisitAssignment(a)
 }
 
-// SourceLocation returns the source location of the node.
-func (a *Assignment) SourceLocation() source.Location {
-	return a.Location
+// Location returns the source location of the node.
+func (a *Assignment) Location() source.Location {
+	return a.NodeLocation
 }
 
 func (*Assignment) statement() {}

@@ -23,8 +23,8 @@ type ScriptVariable struct {
 	// completeness, but only one is required to consider the variable
 	// conditional.
 	Conditional []*Token
-	// Location is the source range of the node.
-	Location source.Location
+	// NodeLocation is the source location of the node.
+	NodeLocation source.Location
 }
 
 // Trivia returns the [LineTrivia] assocaited with this node.
@@ -37,9 +37,9 @@ func (s *ScriptVariable) Accept(v Visitor) error {
 	return v.VisitScriptVariable(s)
 }
 
-// SourceLocation returns the source location of the node.
-func (s *ScriptVariable) SourceLocation() source.Location {
-	return s.Location
+// Location returns the source location of the node.
+func (s *ScriptVariable) Location() source.Location {
+	return s.NodeLocation
 }
 
 func (*ScriptVariable) statement() {}
@@ -61,8 +61,8 @@ type FunctionVariable struct {
 	// Value is the expression the variable is assigned or nil if there isn't one
 	// (and the variable should have the default value for its type).
 	Value Expression
-	// Location is the source range of the node.
-	Location source.Location
+	// NodeLocation is the source location of the node.
+	NodeLocation source.Location
 }
 
 // Trivia returns the [LineTrivia] assocaited with this node.
@@ -75,9 +75,9 @@ func (f *FunctionVariable) Accept(v Visitor) error {
 	return v.VisitFunctionVariable(f)
 }
 
-// SourceLocation returns the source location of the node.
-func (f *FunctionVariable) SourceLocation() source.Location {
-	return f.Location
+// Location returns the source location of the node.
+func (f *FunctionVariable) Location() source.Location {
+	return f.NodeLocation
 }
 
 func (*FunctionVariable) statement() {}

@@ -11,8 +11,8 @@ type Parenthetical struct {
 	Value Expression
 	// Close is the close parenthesis token.
 	Close *Token
-	// Location is the source range of the node.
-	Location source.Location
+	// NodeLocation is the source location of the node.
+	NodeLocation source.Location
 }
 
 // Trivia returns the [InfixTrivia] assocaited with this node.
@@ -25,9 +25,9 @@ func (p *Parenthetical) Accept(v Visitor) error {
 	return v.VisitParenthetical(p)
 }
 
-// SourceLocation returns the source location of the node.
-func (p *Parenthetical) SourceLocation() source.Location {
-	return p.Location
+// Location returns the source location of the node.
+func (p *Parenthetical) Location() source.Location {
+	return p.NodeLocation
 }
 
 func (*Parenthetical) expression() {}

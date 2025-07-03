@@ -7,8 +7,8 @@ type ErrorStatement struct {
 	LineTrivia
 	// Message is a human-readable message describing the error encountered.
 	Message string
-	// Location is the source range of the node.
-	Location source.Location
+	// NodeLocation is the source location of the node.
+	NodeLocation source.Location
 }
 
 // Message returns a human-readable message describing the error encountered.
@@ -31,9 +31,9 @@ func (e *ErrorStatement) Accept(v Visitor) error {
 	return v.VisitErrorStatement(e)
 }
 
-// SourceLocation returns the source location of the node.
-func (e *ErrorStatement) SourceLocation() source.Location {
-	return e.Location
+// Location returns the source location of the node.
+func (e *ErrorStatement) Location() source.Location {
+	return e.NodeLocation
 }
 
 func (*ErrorStatement) statement() {}

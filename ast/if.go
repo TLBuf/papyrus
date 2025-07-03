@@ -21,8 +21,8 @@ type If struct {
 	Else *Else
 	// EndKeyword is the EndIf keyword that ends the statement.
 	EndKeyword *Token
-	// Location is the source range of the node.
-	Location source.Location
+	// NodeLocation is the source location of the node.
+	NodeLocation source.Location
 }
 
 // Body returns the nodes that comprise the body of this block.
@@ -40,9 +40,9 @@ func (i *If) Accept(v Visitor) error {
 	return v.VisitIf(i)
 }
 
-// SourceLocation returns the source location of the node.
-func (i *If) SourceLocation() source.Location {
-	return i.Location
+// Location returns the source location of the node.
+func (i *If) Location() source.Location {
+	return i.NodeLocation
 }
 
 func (*If) block() {}
@@ -64,8 +64,8 @@ type ElseIf struct {
 	// Statements is the list of statements that should be evaluated if the
 	// condition is true.
 	Statements []FunctionStatement
-	// Location is the source range of the node.
-	Location source.Location
+	// NodeLocation is the source location of the node.
+	NodeLocation source.Location
 }
 
 // Trivia returns the [LineTrivia] assocaited with this node.
@@ -83,9 +83,9 @@ func (e *ElseIf) Accept(v Visitor) error {
 	return v.VisitElseIf(e)
 }
 
-// SourceLocation returns the source location of the node.
-func (e *ElseIf) SourceLocation() source.Location {
-	return e.Location
+// Location returns the source location of the node.
+func (e *ElseIf) Location() source.Location {
+	return e.NodeLocation
 }
 
 func (*ElseIf) block() {}
@@ -100,8 +100,8 @@ type Else struct {
 	Keyword *Token
 	// Statements is the list of statements that should be evaluated.
 	Statements []FunctionStatement
-	// Location is the source range of the node.
-	Location source.Location
+	// NodeLocation is the source location of the node.
+	NodeLocation source.Location
 }
 
 // Trivia returns the [LineTrivia] assocaited with this node.
@@ -119,9 +119,9 @@ func (e *Else) Accept(v Visitor) error {
 	return v.VisitElse(e)
 }
 
-// SourceLocation returns the source location of the node.
-func (e *Else) SourceLocation() source.Location {
-	return e.Location
+// Location returns the source location of the node.
+func (e *Else) Location() source.Location {
+	return e.NodeLocation
 }
 
 func (*Else) block() {}

@@ -9,8 +9,8 @@ import (
 type Node interface {
 	// Accept calls the appropriate visitor method for the node.
 	Accept(Visitor) error
-	// SourceLocation returns the source location of the node.
-	SourceLocation() source.Location
+	// Location returns the source location of the node.
+	Location() source.Location
 }
 
 // Block is a common interface for nodes that form blocks of statements.

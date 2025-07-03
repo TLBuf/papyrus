@@ -46,8 +46,8 @@ type Function struct {
 	// EndKeyword is the EndFunction keyword that ends the definition or nil if
 	// the function is native (and thus has no body).
 	EndKeyword *Token
-	// Location is the source range of the node.
-	Location source.Location
+	// NodeLocation is the source location of the node.
+	NodeLocation source.Location
 }
 
 // Parameters returns the list of parameters defined for this invokable.
@@ -70,9 +70,9 @@ func (f *Function) Accept(v Visitor) error {
 	return v.VisitFunction(f)
 }
 
-// SourceLocation returns the source location of the node.
-func (f *Function) SourceLocation() source.Location {
-	return f.Location
+// Location returns the source location of the node.
+func (f *Function) Location() source.Location {
+	return f.NodeLocation
 }
 
 func (*Function) block() {}

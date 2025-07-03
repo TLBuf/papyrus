@@ -9,8 +9,8 @@ type BoolLiteral struct {
 	Text *Token
 	// Value is the parsed value of the string literal.
 	Value bool
-	// Location is the source range of the node.
-	Location source.Location
+	// NodeLocation is the source location of the node.
+	NodeLocation source.Location
 }
 
 // Trivia returns the [InfixTrivia] assocaited with this node.
@@ -23,9 +23,9 @@ func (l *BoolLiteral) Accept(v Visitor) error {
 	return v.VisitBoolLiteral(l)
 }
 
-// SourceLocation returns the source location of the node.
-func (l *BoolLiteral) SourceLocation() source.Location {
-	return l.Location
+// Location returns the source location of the node.
+func (l *BoolLiteral) Location() source.Location {
+	return l.NodeLocation
 }
 
 func (*BoolLiteral) expression() {}
@@ -41,8 +41,8 @@ type IntLiteral struct {
 	Text *Token
 	// Value is the parsed value of the string literal.
 	Value int
-	// Location is the source range of the node.
-	Location source.Location
+	// NodeLocation is the source location of the node.
+	NodeLocation source.Location
 }
 
 // Trivia returns the [InfixTrivia] assocaited with this node.
@@ -55,9 +55,9 @@ func (l *IntLiteral) Accept(v Visitor) error {
 	return v.VisitIntLiteral(l)
 }
 
-// SourceLocation returns the source location of the node.
-func (l *IntLiteral) SourceLocation() source.Location {
-	return l.Location
+// Location returns the source location of the node.
+func (l *IntLiteral) Location() source.Location {
+	return l.NodeLocation
 }
 
 func (*IntLiteral) expression() {}
@@ -73,8 +73,8 @@ type FloatLiteral struct {
 	Text *Token
 	// Value is the parsed value of the string literal.
 	Value float32
-	// Location is the source range of the node.
-	Location source.Location
+	// NodeLocation is the source location of the node.
+	NodeLocation source.Location
 }
 
 // Trivia returns the [InfixTrivia] assocaited with this node.
@@ -87,9 +87,9 @@ func (l *FloatLiteral) Accept(v Visitor) error {
 	return v.VisitFloatLiteral(l)
 }
 
-// SourceLocation returns the source location of the node.
-func (l *FloatLiteral) SourceLocation() source.Location {
-	return l.Location
+// Location returns the source location of the node.
+func (l *FloatLiteral) Location() source.Location {
+	return l.NodeLocation
 }
 
 func (*FloatLiteral) expression() {}
@@ -105,8 +105,8 @@ type StringLiteral struct {
 	Text *Token
 	// Value is the parsed value of the string literal.
 	Value string
-	// Location is the source range of the node.
-	Location source.Location
+	// NodeLocation is the source location of the node.
+	NodeLocation source.Location
 }
 
 // Trivia returns the [InfixTrivia] assocaited with this node.
@@ -119,9 +119,9 @@ func (l *StringLiteral) Accept(v Visitor) error {
 	return v.VisitStringLiteral(l)
 }
 
-// SourceLocation returns the source location of the node.
-func (l *StringLiteral) SourceLocation() source.Location {
-	return l.Location
+// Location returns the source location of the node.
+func (l *StringLiteral) Location() source.Location {
+	return l.NodeLocation
 }
 
 func (*StringLiteral) expression() {}
@@ -135,8 +135,8 @@ type NoneLiteral struct {
 	InfixTrivia
 	// Text is the None token.
 	Text *Token
-	// Location is the source range of the node.
-	Location source.Location
+	// NodeLocation is the source location of the node.
+	NodeLocation source.Location
 }
 
 // Trivia returns the [InfixTrivia] assocaited with this node.
@@ -149,9 +149,9 @@ func (l *NoneLiteral) Accept(v Visitor) error {
 	return v.VisitNoneLiteral(l)
 }
 
-// SourceLocation returns the source location of the node.
-func (l *NoneLiteral) SourceLocation() source.Location {
-	return l.Location
+// Location returns the source location of the node.
+func (l *NoneLiteral) Location() source.Location {
+	return l.NodeLocation
 }
 
 func (*NoneLiteral) expression() {}

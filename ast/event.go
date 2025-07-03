@@ -34,8 +34,8 @@ type Event struct {
 	// EndKeyword is the EndEvent keyword that ends the definition or nil if the
 	// event is native (and thus has no body).
 	EndKeyword *Token
-	// Location is the source range of the node.
-	Location source.Location
+	// NodeLocation is the source location of the node.
+	NodeLocation source.Location
 }
 
 // Parameters returns the list of parameters defined for this invokable.
@@ -58,9 +58,9 @@ func (e *Event) Accept(v Visitor) error {
 	return v.VisitEvent(e)
 }
 
-// SourceLocation returns the source location of the node.
-func (e *Event) SourceLocation() source.Location {
-	return e.Location
+// Location returns the source location of the node.
+func (e *Event) Location() source.Location {
+	return e.NodeLocation
 }
 
 func (*Event) block() {}

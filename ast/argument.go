@@ -13,8 +13,8 @@ type Argument struct {
 	Operator *Token
 	// Value is the expression that defines the value of this argument.
 	Value Expression
-	// Location is the source range of the node.
-	Location source.Location
+	// NodeLocation is the source location of the node.
+	NodeLocation source.Location
 }
 
 // Trivia returns the [InfixTrivia] assocaited with this node.
@@ -27,9 +27,9 @@ func (a *Argument) Accept(v Visitor) error {
 	return v.VisitArgument(a)
 }
 
-// SourceLocation returns the source location of the node.
-func (a *Argument) SourceLocation() source.Location {
-	return a.Location
+// Location returns the source location of the node.
+func (a *Argument) Location() source.Location {
+	return a.NodeLocation
 }
 
 var _ Node = (*Argument)(nil)

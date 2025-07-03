@@ -236,7 +236,7 @@ func (f *formatter) VisitDocumentation(node *ast.Documentation) error {
 	if err := node.Open.Accept(f); err != nil {
 		return fmt.Errorf("failed for format Open: %w", err)
 	}
-	text := trimRight(node.Text.SourceLocation().Text())
+	text := trimRight(node.Text.Location().Text())
 	if bytes.ContainsRune(text, '\n') {
 		f.level++
 		if err := f.newline(); err != nil {
@@ -278,7 +278,7 @@ func (f *formatter) VisitBlockComment(node *ast.BlockComment) error {
 	if err := node.Open.Accept(f); err != nil {
 		return fmt.Errorf("failed for format Open: %w", err)
 	}
-	text := trimRight(node.Text.SourceLocation().Text())
+	text := trimRight(node.Text.Location().Text())
 	if bytes.ContainsRune(text, '\n') {
 		f.level++
 		if err := f.newline(); err != nil {
@@ -323,7 +323,7 @@ func (f *formatter) VisitLineComment(node *ast.LineComment) error {
 	if err := f.space(); err != nil {
 		return fmt.Errorf("failed to format space: %w", err)
 	}
-	if err := f.bytes(trimRight(node.Text.SourceLocation().Text())); err != nil {
+	if err := f.bytes(trimRight(node.Text.Location().Text())); err != nil {
 		return fmt.Errorf("failed to format comment text: %w", err)
 	}
 	return nil
@@ -498,7 +498,7 @@ func (f *formatter) VisitFunction(node *ast.Function) error {
 }
 
 func (f *formatter) VisitIdentifier(node *ast.Identifier) error {
-	return f.bytes(node.Location.Text())
+	return f.bytes(node.Location().Text())
 }
 
 func (f *formatter) VisitIf(node *ast.If) error {
@@ -649,21 +649,21 @@ func (f *formatter) VisitBoolLiteral(node *ast.BoolLiteral) error {
 }
 
 func (f *formatter) VisitIntLiteral(node *ast.IntLiteral) error {
-	if err := f.bytes(node.Location.Text()); err != nil {
+	if err := f.bytes(node.Location().Text()); err != nil {
 		return fmt.Errorf("failed to format IntLiteral: %w", err)
 	}
 	return nil
 }
 
 func (f *formatter) VisitFloatLiteral(node *ast.FloatLiteral) error {
-	if err := f.bytes(node.Location.Text()); err != nil {
+	if err := f.bytes(node.Location().Text()); err != nil {
 		return fmt.Errorf("failed to format FloatLiteral: %w", err)
 	}
 	return nil
 }
 
 func (f *formatter) VisitStringLiteral(node *ast.StringLiteral) error {
-	if err := f.bytes(node.Location.Text()); err != nil {
+	if err := f.bytes(node.Location().Text()); err != nil {
 		return fmt.Errorf("failed to format StringLiteral: %w", err)
 	}
 	return nil
@@ -1073,7 +1073,7 @@ func (f *formatter) VisitTypeLiteral(node *ast.TypeLiteral) error {
 	case types.String:
 		text = f.keywords.String
 	case types.Object:
-		text = string(node.Text.Location.Text())
+		text = string(node.Text.Location().Text())
 	default:
 		return fmt.Errorf("unexpected types: %T", baseType)
 	}

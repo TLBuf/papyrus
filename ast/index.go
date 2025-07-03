@@ -14,8 +14,8 @@ type Index struct {
 	Index Expression
 	// Close is the close bracket token.
 	Close *Token
-	// Location is the source range of the node.
-	Location source.Location
+	// NodeLocation is the source location of the node.
+	NodeLocation source.Location
 }
 
 // Trivia returns the [InfixTrivia] assocaited with this node.
@@ -28,9 +28,9 @@ func (i *Index) Accept(v Visitor) error {
 	return v.VisitIndex(i)
 }
 
-// SourceLocation returns the source location of the node.
-func (i *Index) SourceLocation() source.Location {
-	return i.Location
+// Location returns the source location of the node.
+func (i *Index) Location() source.Location {
+	return i.NodeLocation
 }
 
 func (*Index) expression() {}

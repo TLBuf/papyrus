@@ -14,8 +14,8 @@ type Call struct {
 	Arguments []*Argument
 	// Close is the close parenthesis token.
 	Close *Token
-	// Location is the source range of the node.
-	Location source.Location
+	// NodeLocation is the source location of the node.
+	NodeLocation source.Location
 }
 
 // Trivia returns the [InfixTrivia] assocaited with this node.
@@ -28,9 +28,9 @@ func (c *Call) Accept(v Visitor) error {
 	return v.VisitCall(c)
 }
 
-// SourceLocation returns the source location of the node.
-func (c *Call) SourceLocation() source.Location {
-	return c.Location
+// Location returns the source location of the node.
+func (c *Call) Location() source.Location {
+	return c.NodeLocation
 }
 
 func (*Call) expression() {}

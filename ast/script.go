@@ -37,8 +37,8 @@ type Script struct {
 	// Statements is the list of statements that constitute the body of the
 	// script.
 	Statements []ScriptStatement
-	// Location is the source range of the node.
-	Location source.Location
+	// NodeLocation is the source location of the node.
+	NodeLocation source.Location
 }
 
 // Trivia returns the [LineTrivia] assocaited with this node.
@@ -51,9 +51,9 @@ func (s *Script) Accept(v Visitor) error {
 	return v.VisitScript(s)
 }
 
-// SourceLocation returns the source location of the node.
-func (s *Script) SourceLocation() source.Location {
-	return s.Location
+// Location returns the source location of the node.
+func (s *Script) Location() source.Location {
+	return s.NodeLocation
 }
 
 var _ Node = (*Script)(nil)
