@@ -5,5 +5,9 @@ import "github.com/TLBuf/papyrus/ast"
 // attachLooseComments updates the [ast.Trivia] on nodes in place with
 // references to the appropriate comments.
 func attachLooseComments(script *ast.Script, comments []ast.Comment) error {
-	return newError(script.Location(), "attaching loose comments is not yet implemented: failed to attach %d comments", len(comments))
+	return newError(
+		script.Location(),
+		"attaching loose comments is not yet implemented: failed to attach %d comments",
+		len(comments),
+	)
 }

@@ -414,5 +414,14 @@ func TestHeader(t *testing.T) {
 var ignoreFields = []cmp.Option{
 	// lexer_test pretty thoroughly covers these fields, if the
 	// byte offset and length match, that's sufficient for this test.
-	cmpopts.IgnoreFields(source.Location{}, "File", "StartLine", "StartColumn", "EndLine", "EndColumn", "PreambleLength", "PostambleLength"),
+	cmpopts.IgnoreFields(
+		source.Location{},
+		"File",
+		"StartLine",
+		"StartColumn",
+		"EndLine",
+		"EndColumn",
+		"PreambleLength",
+		"PostambleLength",
+	),
 }

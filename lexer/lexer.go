@@ -408,7 +408,11 @@ func (l *Lexer) readNumber() (token.Token, error) {
 		tok := l.newTokenAt(token.IntLiteral, source.Span(start, end))
 		if l.file.Text[l.position-1] == 'x' || l.file.Text[l.position-1] == 'X' {
 			tok.Kind = token.Illegal
-			return tok, newError(tok.Location, "expected a digit to follow the %s in a hex int literal", string(l.file.Text[l.position-1]))
+			return tok, newError(
+				tok.Location,
+				"expected a digit to follow the %s in a hex int literal",
+				string(l.file.Text[l.position-1]),
+			)
 		}
 		return tok, nil
 	}

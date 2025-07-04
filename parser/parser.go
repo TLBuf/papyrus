@@ -262,7 +262,13 @@ func (p *parser) tryConsume(t token.Kind, alts ...token.Kind) error {
 
 func unexpectedTokenError(got token.Token, want token.Kind, alts ...token.Kind) error {
 	if len(alts) > 0 {
-		return newError(got.Location, "expected any of [%s, %s], but found: %s", want, tokensTypesToString(alts...), got.Kind)
+		return newError(
+			got.Location,
+			"expected any of [%s, %s], but found: %s",
+			want,
+			tokensTypesToString(alts...),
+			got.Kind,
+		)
 	}
 	return newError(got.Location, "expected: %s, but found: %s", want, got.Kind)
 }
@@ -346,8 +352,10 @@ func (p *parser) ParseScript() (*ast.Script, error) {
 	var err error
 	node := &ast.Script{
 		NodeLocation: source.Location{
-			File:        p.token.Location.File,
-			Length:      uint32(len(p.token.Location.File.Text)), // #nosec G115 -- Checked at start of parser.Parse via lexer.New.
+			File: p.token.Location.File,
+			Length: uint32(
+				len(p.token.Location.File.Text),
+			), // #nosec G115 -- Checked at start of parser.Parse via lexer.New.
 			StartLine:   1,
 			StartColumn: 1,
 		},
@@ -421,7 +429,16 @@ func (p *parser) ParseScriptStatement() (ast.ScriptStatement, error) {
 		stmt, err = p.ParseState()
 	case token.Function:
 		stmt, err = p.ParseFunction()
-	case token.Bool, token.BoolArray, token.Float, token.FloatArray, token.Int, token.IntArray, token.String, token.StringArray, token.Identifier, token.ObjectArray:
+	case token.Bool,
+		token.BoolArray,
+		token.Float,
+		token.FloatArray,
+		token.Int,
+		token.IntArray,
+		token.String,
+		token.StringArray,
+		token.Identifier,
+		token.ObjectArray:
 		switch p.lookahead.Kind {
 		case token.Property:
 			stmt, err = p.ParseProperty()
@@ -482,7 +499,16 @@ func (p *parser) recoverScriptStatement() error {
 		case token.EOF:
 			// Hit end of file, give up.
 			return nil
-		case token.Import, token.Event, token.Auto, token.State, token.Function, token.Bool, token.Float, token.Int, token.String, token.Identifier:
+		case token.Import,
+			token.Event,
+			token.Auto,
+			token.State,
+			token.Function,
+			token.Bool,
+			token.Float,
+			token.Int,
+			token.String,
+			token.Identifier:
 			// Next token is the start of a valid statement.
 			return nil
 		default:
@@ -531,7 +557,11 @@ func (p *parser) ParseState() (ast.ScriptStatement, error) {
 		if p.token.Kind == token.EOF {
 			// State was never closed, proactively create a
 			errStmt := &ast.ErrorStatement{
-				Message:      fmt.Sprintf("hit end of file while parsing state %q, did you forget %s?", node.Name.NodeLocation.Text(), token.EndState),
+				Message: fmt.Sprintf(
+					"hit end of file while parsing state %q, did you forget %s?",
+					node.Name.NodeLocation.Text(),
+					token.EndState,
+				),
 				NodeLocation: source.Span(start, p.token.Location),
 			}
 			p.errors = append(p.errors, errStmt)
@@ -843,13 +873,26 @@ func (p *parser) ParseFunctionStatement() (ast.FunctionStatement, error) {
 		return p.ParseIf()
 	case token.While:
 		return p.ParseWhile()
-	case token.Bool, token.BoolArray, token.Int, token.IntArray, token.Float, token.FloatArray, token.String, token.StringArray, token.ObjectArray:
+	case token.Bool,
+		token.BoolArray,
+		token.Int,
+		token.IntArray,
+		token.Float,
+		token.FloatArray,
+		token.String,
+		token.StringArray,
+		token.ObjectArray:
 		return p.ParseFunctionVariable()
 	case token.Identifier:
 		switch p.lookahead.Kind {
 		case token.Identifier: // p.token is an object type, p.lookahead is a variable name
 			return p.ParseFunctionVariable()
-		case token.Assign, token.AssignAdd, token.AssignDivide, token.AssignModulo, token.AssignMultiply, token.AssignSubtract:
+		case token.Assign,
+			token.AssignAdd,
+			token.AssignDivide,
+			token.AssignModulo,
+			token.AssignMultiply,
+			token.AssignSubtract:
 			return p.ParseAssignment(nil)
 		}
 	}
@@ -858,7 +901,12 @@ func (p *parser) ParseFunctionStatement() (ast.FunctionStatement, error) {
 		return nil, err
 	}
 	switch p.token.Kind {
-	case token.Assign, token.AssignAdd, token.AssignDivide, token.AssignModulo, token.AssignMultiply, token.AssignSubtract:
+	case token.Assign,
+		token.AssignAdd,
+		token.AssignDivide,
+		token.AssignModulo,
+		token.AssignMultiply,
+		token.AssignSubtract:
 		return p.ParseAssignment(expr)
 	}
 	return &ast.ExpressionStatement{
@@ -1127,33 +1175,73 @@ func (p *parser) ParseProperty() (*ast.Property, error) {
 	switch first.Name.Normalized {
 	case "get":
 		if first.ReturnType == nil {
-			return nil, newError(first.Name.Location(), "expected '%s' to have a return type of %s, but found none", first.Name.Location().Text(), node.Type.Location().Text())
+			return nil, newError(
+				first.Name.Location(),
+				"expected '%s' to have a return type of %s, but found none",
+				first.Name.Location().Text(),
+				node.Type.Location().Text(),
+			)
 		}
 		if first.ReturnType.Type != node.Type.Type {
-			return nil, newError(first.ReturnType.Location(), "expected '%s' to have a return type of %s, but found %s", first.Name.Location().Text(), node.Type.Location().Text(), first.ReturnType.Location().Text())
+			return nil, newError(
+				first.ReturnType.Location(),
+				"expected '%s' to have a return type of %s, but found %s",
+				first.Name.Location().Text(),
+				node.Type.Location().Text(),
+				first.ReturnType.Location().Text(),
+			)
 		}
 		if len(first.ParameterList) != 0 {
 			loc := source.Span(first.ParameterList[0].Location(), first.ParameterList[len(first.ParameterList)-1].Location())
-			return nil, newError(loc, "expected '%s' to have no parameters, but found %d", first.Name.Location().Text(), len(first.ParameterList))
+			return nil, newError(
+				loc,
+				"expected '%s' to have no parameters, but found %d",
+				first.Name.Location().Text(),
+				len(first.ParameterList),
+			)
 		}
 		node.Get = first
 	case "set":
 		if first.ReturnType != nil {
-			return nil, newError(first.ReturnType.Location(), "expected '%s' to have no return type, but found %s", first.Name.Location().Text(), first.ReturnType.Location().Text())
+			return nil, newError(
+				first.ReturnType.Location(),
+				"expected '%s' to have no return type, but found %s",
+				first.Name.Location().Text(),
+				first.ReturnType.Location().Text(),
+			)
 		}
 		if len(first.ParameterList) == 0 {
-			return nil, newError(first.Name.Location(), "expected '%s' to have one parameter, but found none", first.Name.Location().Text())
+			return nil, newError(
+				first.Name.Location(),
+				"expected '%s' to have one parameter, but found none",
+				first.Name.Location().Text(),
+			)
 		}
 		if len(first.ParameterList) > 1 {
 			loc := source.Span(first.ParameterList[0].Location(), first.ParameterList[len(first.ParameterList)-1].Location())
-			return nil, newError(loc, "expected '%s' to have one parameter, but found %d", first.Name.Location().Text(), len(first.ParameterList))
+			return nil, newError(
+				loc,
+				"expected '%s' to have one parameter, but found %d",
+				first.Name.Location().Text(),
+				len(first.ParameterList),
+			)
 		}
 		if first.ParameterList[0].Type.Type != node.Type.Type {
-			return nil, newError(first.ReturnType.Location(), "expected '%s' to have a parameter of type %s, but found %s", first.Name.Location().Text(), node.Type.Location().Text(), first.ParameterList[0].Type.Location().Text())
+			return nil, newError(
+				first.ReturnType.Location(),
+				"expected '%s' to have a parameter of type %s, but found %s",
+				first.Name.Location().Text(),
+				node.Type.Location().Text(),
+				first.ParameterList[0].Type.Location().Text(),
+			)
 		}
 		node.Set = first
 	default:
-		return nil, newError(first.Location(), "expected 'Get' or 'Set' function for property, but found '%s'", first.Name.Location().Text())
+		return nil, newError(
+			first.Location(),
+			"expected 'Get' or 'Set' function for property, but found '%s'",
+			first.Name.Location().Text(),
+		)
 	}
 	if second != nil {
 		switch second.Name.Normalized {
@@ -1162,14 +1250,33 @@ func (p *parser) ParseProperty() (*ast.Property, error) {
 				return nil, newError(second.Location(), "expected exactly one 'Get' function, but found two")
 			}
 			if second.ReturnType == nil {
-				return nil, newError(second.Name.Location(), "expected '%s' to have a return type of %s, but found none", second.Name.Location().Text(), node.Type.Location().Text())
+				return nil, newError(
+					second.Name.Location(),
+					"expected '%s' to have a return type of %s, but found none",
+					second.Name.Location().Text(),
+					node.Type.Location().Text(),
+				)
 			}
 			if second.ReturnType.Type != node.Type.Type {
-				return nil, newError(second.ReturnType.Location(), "expected '%s' to have a return type of %s, but found %s", second.Name.Location().Text(), node.Type.Location().Text(), second.ReturnType.Location().Text())
+				return nil, newError(
+					second.ReturnType.Location(),
+					"expected '%s' to have a return type of %s, but found %s",
+					second.Name.Location().Text(),
+					node.Type.Location().Text(),
+					second.ReturnType.Location().Text(),
+				)
 			}
 			if len(second.ParameterList) != 0 {
-				loc := source.Span(second.ParameterList[0].Location(), second.ParameterList[len(second.ParameterList)-1].Location())
-				return nil, newError(loc, "expected '%s' to have no parameters, but found %d", second.Name.Location().Text(), len(second.ParameterList))
+				loc := source.Span(
+					second.ParameterList[0].Location(),
+					second.ParameterList[len(second.ParameterList)-1].Location(),
+				)
+				return nil, newError(
+					loc,
+					"expected '%s' to have no parameters, but found %d",
+					second.Name.Location().Text(),
+					len(second.ParameterList),
+				)
 			}
 			node.Get = second
 		case "set":
@@ -1177,21 +1284,48 @@ func (p *parser) ParseProperty() (*ast.Property, error) {
 				return nil, newError(second.Location(), "expected exactly one 'Set' function, but found two")
 			}
 			if second.ReturnType != nil {
-				return nil, newError(second.ReturnType.Location(), "expected '%s' to have no return type, but found %s", second.Name.Location().Text(), second.ReturnType.Location().Text())
+				return nil, newError(
+					second.ReturnType.Location(),
+					"expected '%s' to have no return type, but found %s",
+					second.Name.Location().Text(),
+					second.ReturnType.Location().Text(),
+				)
 			}
 			if len(second.ParameterList) == 0 {
-				return nil, newError(second.Name.Location(), "expected '%s' to have one parameter, but found none", second.Name.Location().Text())
+				return nil, newError(
+					second.Name.Location(),
+					"expected '%s' to have one parameter, but found none",
+					second.Name.Location().Text(),
+				)
 			}
 			if len(second.ParameterList) > 1 {
-				loc := source.Span(second.ParameterList[0].Location(), second.ParameterList[len(second.ParameterList)-1].Location())
-				return nil, newError(loc, "expected '%s' to have one parameter, but found %d", second.Name.Location().Text(), len(second.ParameterList))
+				loc := source.Span(
+					second.ParameterList[0].Location(),
+					second.ParameterList[len(second.ParameterList)-1].Location(),
+				)
+				return nil, newError(
+					loc,
+					"expected '%s' to have one parameter, but found %d",
+					second.Name.Location().Text(),
+					len(second.ParameterList),
+				)
 			}
 			if second.ParameterList[0].Type.Type != node.Type.Type {
-				return nil, newError(second.ReturnType.Location(), "expected '%s' to have a parameter of type %s, but found %s", second.Name.Location().Text(), node.Type.Location().Text(), second.ParameterList[0].Type.Location().Text())
+				return nil, newError(
+					second.ReturnType.Location(),
+					"expected '%s' to have a parameter of type %s, but found %s",
+					second.Name.Location().Text(),
+					node.Type.Location().Text(),
+					second.ParameterList[0].Type.Location().Text(),
+				)
 			}
 			node.Set = second
 		default:
-			return nil, newError(second.Location(), "expected 'Get' or 'Set' function for property, but found '%s'", second.Name.Location().Text())
+			return nil, newError(
+				second.Location(),
+				"expected 'Get' or 'Set' function for property, but found '%s'",
+				second.Name.Location().Text(),
+			)
 		}
 	}
 	node.EndKeywordLocation = p.token.Location

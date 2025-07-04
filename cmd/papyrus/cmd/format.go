@@ -32,8 +32,20 @@ func Format() *cobra.Command {
 	}
 
 	command.Flags().BoolVarP(&formatTabs, "tabs", "t", false, "Controls whether tabs or spaces are used for indentation")
-	command.Flags().BoolVarP(&formatUnix, "unix", "u", false, "Controls whether unix-style (vs Windows) line ending are used")
-	command.Flags().IntVarP(&formatIndent, "indent", "i", 2, "Controls the number of spaces used for each indentation level")
+	command.Flags().BoolVarP(
+		&formatUnix,
+		"unix",
+		"u",
+		false,
+		"Controls whether unix-style (vs Windows) line ending are used",
+	)
+	command.Flags().IntVarP(
+		&formatIndent,
+		"indent",
+		"i",
+		2,
+		"Controls the number of spaces used for each indentation level",
+	)
 	command.MarkFlagsMutuallyExclusive("tabs", "indent")
 
 	return command
@@ -85,7 +97,7 @@ func formatFile(path string) error {
 	if err := format.Format(&formatted, script, format.WithTabs(formatTabs), format.WithUnixLineEndings(formatUnix), format.WithIndentWidth(formatIndent)); err != nil {
 		return fmt.Errorf("failed to format %q: %w", path, err)
 	}
-	if err := os.WriteFile(path, formatted.Bytes(), 0600); err != nil {
+	if err := os.WriteFile(path, formatted.Bytes(), 0o600); err != nil {
 		return fmt.Errorf("failed to write %q: %w", path, err)
 	}
 	return nil

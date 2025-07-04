@@ -120,28 +120,70 @@ EndState ; Comment
 			t.Errorf("token text mismatch at token %d %q, want: %q, got: %q", i, tok, tt.wantText, gotText)
 		}
 		if tok.Location.ByteOffset != tt.wantOffset {
-			t.Errorf("token byte offset mismatch at token %d %q, want: %d, got: %d", i, tok, tt.wantOffset, tok.Location.ByteOffset)
+			t.Errorf(
+				"token byte offset mismatch at token %d %q, want: %d, got: %d",
+				i,
+				tok,
+				tt.wantOffset,
+				tok.Location.ByteOffset,
+			)
 		}
 		if tok.Location.Length != tt.wantLength {
 			t.Errorf("token length mismatch at token %d %q, want: %d, got: %d", i, tok, tt.wantLength, tok.Location.Length)
 		}
 		if tok.Location.StartLine != tt.wantStartLine {
-			t.Errorf("token start line mismatch at token %d %q, want: %d, got: %d", i, tok, tt.wantStartLine, tok.Location.StartLine)
+			t.Errorf(
+				"token start line mismatch at token %d %q, want: %d, got: %d",
+				i,
+				tok,
+				tt.wantStartLine,
+				tok.Location.StartLine,
+			)
 		}
 		if tok.Location.StartColumn != tt.wantStartColumn {
-			t.Errorf("token start column mismatch at token %d %q, want: %d, got: %d", i, tok, tt.wantStartColumn, tok.Location.StartColumn)
+			t.Errorf(
+				"token start column mismatch at token %d %q, want: %d, got: %d",
+				i,
+				tok,
+				tt.wantStartColumn,
+				tok.Location.StartColumn,
+			)
 		}
 		if tok.Location.EndLine != tt.wantEndLine {
-			t.Errorf("token end line mismatch at token %d %q, want: %d, got: %d", i, tok, tt.wantEndLine, tok.Location.EndLine)
+			t.Errorf(
+				"token end line mismatch at token %d %q, want: %d, got: %d",
+				i,
+				tok,
+				tt.wantEndLine,
+				tok.Location.EndLine,
+			)
 		}
 		if tok.Location.EndColumn != tt.wantEndColumn {
-			t.Errorf("token end column mismatch at token %d %q, want: %d, got: %d", i, tok, tt.wantEndColumn, tok.Location.EndColumn)
+			t.Errorf(
+				"token end column mismatch at token %d %q, want: %d, got: %d",
+				i,
+				tok,
+				tt.wantEndColumn,
+				tok.Location.EndColumn,
+			)
 		}
 		if tok.Location.PreambleLength != tt.wantPreambleLength {
-			t.Errorf("token preamble length mismatch at token %d %q, want: %d, got: %d", i, tok, tt.wantPreambleLength, tok.Location.PreambleLength)
+			t.Errorf(
+				"token preamble length mismatch at token %d %q, want: %d, got: %d",
+				i,
+				tok,
+				tt.wantPreambleLength,
+				tok.Location.PreambleLength,
+			)
 		}
 		if tok.Location.PostambleLength != tt.wantPostambleLength {
-			t.Errorf("token postamble length mismatch at token %d %q, want: %d, got: %d", i, tok, tt.wantPostambleLength, tok.Location.PostambleLength)
+			t.Errorf(
+				"token postamble length mismatch at token %d %q, want: %d, got: %d",
+				i,
+				tok,
+				tt.wantPostambleLength,
+				tok.Location.PostambleLength,
+			)
 		}
 	}
 }
