@@ -82,47 +82,47 @@ const (
 	EOF
 	// As is the casting keyword.
 	As
-	// Assign, '=', is the assignment operator symbol.
+	// Assign is the assignment operator symbol, '='.
 	Assign
-	// AssignAdd, '+=', is the addition assignment operator symbol.
+	// AssignAdd is the addition assignment operator symbol, '+='.
 	AssignAdd
-	// AssignDivide, '/=', is the division assignment operator symbol.
+	// AssignDivide is the division assignment operator symbol, '/='.
 	AssignDivide
-	// AssignModulo, '%=', is the modular assignment operator symbol.
+	// AssignModulo is the modular assignment operator symbol, '%='.
 	AssignModulo
-	// AssignMultiply, '*=', is the multiplication assignment operator symbol.
+	// AssignMultiply is the multiplication assignment operator symbol, '*='.
 	AssignMultiply
-	// AssignSubtract, '-=', is the subtraction assignment operator symbol.
+	// AssignSubtract is the subtraction assignment operator symbol, '-='.
 	AssignSubtract
 	// Auto is the auto property keyword.
 	Auto
 	// AutoReadOnly is the auto read-only property keyword.
 	AutoReadOnly
-	// BlockCommentClose, '/;', is the symbol that ends a block comment.
+	// BlockCommentClose is the symbol that ends a block comment, '/;'.
 	BlockCommentClose
-	// BlockCommentClose, '/;', is the symbol that starts a block comment.
+	// BlockCommentOpen is the symbol that starts a block comment, '/;'.
 	BlockCommentOpen
 	// Bool is the bool type keyword.
 	Bool
 	// BoolArray is the bool array type keyword.
 	BoolArray
-	// BraceClose, '}', is the symbol that ends a documentation comment.
+	// BraceClose is the symbol that ends a documentation comment, '}'.
 	BraceClose
-	// BraceOpen, '{', is the symbol that starts a documentation comment.
+	// BraceOpen is the symbol that starts a documentation comment, '{'.
 	BraceOpen
-	// BracketClose, ']', is the closing bracket symbol used by arrays.
+	// BracketClose is the closing bracket symbol used by arrays, ']'.
 	BracketClose
-	// BracketOpen, '[', is the openning bracket symbol used by arrays.
+	// BracketOpen is the openning bracket symbol used by arrays, '['.
 	BracketOpen
-	// Comma, ',', is the symbol used to separate list elements.
+	// Comma is the symbol used to separate list elements, ','.
 	Comma
 	// Comment denotes a token that contains all content of a comment.
 	Comment
 	// Conditional is the conditional flag keyword.
 	Conditional
-	// Divide, '/', is the division symbol.
+	// Divide is the division symbol, '/'.
 	Divide
-	// Dot, '.', is the access operator symbol.
+	// Dot is the access operator symbol, '.'.
 	Dot
 	// Else is the unconditional alternative keyword.
 	Else
@@ -140,7 +140,7 @@ const (
 	EndState
 	// EndWhile is the keyword that ends a loop block.
 	EndWhile
-	// Equal, '==', is the equality comparison operator symbol.
+	// Equal is the equality comparison operator symbol, '=='.
 	Equal
 	// Event is the keyword that starts an event block.
 	Event
@@ -158,9 +158,10 @@ const (
 	Function
 	// Global is the global flag keyword.
 	Global
-	// Greater, '>', is the greater than comparison operator symbol.
+	// Greater is the greater than comparison operator symbol, '>'.
 	Greater
-	// GreaterOrEqual, '>=', is the greater than or equal to comparison operator symbol.
+	// GreaterOrEqual is the greater than or
+	// equal to comparison operator symbol, '>='.
 	GreaterOrEqual
 	// Hidden is the hidden flag keyword.
 	Hidden
@@ -178,21 +179,21 @@ const (
 	IntLiteral
 	// Length is the array length keyword.
 	Length
-	// Less, '<', is the less than comparison operator symbol.
+	// Less is the less than comparison operator symbol, '<'.
 	Less
-	// LessOrEqual, '<=', is the less than or equal to comparison operator symbol.
+	// LessOrEqual is the less than or equal to comparison operator symbol, '<='.
 	LessOrEqual
-	// LogicalAnd, '&&', is the logical AND operator symbol.
+	// LogicalAnd is the logical AND operator symbol, '&&'.
 	LogicalAnd
-	// LogicalNot, '!', is the logical NOT operator symbol.
+	// LogicalNot is the logical NOT operator symbol, '!'.
 	LogicalNot
-	// LogicalOr, '||', is the logical OR operator symbol.
+	// LogicalOr is the logical OR operator symbol, '||'.
 	LogicalOr
-	// Minus, '-', is the subtraction or unary numeric negation operator symbol.
+	// Minus is the subtraction or unary numeric negation operator symbol, '-'.
 	Minus
-	// Modulo, '%', is the modular operator symbol.
+	// Modulo is the modular operator symbol, '%'.
 	Modulo
-	// Multiply, '*', is the multiplication operator symbol.
+	// Multiply is the multiplication operator symbol, '*'.
 	Multiply
 	// Native is the native flag keyword.
 	Native
@@ -202,17 +203,19 @@ const (
 	Newline
 	// None is the object literal empty value keyword.
 	None
-	// NotEqual, '!=', is the negaive equality comparison operator symbol.
+	// NotEqual is the negaive equality comparison operator symbol, '!='.
 	NotEqual
 	// ObjectArray is the object array type keyword.
 	ObjectArray
 	// Parent is the keyword used to refer to symbols in an extended script.
 	Parent
-	// ParenthesisClose, ')', is the is the closing symbol used by parameter and argument lists and parentheticals.
+	// ParenthesisClose is the is the closing symbol used by
+	// parameter and argument lists and parentheticals, ')'.
 	ParenthesisClose
-	// ParenthesisOpen, '(', is the is the openning symbol used by parameter and argument lists and parentheticals.
+	// ParenthesisOpen is the is the openning symbol used by
+	// parameter and argument lists and parentheticals, '('.
 	ParenthesisOpen
-	// Plus, '+', is the addition operator symbol.
+	// Plus is the addition operator symbol, '+'.
 	Plus
 	// Property is the keyword that starts a property definition or block.
 	Property

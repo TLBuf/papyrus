@@ -29,7 +29,7 @@ const (
 // Option defines a format option.
 type Option func(f *formatter) error
 
-// IndentWidth returns an [Option] that sets the number of spaces used
+// WithIndentWidth returns an [Option] that sets the number of spaces used
 // for each indentation level when spaces are used for intendation.
 func WithIndentWidth(width int) Option {
 	return func(f *formatter) error {
@@ -725,7 +725,7 @@ func (f *formatter) VisitStringLiteral(node *ast.StringLiteral) error {
 	return nil
 }
 
-func (f *formatter) VisitNoneLiteral(node *ast.NoneLiteral) error {
+func (f *formatter) VisitNoneLiteral(*ast.NoneLiteral) error {
 	if err := f.str(f.keywords.None); err != nil {
 		return fmt.Errorf("failed to format None keyword: %w", err)
 	}
@@ -1232,8 +1232,8 @@ func (f *formatter) VisitWhile(node *ast.While) error {
 	return nil
 }
 
-func (f *formatter) VisitErrorStatement(node *ast.ErrorStatement) error {
-	return fmt.Errorf("attempted to format error statement: %s", node.Message)
+func (*formatter) VisitErrorStatement(node *ast.ErrorStatement) error {
+	return fmt.Errorf("attempted to format error statement: %s", node.ErrorMessage)
 }
 
 var _ ast.Visitor = (*formatter)(nil)

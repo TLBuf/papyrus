@@ -35,7 +35,7 @@ func (v *PostorderVisitor) VisitAccess(a *Access) error {
 	return nil
 }
 
-// PostorderVisitor visits the [Argument] node then all children nodes and
+// VisitArgument visits the [Argument] node then all children nodes and
 // returns an error if any call returns an error.
 func (v *PostorderVisitor) VisitArgument(a *Argument) error {
 	for _, c := range a.Comments.Leading() {

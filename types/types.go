@@ -15,36 +15,36 @@ type Scalar interface {
 // Bool represents the boolean (i.e. true or false) type.
 type Bool struct{}
 
-func (b Bool) types() {}
+func (Bool) types() {}
 
-func (b Bool) scalar() {}
+func (Bool) scalar() {}
 
 var _ Scalar = Bool{}
 
 // Int represents the signed 32-bit integer type.
 type Int struct{}
 
-func (i Int) types() {}
+func (Int) types() {}
 
-func (i Int) scalar() {}
+func (Int) scalar() {}
 
 var _ Scalar = Int{}
 
 // Float represents the signed 32-bit floating-point type.
 type Float struct{}
 
-func (f Float) types() {}
+func (Float) types() {}
 
-func (f Float) scalar() {}
+func (Float) scalar() {}
 
 var _ Scalar = Float{}
 
 // String represents the string type.
 type String struct{}
 
-func (s String) types() {}
+func (String) types() {}
 
-func (s String) scalar() {}
+func (String) scalar() {}
 
 var _ Scalar = String{}
 
@@ -54,9 +54,9 @@ type Object struct {
 	Name string
 }
 
-func (o Object) types() {}
+func (Object) types() {}
 
-func (o Object) scalar() {}
+func (Object) scalar() {}
 
 var _ Scalar = Object{}
 
@@ -65,6 +65,6 @@ type Array struct {
 	ElementType Scalar
 }
 
-func (a Array) types() {}
+func (Array) types() {}
 
 var _ Type = Array{}

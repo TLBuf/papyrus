@@ -9,10 +9,10 @@ import (
 type UnaryKind uint8
 
 const (
-	// Negate, '-', flips the sign of the numeric operand.
+	// Negate is the operation that flips the sign of the numeric operand.
 	Negate = UnaryKind(token.Minus)
-	// LogicalNot, '!', evaluates to true if the
-	// operand evaluates to false and false otherwise.
+	// LogicalNot is the operation that evaluates to true if
+	// the operand evaluates to false and false otherwise.
 	LogicalNot = UnaryKind(token.LogicalNot)
 )
 

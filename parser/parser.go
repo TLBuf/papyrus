@@ -52,8 +52,8 @@ func WithRecovery(enabled bool) Option {
 	})
 }
 
-// Parser returns the file parsed as an [*ast.Script] or an [Error] if parsing
-// encountered one or more issues.
+// Parse returns the file parsed as an [*ast.Script] or
+// an [Error] if parsing encountered one or more issues.
 func Parse(file source.File, opts ...Option) (*ast.Script, error) {
 	lex, err := lexer.New(file)
 	if err != nil {
@@ -210,7 +210,7 @@ type (
 func (p *parser) next() (err error) {
 	newline := p.token.Kind == token.Newline
 	p.token = p.lookahead
-	p.lookahead, err = p.lex.NextToken()
+	p.lookahead, err = p.lex.Next()
 	if err != nil {
 		var lerr lexer.Error
 		if !errors.As(err, &lerr) {
@@ -280,15 +280,15 @@ func unexpectedTokenError(got token.Token, want token.Kind, alts ...token.Kind) 
 	return newError(got.Location, "expected: %s, but found: %s", want, got.Kind)
 }
 
-func tokensTypesToString(types ...token.Kind) string {
-	if len(types) == 0 {
+func tokensTypesToString(kinds ...token.Kind) string {
+	if len(kinds) == 0 {
 		return ""
 	}
-	if len(types) == 1 {
-		return types[0].String()
+	if len(kinds) == 1 {
+		return kinds[0].String()
 	}
-	strs := make([]string, len(types))
-	for i, t := range types {
+	strs := make([]string, len(kinds))
+	for i, t := range kinds {
 		strs[i] = t.String()
 	}
 	return strings.Join(strs, ", ")
@@ -495,7 +495,7 @@ func (p *parser) ParseScriptStatement() (ast.ScriptStatement, error) {
 		return nil, err
 	}
 	errStmt := &ast.ErrorStatement{
-		Message:      fmt.Sprintf("%v", err),
+		ErrorMessage: fmt.Sprintf("%v", err),
 		NodeLocation: source.Span(start.Location, p.token.Location),
 	}
 	p.errors = append(p.errors, errStmt)
@@ -573,7 +573,7 @@ func (p *parser) ParseState() (ast.ScriptStatement, error) {
 		if p.token.Kind == token.EOF {
 			// State was never closed, proactively create a
 			errStmt := &ast.ErrorStatement{
-				Message: fmt.Sprintf(
+				ErrorMessage: fmt.Sprintf(
 					"hit end of file while parsing state %q, did you forget %s?",
 					node.Name.NodeLocation.Text(p.file),
 					token.EndState,
@@ -639,7 +639,7 @@ func (p *parser) ParseInvokable() (ast.Invokable, error) {
 		return nil, err
 	}
 	errStmt := &ast.ErrorStatement{
-		Message:      fmt.Sprintf("%v", err),
+		ErrorMessage: fmt.Sprintf("%v", err),
 		NodeLocation: source.Span(start.Location, p.token.Location),
 	}
 	p.errors = append(p.errors, errStmt)
@@ -676,12 +676,18 @@ func (p *parser) ParseEvent() (*ast.Event, error) {
 	if err := p.tryConsume(token.Event); err != nil {
 		return nil, err
 	}
-	node.Name, err = p.ParseIdentifier()
-	if err != nil {
+	if node.Name, err = p.ParseIdentifier(); err != nil {
 		return nil, err
 	}
-	node.OpenLocation, node.ParameterList, node.CloseLocation, err = p.ParseParameterList()
-	if err != nil {
+	node.OpenLocation = p.token.Location
+	if err := p.tryConsume(token.ParenthesisOpen); err != nil {
+		return nil, err
+	}
+	if node.ParameterList, err = p.ParseParameterList(); err != nil {
+		return nil, err
+	}
+	node.CloseLocation = p.token.Location
+	if err := p.tryConsume(token.ParenthesisClose); err != nil {
 		return nil, err
 	}
 	for p.token.Kind == token.Native {
@@ -732,12 +738,18 @@ func (p *parser) ParseFunction() (*ast.Function, error) {
 	if err := p.tryConsume(token.Function); err != nil {
 		return nil, err
 	}
-	node.Name, err = p.ParseIdentifier()
-	if err != nil {
+	if node.Name, err = p.ParseIdentifier(); err != nil {
 		return nil, err
 	}
-	node.OpenLocation, node.ParameterList, node.CloseLocation, err = p.ParseParameterList()
-	if err != nil {
+	node.OpenLocation = p.token.Location
+	if err := p.tryConsume(token.ParenthesisOpen); err != nil {
+		return nil, err
+	}
+	if node.ParameterList, err = p.ParseParameterList(); err != nil {
+		return nil, err
+	}
+	node.CloseLocation = p.token.Location
+	if err := p.tryConsume(token.ParenthesisClose); err != nil {
 		return nil, err
 	}
 	for p.token.Kind == token.Native || p.token.Kind == token.Global {
@@ -775,27 +787,19 @@ func (p *parser) ParseFunction() (*ast.Function, error) {
 	return node, p.tryConsume(token.Newline, token.EOF)
 }
 
-func (p *parser) ParseParameterList() (openLoc source.Location, params []*ast.Parameter, closeLoc source.Location, err error) {
-	openLoc = p.token.Location
-	if err := p.tryConsume(token.ParenthesisOpen); err != nil {
-		return openLoc, params, closeLoc, err
-	}
+func (p *parser) ParseParameterList() (params []*ast.Parameter, err error) {
 	for {
 		switch p.token.Kind {
 		case token.Comma:
 			if err := p.next(); err != nil {
-				return openLoc, params, closeLoc, err
+				return params, err
 			}
 		case token.ParenthesisClose:
-			closeLoc = p.token.Location
-			if err := p.next(); err != nil {
-				return openLoc, params, closeLoc, err
-			}
-			return openLoc, params, closeLoc, nil
+			return params, nil
 		default:
 			param, err := p.ParseParameter()
 			if err != nil {
-				return openLoc, params, closeLoc, err
+				return params, err
 			}
 			params = append(params, param)
 		}
@@ -858,7 +862,7 @@ func (p *parser) ParseFunctionStatementBlock(terminals ...token.Kind) ([]ast.Fun
 			return nil, err
 		}
 		errStmt := &ast.ErrorStatement{
-			Message:      fmt.Sprintf("%v", err),
+			ErrorMessage: fmt.Sprintf("%v", err),
 			NodeLocation: source.Span(start, p.token.Location),
 		}
 		p.errors = append(p.errors, errStmt)
@@ -1790,14 +1794,14 @@ func (p *parser) ParseNoneLiteral() (*ast.NoneLiteral, error) {
 	return node, nil
 }
 
-func registerPrefix[T ast.Expression](p *parser, fn func() (T, error), types ...token.Kind) {
-	for _, t := range types {
+func registerPrefix[T ast.Expression](p *parser, fn func() (T, error), kinds ...token.Kind) {
+	for _, t := range kinds {
 		p.prefix[t] = func() (ast.Expression, error) { return fn() }
 	}
 }
 
-func registerInfix[T ast.Expression](p *parser, fn func(ast.Expression) (T, error), types ...token.Kind) {
-	for _, t := range types {
+func registerInfix[T ast.Expression](p *parser, fn func(ast.Expression) (T, error), kinds ...token.Kind) {
+	for _, t := range kinds {
 		p.infix[t] = func(expr ast.Expression) (ast.Expression, error) { return fn(expr) }
 	}
 }

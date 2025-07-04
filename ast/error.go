@@ -6,15 +6,15 @@ import "github.com/TLBuf/papyrus/source"
 type ErrorStatement struct {
 	LineTrivia
 
-	// Message is a human-readable message describing the error encountered.
-	Message string
+	// ErrorMessage is a human-readable message describing the error encountered.
+	ErrorMessage string
 	// NodeLocation is the source location of the node.
 	NodeLocation source.Location
 }
 
 // Message returns a human-readable message describing the error encountered.
-func (e *ErrorStatement) ErrorMessage() string {
-	return e.Message
+func (e *ErrorStatement) Message() string {
+	return e.ErrorMessage
 }
 
 // Parameters implements the [Invokable] interface and always returns nil.

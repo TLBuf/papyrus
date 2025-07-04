@@ -9,22 +9,23 @@ import (
 type AssignmentKind uint8
 
 const (
-	// Assign, '=', assigns the value to the assignee.
+	// Assign is the operation that assigns the value to the assignee.
 	Assign = AssignmentKind(token.Assign)
-	// AssignAdd, '+=', adds the assignee to the
-	// value and assigns the result to assignee.
+	// AssignAdd is the operation that adds the assignee
+	// to the value and assigns the result to assignee.
 	AssignAdd = AssignmentKind(token.AssignAdd)
-	// AssignDivide, '/=', divides the assignee by
-	// the value and assigns the result to assignee.
+	// AssignDivide is the operation that divides the assignee
+	// by the value and assigns the result to assignee.
 	AssignDivide = AssignmentKind(token.AssignDivide)
-	// AssignDivide, '%=', assigns the remainder from dividing the
-	// assignee by the value using integer division to the assignee.
+	// AssignModulo is the operation that  assigns the remainder from dividing
+	// the assignee by the value using integer division to the assignee.
 	AssignModulo = AssignmentKind(token.AssignModulo)
-	// AssignDivide, '/=', multiplies the assignee by
-	// the value and assigns the result to assignee.
+	// AssignMultiply is the operation that multiplies the assignee
+	// by the value and assigns the result to assignee.
 	AssignMultiply = AssignmentKind(token.AssignMultiply)
-	// AssignAdd, '+=', subtracts the value from the
-	// assignee and assigns the result to assignee.
+	// AssignSubtract is the operation that subtracts the value
+	// from the assignee and assigns the result to assignee.
+	AssignSubtract = AssignmentKind(token.AssignSubtract)
 )
 
 // Symbol returns the string representation of this
@@ -41,6 +42,8 @@ func (k AssignmentKind) Symbol() string {
 		return token.AssignModulo.Symbol()
 	case AssignMultiply:
 		return token.AssignMultiply.Symbol()
+	case AssignSubtract:
+		return token.AssignSubtract.Symbol()
 	default:
 		return ""
 	}

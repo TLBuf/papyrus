@@ -401,7 +401,7 @@ func TestHeader(t *testing.T) {
 				t.Errorf("ParseScript() returned an unexpected error: %v", err)
 			}
 			if got == nil {
-				t.Fatalf("ParseScript() returned nil")
+				t.Fatal("ParseScript() returned nil")
 			}
 			if diff := cmp.Diff(test.want, got, ignoreFields...); diff != "" {
 				t.Errorf("ParseScript() mismatch (-want +got):\n%s", diff)

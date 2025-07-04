@@ -167,7 +167,7 @@ func splitLines(text []rune) [][]rune {
 	return lines
 }
 
-func fitLine(text []rune, start, end, width, tabWidth int) ([]Chunk, int, int) {
+func fitLine(text []rune, start, end, width, tabWidth int) (chunks []Chunk, newStart, newEnd int) {
 	text, start, end = substituteTabs(text, start, end, tabWidth)
 	if start <= 0 {
 		if len(text) < width {
@@ -215,7 +215,7 @@ func fitLineOnePoint(text []rune, column, width int) ([]Chunk, int) {
 	}, center
 }
 
-func fitLineTwoPoints(text []rune, start, end, width int) ([]Chunk, int, int) {
+func fitLineTwoPoints(text []rune, start, end, width int) (chunks []Chunk, newStart, newEnd int) {
 	length := len(text)
 	if length <= width {
 		return []Chunk{{Text: string(text), IsSource: true}}, start, end
@@ -249,7 +249,7 @@ func fitLineTwoPoints(text []rune, start, end, width int) ([]Chunk, int, int) {
 		}, remaining/2 + remaining%2 + 3, width - remaining/2 - 4
 	}
 	// Start and end are far enough apart that we have to clip in the middle.
-	chunks := make([]Chunk, 0, 5)
+	chunks = make([]Chunk, 0, 5)
 	available -= 3
 	widthA := available/2 + available%2
 	pivotA := 3 + widthA/2 + widthA%2
@@ -276,19 +276,19 @@ func fitLineTwoPoints(text []rune, start, end, width int) ([]Chunk, int, int) {
 	return chunks, start, end
 }
 
-func substituteTabs(text []rune, start, end, tabWidth int) ([]rune, int, int) {
-	out := make([]rune, 0, len(text)*2)
-	newStart := start - 1
-	newEnd := end - 1
+func substituteTabs(text []rune, start, end, tabWidth int) (newText []rune, newStart, newEnd int) {
+	newText = make([]rune, 0, len(text)*2)
+	newStart = start - 1
+	newEnd = end - 1
 	offset := 0
 	for i, r := range text {
 		if r == '\t' {
 			for range tabWidth {
-				out = append(out, ' ')
+				newText = append(newText, ' ')
 			}
 			offset += tabWidth - 1
 		} else {
-			out = append(out, r)
+			newText = append(newText, r)
 		}
 		if i == start-1 {
 			newStart += offset + 1
@@ -297,5 +297,5 @@ func substituteTabs(text []rune, start, end, tabWidth int) ([]rune, int, int) {
 			newEnd += offset + 1
 		}
 	}
-	return out, newStart, newEnd
+	return newText, newStart, newEnd
 }

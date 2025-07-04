@@ -108,7 +108,7 @@ EndState ; Comment
 		t.Fatalf("New() returned an unexpected error: %v", err)
 	}
 	for i, tt := range tests {
-		tok, err := lex.NextToken()
+		tok, err := lex.Next()
 		if err != nil {
 			t.Fatalf("NextToken() returned an unexpected error at token %d: %v", i, err)
 		}

@@ -18,6 +18,8 @@ linters:
     - perfsprint
     - prealloc
     - predeclared
+    - recvcheck
+    - revive
     - testpackage
     - unconvert
     - unparam
@@ -29,7 +31,24 @@ linters:
         - switch
         - map
       default-signifies-exhaustive: true
-
+    revive:
+      enable-all-rules: true
+      rules:
+        - name: add-constant
+          disabled: true
+        - name: line-length-limit
+          disabled: true
+        - name: cyclomatic
+          disabled: true
+        - name: cognitive-complexity
+          disabled: true
+        - name: max-public-structs
+          disabled: true
+        - name: var-naming
+          disabled: true
+        - name: function-length
+          disabled: true
+          
 
 formatters:
   enable:

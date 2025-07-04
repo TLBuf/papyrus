@@ -20,13 +20,14 @@ var (
 	formatIndent int
 )
 
+// Format returns a command that formats one or more Papyrus files.
 func Format() *cobra.Command {
 	command := &cobra.Command{
 		Use:          "format [path...]",
 		Short:        "Formats one or more Papyrus files",
 		Args:         cobra.MinimumNArgs(1),
 		SilenceUsage: true,
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, args []string) error {
 			return formatFiles(args...)
 		},
 	}

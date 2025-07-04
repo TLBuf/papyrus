@@ -79,10 +79,10 @@ func New(file source.File) (*Lexer, error) {
 	return l, nil
 }
 
-// NextToken scans the input for the next [token.Token].
+// Next scans the input for the next [token.Token].
 //
 // Returns an [Error] if the input could not be lexed as a token.
-func (l *Lexer) NextToken() (token.Token, error) {
+func (l *Lexer) Next() (token.Token, error) {
 	var tok token.Token
 	var err error
 	switch l.mode {
@@ -137,24 +137,23 @@ func (l *Lexer) nextToken() (token.Token, error) {
 		if err := l.readChar(); err != nil {
 			return l.newToken(token.Illegal), err
 		}
-		if l.character == '\n' {
-			tok = l.newTokenFrom(token.Newline, start)
-		} else {
+		if l.character != '\n' {
 			return l.newTokenAt(token.Illegal, start), newError(tok.Location, "expected a newline after carriage return")
 		}
+		tok = l.newTokenFrom(token.Newline, start)
 	case '\\':
 		start := l.here()
 		if err := l.readChar(); err != nil {
 			return l.newToken(token.Illegal), err
 		}
-		tok, err := l.NextToken()
+		tok, err := l.Next()
 		if err != nil {
 			return tok, err
 		}
 		if tok.Kind != token.Newline {
 			return l.newTokenAt(token.Illegal, start), newError(tok.Location, "expected a newline immediately after '/'")
 		}
-		return l.NextToken()
+		return l.Next()
 	case '=':
 		start := l.here()
 		if err := l.readChar(); err != nil {

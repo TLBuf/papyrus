@@ -9,40 +9,43 @@ import (
 type BinaryKind uint8
 
 const (
-	// Add, '+', adds the left and right operands together.
+	// Add is the operation that adds the left and right operands together.
 	Add = BinaryKind(token.Plus)
-	// Divide, '/', divides the left operand by the right operand.
+	// Divide is the operation that  divides
+	// the left operand by the right operand.
 	Divide = BinaryKind(token.Divide)
-	// Equal, '==', evaluates to true if the two
-	// operands are equal and false otherwise.
+	// Equal is the operation that evaluates to true
+	// if the two operands are equal and false otherwise.
 	Equal = BinaryKind(token.Equal)
-	// Greater, '>', evaluates to true if the left operand is
-	// greater than the right operand and false otherwise.
+	// Greater is the operation that evaluates to true if the left
+	// operand is greater than the right operand and false otherwise.
 	Greater = BinaryKind(token.Greater)
-	// GreaterOrEqual, '>=', evaluates to true if the left operand is
-	// greater than or equal to the right operand and false otherwise.
+	// GreaterOrEqual is the operation that  evaluates to true if the left
+	// operand is greater than or equal to the right operand and false otherwise.
 	GreaterOrEqual = BinaryKind(token.GreaterOrEqual)
-	// Less, '<', evaluates to true if the left operand is
-	// less than the right operand and false otherwise.
+	// Less is the operation that evaluates to true if the left
+	// operand is less than the right operand and false otherwise.
 	Less = BinaryKind(token.Less)
-	// LessOrEqual, '<=', evaluates to true if the left operand is
-	// less than or equal to the right operand and false otherwise.
+	// LessOrEqual is the operation that evaluates to true if the left operand
+	// is less than or equal to the right operand and false otherwise.
 	LessOrEqual = BinaryKind(token.LessOrEqual)
-	// LogicalAnd, '&&', evaluates to true if both the left operand
-	// and the right operand evaluate to true and false otherwise.
+	// LogicalAnd is the operation that evaluates to true if both the left
+	// operand and the right operand evaluate to true and false otherwise.
 	LogicalAnd = BinaryKind(token.LogicalAnd)
-	// LogicalOr, '||', evaluates to true if either the left operand
-	// or the right operand evaluate to true and false otherwise.
+	// LogicalOr is the operation that evaluates to true if either the left
+	// operand or the right operand evaluate to true and false otherwise.
 	LogicalOr = BinaryKind(token.LogicalOr)
-	// Subtract, '-', subtracts the right operand from the left operand.
+	// Subtract is the operation that subtracts
+	// the right operand from the left operand.
 	Subtract = BinaryKind(token.Minus)
-	// Modulo, '%', evaluates to the remainder from dividing the
-	// left operand by the right operand using integer division.
+	// Modulo is the operation that evaluates to the remainder from dividing
+	// the left operand by the right operand using integer division.
 	Modulo = BinaryKind(token.Modulo)
-	// Multiply, '*', multiplies the left and right operands together.
+	// Multiply is the operation that multiplies
+	// the left and right operands together.
 	Multiply = BinaryKind(token.Multiply)
-	// NotEqual, '!=', evaluates to true if the two
-	// operands are not equal and false otherwise.
+	// NotEqual is the operation that evaluates to true if
+	// the two operands are not equal and false otherwise.
 	NotEqual = BinaryKind(token.NotEqual)
 )
 

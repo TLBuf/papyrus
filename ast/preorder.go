@@ -35,7 +35,7 @@ func (v *PreorderVisitor) VisitAccess(a *Access) error {
 	return nil
 }
 
-// PreorderVisitor visits the [Argument] node then all children nodes and
+// VisitArgument visits the [Argument] node then all children nodes and
 // returns an error if any call returns an error.
 func (v *PreorderVisitor) VisitArgument(a *Argument) error {
 	if err := v.Delegate.VisitArgument(a); err != nil {
