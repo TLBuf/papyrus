@@ -4,8 +4,6 @@ import "github.com/TLBuf/papyrus/source"
 
 // ErrorStatement is a statement that failed to parse.
 type ErrorStatement struct {
-	LineTrivia
-
 	// ErrorMessage is a human-readable message describing the error encountered.
 	ErrorMessage string
 	// NodeLocation is the source location of the node.
@@ -22,14 +20,20 @@ func (*ErrorStatement) Parameters() []*Parameter {
 	return nil
 }
 
-// Trivia returns the [LineTrivia] associated with this node.
-func (e *ErrorStatement) Trivia() LineTrivia {
-	return e.LineTrivia
+// PrecedingBlankLine implements the [Statement]
+// interface and always returns false.
+func (*ErrorStatement) PrecedingBlankLine() bool {
+	return false
 }
 
 // Accept calls the appropriate visitor method for the node.
 func (e *ErrorStatement) Accept(v Visitor) error {
 	return v.VisitErrorStatement(e)
+}
+
+// Comments implements the [Statement] interface and always returns nil.
+func (*ErrorStatement) Comments() *CrosslineComments {
+	return nil
 }
 
 // Location returns the source location of the node.

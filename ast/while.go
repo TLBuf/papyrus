@@ -5,25 +5,23 @@ import "github.com/TLBuf/papyrus/source"
 // While is a statement that evaluates some set of statements repeatedly so long
 // as a condition is true.
 type While struct {
-	LineTrivia
-
-	// StartKeywordLocation is the location of the While keyword that starts
-	// the statement.
-	StartKeywordLocation source.Location
+	// HasPrecedingBlankLine is true if this node was preceded by a blank line.
+	HasPrecedingBlankLine bool
 	// Condition is the expression that defines the condition to check before each
 	// iteration.
 	Condition Expression
 	// Statements is the list of function statements that constitute the body of
 	// the while.
 	Statements []FunctionStatement
+	// StartKeywordLocation is the location of the While keyword that starts
+	// the statement.
+	StartKeywordLocation source.Location
 	// EndKeywordLocation is the location of the EndWhile keyword that ends the
 	// statement.
 	EndKeywordLocation source.Location
-}
-
-// Trivia returns the [LineTrivia] associated with this node.
-func (w *While) Trivia() LineTrivia {
-	return w.LineTrivia
+	// NodeComments are the comments on lines before and/or after a
+	// node or nil if the node has no comments associated with it.
+	NodeComments *CrosslineComments
 }
 
 // Body returns the nodes that comprise the body of this block.
@@ -31,9 +29,20 @@ func (w *While) Body() []FunctionStatement {
 	return w.Statements
 }
 
+// PrecedingBlankLine returns true if this node was preceded by a blank line.
+func (w *While) PrecedingBlankLine() bool {
+	return w.HasPrecedingBlankLine
+}
+
 // Accept calls the appropriate visitor method for the node.
 func (w *While) Accept(v Visitor) error {
 	return v.VisitWhile(w)
+}
+
+// Comments returns the [CrosslineComments] associated
+// with this node or nil if there are none.
+func (w *While) Comments() *CrosslineComments {
+	return w.NodeComments
 }
 
 // Location returns the source location of the node.

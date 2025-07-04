@@ -10,8 +10,8 @@ type Comment interface {
 
 // BlockComment represents block comment.
 type BlockComment struct {
-	LineTrivia
-
+	// HasPrecedingBlankLine is true if this node was preceded by a blank line.
+	HasPrecedingBlankLine bool
 	// OpenLocation is the location of the opening block comment token.
 	OpenLocation source.Location
 	// TextLocation is the location of the text of the comment (which may include
@@ -21,9 +21,9 @@ type BlockComment struct {
 	CloseLocation source.Location
 }
 
-// Trivia returns the [LineTrivia] associated with this node.
-func (c *BlockComment) Trivia() LineTrivia {
-	return c.LineTrivia
+// PrecedingBlankLine returns true if this node was preceded by a blank line.
+func (c *BlockComment) PrecedingBlankLine() bool {
+	return c.HasPrecedingBlankLine
 }
 
 // Accept calls the appropriate method on the [Visitor] for the node.
@@ -46,15 +46,15 @@ var _ Comment = (*BlockComment)(nil)
 // more standard line comments that appear on their own lines and one after the
 // other without intervening blank lines.
 type CommentBlock struct {
-	LineTrivia
-
+	// HasPrecedingBlankLine is true if this node was preceded by a blank line.
+	HasPrecedingBlankLine bool
 	// Comments are the line comments in this block in the order they appear.
 	Elements []*LineComment
 }
 
-// Trivia returns the [LineTrivia] associated with this node.
-func (c *CommentBlock) Trivia() LineTrivia {
-	return c.LineTrivia
+// PrecedingBlankLine returns true if this node was preceded by a blank line.
+func (c *CommentBlock) PrecedingBlankLine() bool {
+	return c.HasPrecedingBlankLine
 }
 
 // Accept calls the appropriate method on the [Visitor] for the node.
@@ -76,8 +76,8 @@ var _ Comment = (*CommentBlock)(nil)
 
 // LineComment represents line comment.
 type LineComment struct {
-	LineTrivia
-
+	// HasPrecedingBlankLine is true if this node was preceded by a blank line.
+	HasPrecedingBlankLine bool
 	// SemicolonLocation is the location of the semicolon that starts the comment.
 	SemicolonLocation source.Location
 	// TextLocation is the location of the text of the comment (which will never
@@ -85,9 +85,9 @@ type LineComment struct {
 	TextLocation source.Location
 }
 
-// Trivia returns the [LineTrivia] associated with this node.
-func (c *LineComment) Trivia() LineTrivia {
-	return c.LineTrivia
+// PrecedingBlankLine returns true if this node was preceded by a blank line.
+func (c *LineComment) PrecedingBlankLine() bool {
+	return c.HasPrecedingBlankLine
 }
 
 // Accept calls the appropriate method on the [Visitor] for the node.
@@ -104,17 +104,18 @@ func (*LineComment) comment() {}
 
 var _ Comment = (*LineComment)(nil)
 
-// Comments is a set of comments associated with a node.
-type Comments struct {
-	// LeadingComments are the loose comments that appear before a node.
+// CrosslineComments is a set of comments associated with a node on the
+// surrounding lines.
+type CrosslineComments struct {
+	// LeadingComments are the loose comments that appear on lines before a node.
 	LeadingComments []Comment
-	// TrailingComments are the loose comments that appear after a node, but which
-	// are not associated with another node.
+	// TrailingComments are the loose comments that appear on lines
+	// after a node, but which are not associated with another node.
 	TrailingComments []Comment
 }
 
 // Leading returns the loose comments that appear before a node.
-func (c *Comments) Leading() []Comment {
+func (c *CrosslineComments) Leading() []Comment {
 	if c == nil {
 		return nil
 	}
@@ -123,11 +124,38 @@ func (c *Comments) Leading() []Comment {
 
 // Trailing retunrs the loose comments that appear after a node, but which are
 // not associated with another node.
-func (c *Comments) Trailing() []Comment {
+func (c *CrosslineComments) Trailing() []Comment {
 	if c == nil {
 		return nil
 	}
 	return c.LeadingComments
+}
+
+// InlineComments is a set of comments associated with a node on the same line.
+type InlineComments struct {
+	// PrefixComments are the loose comments that
+	// appear before a node on the same line.
+	PrefixComments []Comment
+	// SuffixComments are the loose comments that appear after a node on
+	// the same line, but which are not associated with another node.
+	SuffixComments []Comment
+}
+
+// Prefix returns the loose comments that appear before a node.
+func (c *InlineComments) Prefix() []Comment {
+	if c == nil {
+		return nil
+	}
+	return c.PrefixComments
+}
+
+// Suffix retunrs the loose comments that appear after
+// a node, but which are not associated with another node.
+func (c *InlineComments) Suffix() []Comment {
+	if c == nil {
+		return nil
+	}
+	return c.SuffixComments
 }
 
 // Documentation represents a documentation comment.

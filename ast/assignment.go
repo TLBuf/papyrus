@@ -52,26 +52,35 @@ func (k AssignmentKind) Symbol() string {
 // Assignment is a statement that assigns a new value to a variable (or
 // property).
 type Assignment struct {
-	LineTrivia
-
 	// Kind is the kind of assignment this expression represents.
 	Kind AssignmentKind
+	// HasPrecedingBlankLine is true if this node was preceded by a blank line.
+	HasPrecedingBlankLine bool
 	// Assignee is the reference to a variable to assign the value to.
 	Assignee Expression
-	// OperatorLocation is the location of the assignment operator.
-	OperatorLocation source.Location
 	// Value is the expression that defines the value to use in the assignment.
 	Value Expression
+	// OperatorLocation is the location of the assignment operator.
+	OperatorLocation source.Location
+	// NodeComments are the comments on lines before and/or after a
+	// node or nil if the node has no comments associated with it.
+	NodeComments *CrosslineComments
 }
 
-// Trivia returns the [LineTrivia] associated with this node.
-func (a *Assignment) Trivia() LineTrivia {
-	return a.LineTrivia
+// PrecedingBlankLine returns true if this node was preceded by a blank line.
+func (a *Assignment) PrecedingBlankLine() bool {
+	return a.HasPrecedingBlankLine
 }
 
 // Accept calls the appropriate visitor method for the node.
 func (a *Assignment) Accept(v Visitor) error {
 	return v.VisitAssignment(a)
+}
+
+// Comments returns the [CrosslineComments] associated
+// with this node or nil if there are none.
+func (a *Assignment) Comments() *CrosslineComments {
+	return a.NodeComments
 }
 
 // Location returns the source location of the node.

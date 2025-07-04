@@ -86,26 +86,28 @@ func (k BinaryKind) Symbol() string {
 
 // Binary is an expression that computes a value from two operands.
 type Binary struct {
-	InfixTrivia
-
 	// Kind is the kind of binary operation this expression represents.
 	Kind BinaryKind
 	// LeftOperand is the operand on the left of the operator.
 	LeftOperand Expression
-	// OperatorLocation is the location of the binary operator.
-	OperatorLocation source.Location
 	// RightOperand is the operand on the right of the operator.
 	RightOperand Expression
-}
-
-// Trivia returns the [InfixTrivia] associated with this node.
-func (b *Binary) Trivia() InfixTrivia {
-	return b.InfixTrivia
+	// OperatorLocation is the location of the binary operator.
+	OperatorLocation source.Location
+	// NodeComments are the comments on before and/or after a node on the
+	// same line or nil if the node has no comments associated with it.
+	NodeComments *InlineComments
 }
 
 // Accept calls the appropriate visitor method for the node.
 func (b *Binary) Accept(v Visitor) error {
 	return v.VisitBinary(b)
+}
+
+// Comments returns the [InlineComments] associated
+// with this node or nil if there are none.
+func (b *Binary) Comments() *InlineComments {
+	return b.NodeComments
 }
 
 // Location returns the source location of the node.

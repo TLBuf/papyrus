@@ -6,8 +6,13 @@ import "github.com/TLBuf/papyrus/source"
 type Statement interface {
 	Node
 
-	// Trivia returns the [LineTrivia] associated with this node.
-	Trivia() LineTrivia
+	// PrecedingBlankLine returns true if this node was preceded by a blank line.
+	PrecedingBlankLine() bool
+
+	// Comments returns the [CrosslineComments] associated
+	// with this node or nil if there are none.
+	Comments() *CrosslineComments
+
 	statement()
 }
 
@@ -25,6 +30,7 @@ type Invokable interface {
 
 	// Parameters returns the list of parameters defined for this invokable.
 	Parameters() []*Parameter
+
 	invokable()
 }
 
@@ -39,20 +45,29 @@ type FunctionStatement interface {
 // ExpressionStatement is a special function
 // statement that is just an expression.
 type ExpressionStatement struct {
-	LineTrivia
-
+	// HasPrecedingBlankLine is true if this node was preceded by a blank line.
+	HasPrecedingBlankLine bool
 	// Expression is the expression that makes up the statement.
 	Expression Expression
+	// NodeComments are the comments on lines before and/or after a
+	// node or nil if the node has no comments associated with it.
+	NodeComments *CrosslineComments
 }
 
-// Trivia returns the [LineTrivia] associated with this node.
-func (s *ExpressionStatement) Trivia() LineTrivia {
-	return s.LineTrivia
+// PrecedingBlankLine returns true if this node was preceded by a blank line.
+func (s *ExpressionStatement) PrecedingBlankLine() bool {
+	return s.HasPrecedingBlankLine
 }
 
 // Accept calls the appropriate visitor method for the node.
 func (s *ExpressionStatement) Accept(v Visitor) error {
 	return v.VisitExpressionStatement(s)
+}
+
+// Comments returns the [CrosslineComments] associated
+// with this node or nil if there are none.
+func (s *ExpressionStatement) Comments() *CrosslineComments {
+	return s.NodeComments
 }
 
 // Location returns the source location of the node.

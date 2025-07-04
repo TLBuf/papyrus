@@ -4,24 +4,26 @@ import "github.com/TLBuf/papyrus/source"
 
 // Parenthetical represents a parenthesized expression.
 type Parenthetical struct {
-	InfixTrivia
-
-	// OpenLocation is the location of the opening parenthesis.
-	OpenLocation source.Location
 	// Value is the expression within the parentheses.
 	Value Expression
+	// OpenLocation is the location of the opening parenthesis.
+	OpenLocation source.Location
 	// CloseLocation is the location of the closing parenthesis.
 	CloseLocation source.Location
-}
-
-// Trivia returns the [InfixTrivia] associated with this node.
-func (p *Parenthetical) Trivia() InfixTrivia {
-	return p.InfixTrivia
+	// NodeComments are the comments on before and/or after a node on the
+	// same line or nil if the node has no comments associated with it.
+	NodeComments *InlineComments
 }
 
 // Accept calls the appropriate visitor method for the node.
 func (p *Parenthetical) Accept(v Visitor) error {
 	return v.VisitParenthetical(p)
+}
+
+// Comments returns the [InlineComments] associated
+// with this node or nil if there are none.
+func (p *Parenthetical) Comments() *InlineComments {
+	return p.NodeComments
 }
 
 // Location returns the source location of the node.

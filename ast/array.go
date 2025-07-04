@@ -4,28 +4,30 @@ import "github.com/TLBuf/papyrus/source"
 
 // ArrayCreation is an expression that creates a new array of a fixed length.
 type ArrayCreation struct {
-	InfixTrivia
-
-	// NewLocation is the location of the new operator.
-	NewLocation source.Location
 	// Type is the type of elements the array can contain.
 	Type *TypeLiteral
-	// OpenLocation is the location of the opening bracket.
-	OpenLocation source.Location
 	// Size is the length of the array (between 1 and 128 inclusive).
 	Size *IntLiteral
+	// NewLocation is the location of the new operator.
+	NewLocation source.Location
+	// OpenLocation is the location of the opening bracket.
+	OpenLocation source.Location
 	// CloseLocation is the location of the closing bracket.
 	CloseLocation source.Location
-}
-
-// Trivia returns the [InfixTrivia] associated with this node.
-func (a *ArrayCreation) Trivia() InfixTrivia {
-	return a.InfixTrivia
+	// NodeComments are the comments on before and/or after a node on the
+	// same line or nil if the node has no comments associated with it.
+	NodeComments *InlineComments
 }
 
 // Accept calls the appropriate visitor method for the node.
 func (a *ArrayCreation) Accept(v Visitor) error {
 	return v.VisitArrayCreation(a)
+}
+
+// Comments returns the [InlineComments] associated
+// with this node or nil if there are none.
+func (a *ArrayCreation) Comments() *InlineComments {
+	return a.NodeComments
 }
 
 // Location returns the source location of the node.

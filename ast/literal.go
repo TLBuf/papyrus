@@ -4,22 +4,24 @@ import "github.com/TLBuf/papyrus/source"
 
 // BoolLiteral is a boolean literal (i.e. true or false).
 type BoolLiteral struct {
-	InfixTrivia
-
 	// Value is the parsed value of the string literal.
 	Value bool
 	// NodeLocation is the source location of the node.
 	NodeLocation source.Location
-}
-
-// Trivia returns the [InfixTrivia] associated with this node.
-func (l *BoolLiteral) Trivia() InfixTrivia {
-	return l.InfixTrivia
+	// NodeComments are the comments on before and/or after a node on the
+	// same line or nil if the node has no comments associated with it.
+	NodeComments *InlineComments
 }
 
 // Accept calls the appropriate visitor method for the node.
 func (l *BoolLiteral) Accept(v Visitor) error {
 	return v.VisitBoolLiteral(l)
+}
+
+// Comments returns the [InlineComments] associated
+// with this node or nil if there are none.
+func (l *BoolLiteral) Comments() *InlineComments {
+	return l.NodeComments
 }
 
 // Location returns the source location of the node.
@@ -35,22 +37,24 @@ var _ Literal = (*BoolLiteral)(nil)
 
 // IntLiteral is an integer literal.
 type IntLiteral struct {
-	InfixTrivia
-
 	// Value is the parsed value of the string literal.
 	Value int
 	// NodeLocation is the source location of the node.
 	NodeLocation source.Location
-}
-
-// Trivia returns the [InfixTrivia] associated with this node.
-func (l *IntLiteral) Trivia() InfixTrivia {
-	return l.InfixTrivia
+	// NodeComments are the comments on before and/or after a node on the
+	// same line or nil if the node has no comments associated with it.
+	NodeComments *InlineComments
 }
 
 // Accept calls the appropriate method on the [Visitor] for the node.
 func (l *IntLiteral) Accept(v Visitor) error {
 	return v.VisitIntLiteral(l)
+}
+
+// Comments returns the [InlineComments] associated
+// with this node or nil if there are none.
+func (l *IntLiteral) Comments() *InlineComments {
+	return l.NodeComments
 }
 
 // Location returns the source location of the node.
@@ -66,22 +70,24 @@ var _ Literal = (*IntLiteral)(nil)
 
 // FloatLiteral is a floating-point literal.
 type FloatLiteral struct {
-	InfixTrivia
-
 	// Value is the parsed value of the string literal.
 	Value float32
 	// NodeLocation is the source location of the node.
 	NodeLocation source.Location
-}
-
-// Trivia returns the [InfixTrivia] associated with this node.
-func (l *FloatLiteral) Trivia() InfixTrivia {
-	return l.InfixTrivia
+	// NodeComments are the comments on before and/or after a node on the
+	// same line or nil if the node has no comments associated with it.
+	NodeComments *InlineComments
 }
 
 // Accept calls the appropriate method on the [Visitor] for the node.
 func (l *FloatLiteral) Accept(v Visitor) error {
 	return v.VisitFloatLiteral(l)
+}
+
+// Comments returns the [InlineComments] associated
+// with this node or nil if there are none.
+func (l *FloatLiteral) Comments() *InlineComments {
+	return l.NodeComments
 }
 
 // Location returns the source location of the node.
@@ -97,22 +103,24 @@ var _ Literal = (*FloatLiteral)(nil)
 
 // StringLiteral is a string literal.
 type StringLiteral struct {
-	InfixTrivia
-
 	// Value is the parsed value of the string literal.
 	Value string
 	// NodeLocation is the source location of the node.
 	NodeLocation source.Location
-}
-
-// Trivia returns the [InfixTrivia] associated with this node.
-func (l *StringLiteral) Trivia() InfixTrivia {
-	return l.InfixTrivia
+	// NodeComments are the comments on before and/or after a node on the
+	// same line or nil if the node has no comments associated with it.
+	NodeComments *InlineComments
 }
 
 // Accept calls the appropriate method on the [Visitor] for the node.
 func (l *StringLiteral) Accept(v Visitor) error {
 	return v.VisitStringLiteral(l)
+}
+
+// Comments returns the [InlineComments] associated
+// with this node or nil if there are none.
+func (l *StringLiteral) Comments() *InlineComments {
+	return l.NodeComments
 }
 
 // Location returns the source location of the node.
@@ -128,20 +136,22 @@ var _ Literal = (*StringLiteral)(nil)
 
 // NoneLiteral is the none literal (i.e. the null object literal).
 type NoneLiteral struct {
-	InfixTrivia
-
 	// NodeLocation is the source location of the node.
 	NodeLocation source.Location
-}
-
-// Trivia returns the [InfixTrivia] associated with this node.
-func (l *NoneLiteral) Trivia() InfixTrivia {
-	return l.InfixTrivia
+	// NodeComments are the comments on before and/or after a node on the
+	// same line or nil if the node has no comments associated with it.
+	NodeComments *InlineComments
 }
 
 // Accept calls the appropriate method on the [Visitor] for the node.
 func (l *NoneLiteral) Accept(v Visitor) error {
 	return v.VisitNoneLiteral(l)
+}
+
+// Comments returns the [InlineComments] associated
+// with this node or nil if there are none.
+func (l *NoneLiteral) Comments() *InlineComments {
+	return l.NodeComments
 }
 
 // Location returns the source location of the node.

@@ -7,10 +7,14 @@ import "github.com/TLBuf/papyrus/source"
 // States define which implementation of functions and events are run at a given
 // time.
 type State struct {
-	LineTrivia
-
 	// IsAuto is true if the script should start in this state automatically.
 	IsAuto bool
+	// HasPrecedingBlankLine is true if this node was preceded by a blank line.
+	HasPrecedingBlankLine bool
+	// Name is the name of the variable.
+	Name *Identifier
+	// Invokables is the list of functions and events defined for this state.
+	Invokables []Invokable
 	// AutoLocation is the location of the Auto keyword that identifies this state
 	// as the state the script should start in automatically.
 	//
@@ -19,23 +23,28 @@ type State struct {
 	// StartKeywordLocation is the location of the State keyword that starts
 	// the statement.
 	StartKeywordLocation source.Location
-	// Name is the name of the variable.
-	Name *Identifier
-	// Invokables is the list of functions and events defined for this state.
-	Invokables []Invokable
 	// EndKeywordLocation is the location of the EndState keyword that ends the
 	// statement.
 	EndKeywordLocation source.Location
+	// NodeComments are the comments on lines before and/or after a
+	// node or nil if the node has no comments associated with it.
+	NodeComments *CrosslineComments
 }
 
-// Trivia returns the [LineTrivia] associated with this node.
-func (s *State) Trivia() LineTrivia {
-	return s.LineTrivia
+// PrecedingBlankLine returns true if this node was preceded by a blank line.
+func (s *State) PrecedingBlankLine() bool {
+	return s.HasPrecedingBlankLine
 }
 
 // Accept calls the appropriate visitor method for the node.
 func (s *State) Accept(v Visitor) error {
 	return v.VisitState(s)
+}
+
+// Comments returns the [CrosslineComments] associated
+// with this node or nil if there are none.
+func (s *State) Comments() *CrosslineComments {
+	return s.NodeComments
 }
 
 // Location returns the source location of the node.

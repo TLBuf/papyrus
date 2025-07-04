@@ -5,23 +5,19 @@ import "github.com/TLBuf/papyrus/source"
 
 // Script represents a single Papyrus script file.
 type Script struct {
-	LineTrivia
-
 	// File is the source file for this script.
 	File source.File
-	// KeywordLocation is the location of the ScriptName keyword that starts the
-	// script.
-	KeywordLocation source.Location
 	// Name is the name of script.
 	Name *Identifier
-	// ExtendsLocation is the location of the Extends keyword that indicates this
-	// script extends another.
-	//
-	// This is only valid if Parent is not nil.
-	ExtendsLocation source.Location
 	// Parent is the name of the script this one extends from or nil if this
 	// script doesn't extend another.
 	Parent *Identifier
+	// Documentation is the documentation comment for this script or nil if there
+	// is not one.
+	Documentation *Documentation
+	// Statements is the list of statements that constitute the body of the
+	// script.
+	Statements []ScriptStatement
 	// HiddenLocations are the locations of the Hidden keywords that mark this
 	// script as hidden (i.e. it doesn't appear in the editor) or empty if this
 	// script is not hidden.
@@ -38,19 +34,25 @@ type Script struct {
 	// accepting any number of flag tokens. They are all included here for
 	// completeness, but only one is required to consider the script conditional.
 	ConditionalLocations []source.Location
-	// Documentation is the documentation comment for this script or nil if there
-	// is not one.
-	Documentation *Documentation
-	// Statements is the list of statements that constitute the body of the
+	// KeywordLocation is the location of the ScriptName keyword that starts the
 	// script.
-	Statements []ScriptStatement
+	KeywordLocation source.Location
+	// ExtendsLocation is the location of the Extends keyword that indicates this
+	// script extends another.
+	//
+	// This is only valid if Parent is not nil.
+	ExtendsLocation source.Location
 	// NodeLocation is the source location of the node.
 	NodeLocation source.Location
+	// NodeComments are the comments on lines before and/or after a
+	// node or nil if the node has no comments associated with it.
+	NodeComments *CrosslineComments
 }
 
-// Trivia returns the [LineTrivia] associated with this node.
-func (s *Script) Trivia() LineTrivia {
-	return s.LineTrivia
+// Comments returns the [CrosslineComments] associated
+// with this node or nil if there are none.
+func (s *Script) Comments() *CrosslineComments {
+	return s.NodeComments
 }
 
 // Accept calls the appropriate visitor method for the node.

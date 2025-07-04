@@ -517,7 +517,7 @@ func (f *formatter) VisitFunction(node *ast.Function) error {
 				if err := f.newline(); err != nil {
 					return fmt.Errorf("failed to format newline: %w", err)
 				}
-				if statement.Trivia().HasPrecedingBlankLine {
+				if statement.PrecedingBlankLine() {
 					if err := f.newline(); err != nil {
 						return fmt.Errorf("failed to format newline: %w", err)
 					}
@@ -561,7 +561,7 @@ func (f *formatter) VisitIf(node *ast.If) error {
 			if err := f.newline(); err != nil {
 				return fmt.Errorf("failed to format newline: %w", err)
 			}
-			if statement.Trivia().HasPrecedingBlankLine {
+			if statement.PrecedingBlankLine() {
 				if err := f.newline(); err != nil {
 					return fmt.Errorf("failed to format newline: %w", err)
 				}
@@ -616,7 +616,7 @@ func (f *formatter) VisitElseIf(node *ast.ElseIf) error {
 			if err := f.newline(); err != nil {
 				return fmt.Errorf("failed to format newline: %w", err)
 			}
-			if statement.Trivia().HasPrecedingBlankLine {
+			if statement.PrecedingBlankLine() {
 				if err := f.newline(); err != nil {
 					return fmt.Errorf("failed to format newline: %w", err)
 				}
@@ -643,7 +643,7 @@ func (f *formatter) VisitElse(node *ast.Else) error {
 			if err := f.newline(); err != nil {
 				return fmt.Errorf("failed to format newline: %w", err)
 			}
-			if statement.Trivia().HasPrecedingBlankLine {
+			if statement.PrecedingBlankLine() {
 				if err := f.newline(); err != nil {
 					return fmt.Errorf("failed to format newline: %w", err)
 				}
@@ -1212,7 +1212,7 @@ func (f *formatter) VisitWhile(node *ast.While) error {
 			if err := f.newline(); err != nil {
 				return fmt.Errorf("failed to format newline: %w", err)
 			}
-			if statement.Trivia().HasPrecedingBlankLine {
+			if statement.PrecedingBlankLine() {
 				if err := f.newline(); err != nil {
 					return fmt.Errorf("failed to format newline: %w", err)
 				}

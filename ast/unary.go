@@ -31,24 +31,26 @@ func (k UnaryKind) Symbol() string {
 
 // Unary is an expression that computes a value from two operands.
 type Unary struct {
-	InfixTrivia
-
 	// Kind is the kind of unary operation this expression represents.
 	Kind UnaryKind
-	// OperatorLocation is the location of the unary operator.
-	OperatorLocation source.Location
 	// Operand is the operand.
 	Operand Expression
-}
-
-// Trivia returns the [InfixTrivia] associated with this node.
-func (u *Unary) Trivia() InfixTrivia {
-	return u.InfixTrivia
+	// OperatorLocation is the location of the unary operator.
+	OperatorLocation source.Location
+	// NodeComments are the comments on before and/or after a node on the
+	// same line or nil if the node has no comments associated with it.
+	NodeComments *InlineComments
 }
 
 // Accept calls the appropriate visitor method for the node.
 func (u *Unary) Accept(v Visitor) error {
 	return v.VisitUnary(u)
+}
+
+// Comments returns the [InlineComments] associated
+// with this node or nil if there are none.
+func (u *Unary) Comments() *InlineComments {
+	return u.NodeComments
 }
 
 // Location returns the source location of the node.

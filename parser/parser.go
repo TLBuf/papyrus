@@ -331,8 +331,8 @@ func (p *parser) ParseDocComment() (*ast.Documentation, error) {
 
 func (p *parser) ParseBlockComment() (*ast.BlockComment, error) {
 	node := &ast.BlockComment{
-		LineTrivia:   ast.LineTrivia{HasPrecedingBlankLine: p.hasPrecedingBlankLine()},
-		OpenLocation: p.token.Location,
+		HasPrecedingBlankLine: p.hasPrecedingBlankLine(),
+		OpenLocation:          p.token.Location,
 	}
 	if err := p.tryConsume(token.BlockCommentOpen); err != nil {
 		return nil, err
@@ -350,8 +350,8 @@ func (p *parser) ParseBlockComment() (*ast.BlockComment, error) {
 
 func (p *parser) ParseLineComment() (*ast.LineComment, error) {
 	node := &ast.LineComment{
-		LineTrivia:        ast.LineTrivia{HasPrecedingBlankLine: p.hasPrecedingBlankLine()},
-		SemicolonLocation: p.token.Location,
+		HasPrecedingBlankLine: p.hasPrecedingBlankLine(),
+		SemicolonLocation:     p.token.Location,
 	}
 	if err := p.tryConsume(token.Semicolon); err != nil {
 		return nil, err
@@ -406,8 +406,7 @@ func (p *parser) ParseScript() (*ast.Script, error) {
 		return nil, err
 	}
 	if p.token.Kind == token.BraceOpen {
-		node.Documentation, err = p.ParseDocComment()
-		if err != nil {
+		if node.Documentation, err = p.ParseDocComment(); err != nil {
 			return nil, err
 		}
 	}
@@ -535,14 +534,13 @@ func (p *parser) recoverScriptStatement() error {
 func (p *parser) ParseImport() (*ast.Import, error) {
 	var err error
 	node := &ast.Import{
-		LineTrivia:      ast.LineTrivia{HasPrecedingBlankLine: p.hasPrecedingBlankLine()},
-		KeywordLocation: p.token.Location,
+		HasPrecedingBlankLine: p.hasPrecedingBlankLine(),
+		KeywordLocation:       p.token.Location,
 	}
 	if err := p.tryConsume(token.Import); err != nil {
 		return nil, err
 	}
-	node.Name, err = p.ParseIdentifier()
-	if err != nil {
+	if node.Name, err = p.ParseIdentifier(); err != nil {
 		return nil, err
 	}
 	return node, p.tryConsume(token.Newline, token.EOF)
@@ -551,7 +549,7 @@ func (p *parser) ParseImport() (*ast.Import, error) {
 func (p *parser) ParseState() (ast.ScriptStatement, error) {
 	var err error
 	node := &ast.State{
-		LineTrivia: ast.LineTrivia{HasPrecedingBlankLine: p.hasPrecedingBlankLine()},
+		HasPrecedingBlankLine: p.hasPrecedingBlankLine(),
 	}
 	start := p.token.Location
 	if p.token.Kind == token.Auto {
@@ -565,8 +563,7 @@ func (p *parser) ParseState() (ast.ScriptStatement, error) {
 	if err := p.tryConsume(token.State); err != nil {
 		return nil, err
 	}
-	node.Name, err = p.ParseIdentifier()
-	if err != nil {
+	if node.Name, err = p.ParseIdentifier(); err != nil {
 		return nil, err
 	}
 	for p.token.Kind != token.EndState {
@@ -670,8 +667,8 @@ func (p *parser) recoverInvokable() error {
 func (p *parser) ParseEvent() (*ast.Event, error) {
 	var err error
 	node := &ast.Event{
-		LineTrivia:           ast.LineTrivia{HasPrecedingBlankLine: p.hasPrecedingBlankLine()},
-		StartKeywordLocation: p.token.Location,
+		HasPrecedingBlankLine: p.hasPrecedingBlankLine(),
+		StartKeywordLocation:  p.token.Location,
 	}
 	if err := p.tryConsume(token.Event); err != nil {
 		return nil, err
@@ -712,8 +709,7 @@ func (p *parser) ParseEvent() (*ast.Event, error) {
 		}
 		return node, nil
 	}
-	node.Statements, err = p.ParseFunctionStatementBlock(token.EndEvent)
-	if err != nil {
+	if node.Statements, err = p.ParseFunctionStatementBlock(token.EndEvent); err != nil {
 		return nil, err
 	}
 	node.EndKeywordLocation = p.token.Location
@@ -726,11 +722,10 @@ func (p *parser) ParseEvent() (*ast.Event, error) {
 func (p *parser) ParseFunction() (*ast.Function, error) {
 	var err error
 	node := &ast.Function{
-		LineTrivia: ast.LineTrivia{HasPrecedingBlankLine: p.hasPrecedingBlankLine()},
+		HasPrecedingBlankLine: p.hasPrecedingBlankLine(),
 	}
 	if p.token.Kind != token.Function {
-		node.ReturnType, err = p.ParseTypeLiteral()
-		if err != nil {
+		if node.ReturnType, err = p.ParseTypeLiteral(); err != nil {
 			return nil, err
 		}
 	}
@@ -767,8 +762,7 @@ func (p *parser) ParseFunction() (*ast.Function, error) {
 			return nil, err
 		}
 		if p.token.Kind == token.BraceOpen {
-			node.Documentation, err = p.ParseDocComment()
-			if err != nil {
+			if node.Documentation, err = p.ParseDocComment(); err != nil {
 				return nil, err
 			}
 		}
@@ -776,8 +770,7 @@ func (p *parser) ParseFunction() (*ast.Function, error) {
 	if len(node.NativeLocations) > 0 {
 		return node, nil
 	}
-	node.Statements, err = p.ParseFunctionStatementBlock(token.EndFunction)
-	if err != nil {
+	if node.Statements, err = p.ParseFunctionStatementBlock(token.EndFunction); err != nil {
 		return nil, err
 	}
 	node.EndKeywordLocation = p.token.Location
@@ -809,12 +802,10 @@ func (p *parser) ParseParameterList() (params []*ast.Parameter, err error) {
 func (p *parser) ParseParameter() (*ast.Parameter, error) {
 	var err error
 	node := &ast.Parameter{}
-	node.Type, err = p.ParseTypeLiteral()
-	if err != nil {
+	if node.Type, err = p.ParseTypeLiteral(); err != nil {
 		return nil, err
 	}
-	node.Name, err = p.ParseIdentifier()
-	if err != nil {
+	if node.Name, err = p.ParseIdentifier(); err != nil {
 		return nil, err
 	}
 	if p.token.Kind == token.Assign {
@@ -823,8 +814,7 @@ func (p *parser) ParseParameter() (*ast.Parameter, error) {
 		if err := p.tryConsume(token.Assign); err != nil {
 			return nil, err
 		}
-		node.DefaultValue, err = p.ParseLiteral()
-		if err != nil {
+		if node.DefaultValue, err = p.ParseLiteral(); err != nil {
 			return nil, err
 		}
 	}
@@ -933,37 +923,31 @@ func (p *parser) ParseFunctionStatement() (ast.FunctionStatement, error) {
 		return p.ParseAssignment(expr)
 	}
 	return &ast.ExpressionStatement{
-		LineTrivia: ast.LineTrivia{HasPrecedingBlankLine: p.hasPrecedingBlankLine()},
-		Expression: expr,
+		HasPrecedingBlankLine: p.hasPrecedingBlankLine(),
+		Expression:            expr,
 	}, nil
 }
 
 func (p *parser) ParseFunctionVariable() (*ast.FunctionVariable, error) {
 	var err error
 	node := &ast.FunctionVariable{
-		LineTrivia: ast.LineTrivia{HasPrecedingBlankLine: p.hasPrecedingBlankLine()},
+		HasPrecedingBlankLine: p.hasPrecedingBlankLine(),
 	}
-	node.Type, err = p.ParseTypeLiteral()
-	if err != nil {
+	if node.Type, err = p.ParseTypeLiteral(); err != nil {
 		return nil, err
 	}
-	node.Name, err = p.ParseIdentifier()
-	if err != nil {
+	if node.Name, err = p.ParseIdentifier(); err != nil {
 		return nil, err
 	}
-	end := node.Name.Location()
 	if p.token.Kind == token.Assign {
 		node.OperatorLocation = p.token.Location
 		if err := p.tryConsume(token.Assign); err != nil {
 			return nil, err
 		}
-		node.Value, err = p.ParseExpression(lowest)
-		if err != nil {
+		if node.Value, err = p.ParseExpression(lowest); err != nil {
 			return nil, err
 		}
-		end = node.Value.Location()
 	}
-	node.NodeLocation = source.Span(node.Type.Location(), end)
 	return node, nil
 }
 
@@ -975,9 +959,9 @@ func (p *parser) ParseAssignment(assignee ast.Expression) (node *ast.Assignment,
 		}
 	}
 	node = &ast.Assignment{
-		LineTrivia:       ast.LineTrivia{HasPrecedingBlankLine: p.hasPrecedingBlankLine()},
-		Assignee:         assignee,
-		OperatorLocation: p.token.Location,
+		HasPrecedingBlankLine: p.hasPrecedingBlankLine(),
+		Assignee:              assignee,
+		OperatorLocation:      p.token.Location,
 	}
 	if err := p.tryConsume(
 		token.Assign,
@@ -997,8 +981,8 @@ func (p *parser) ParseAssignment(assignee ast.Expression) (node *ast.Assignment,
 func (p *parser) ParseReturn() (*ast.Return, error) {
 	var err error
 	node := &ast.Return{
-		LineTrivia:      ast.LineTrivia{HasPrecedingBlankLine: p.hasPrecedingBlankLine()},
-		KeywordLocation: p.token.Location,
+		HasPrecedingBlankLine: p.hasPrecedingBlankLine(),
+		KeywordLocation:       p.token.Location,
 	}
 	if err := p.tryConsume(token.Return); err != nil {
 		return nil, err
@@ -1006,8 +990,7 @@ func (p *parser) ParseReturn() (*ast.Return, error) {
 	if p.token.Kind == token.Newline {
 		return node, nil
 	}
-	node.Value, err = p.ParseExpression(lowest)
-	if err != nil {
+	if node.Value, err = p.ParseExpression(lowest); err != nil {
 		return nil, err
 	}
 	return node, nil
@@ -1016,27 +999,25 @@ func (p *parser) ParseReturn() (*ast.Return, error) {
 func (p *parser) ParseIf() (*ast.If, error) {
 	var err error
 	node := &ast.If{
-		LineTrivia:           ast.LineTrivia{HasPrecedingBlankLine: p.hasPrecedingBlankLine()},
-		StartKeywordLocation: p.token.Location,
+		HasPrecedingBlankLine: p.hasPrecedingBlankLine(),
+		StartKeywordLocation:  p.token.Location,
 	}
 	if err := p.tryConsume(token.If); err != nil {
 		return nil, err
 	}
-	node.Condition, err = p.ParseExpression(lowest)
-	if err != nil {
+	if node.Condition, err = p.ParseExpression(lowest); err != nil {
 		return nil, err
 	}
 	if err := p.consumeNewlines(); err != nil {
 		return nil, err
 	}
-	node.Statements, err = p.ParseFunctionStatementBlock(token.EndIf, token.Else, token.ElseIf)
-	if err != nil {
+	if node.Statements, err = p.ParseFunctionStatementBlock(token.EndIf, token.Else, token.ElseIf); err != nil {
 		return nil, err
 	}
 	for p.token.Kind == token.ElseIf {
 		block := &ast.ElseIf{
-			LineTrivia:      ast.LineTrivia{HasPrecedingBlankLine: p.hasPrecedingBlankLine()},
-			KeywordLocation: p.token.Location,
+			HasPrecedingBlankLine: p.hasPrecedingBlankLine(),
+			KeywordLocation:       p.token.Location,
 		}
 		if err := p.tryConsume(token.ElseIf); err != nil {
 			return nil, err
@@ -1054,8 +1035,8 @@ func (p *parser) ParseIf() (*ast.If, error) {
 	}
 	if p.token.Kind == token.Else {
 		block := &ast.Else{
-			LineTrivia:      ast.LineTrivia{HasPrecedingBlankLine: p.hasPrecedingBlankLine()},
-			KeywordLocation: p.token.Location,
+			HasPrecedingBlankLine: p.hasPrecedingBlankLine(),
+			KeywordLocation:       p.token.Location,
 		}
 		if err := p.tryConsume(token.Else); err != nil {
 			return nil, err
@@ -1078,21 +1059,19 @@ func (p *parser) ParseIf() (*ast.If, error) {
 func (p *parser) ParseWhile() (*ast.While, error) {
 	var err error
 	node := &ast.While{
-		LineTrivia:           ast.LineTrivia{HasPrecedingBlankLine: p.hasPrecedingBlankLine()},
-		StartKeywordLocation: p.token.Location,
+		HasPrecedingBlankLine: p.hasPrecedingBlankLine(),
+		StartKeywordLocation:  p.token.Location,
 	}
 	if err := p.tryConsume(token.While); err != nil {
 		return nil, err
 	}
-	node.Condition, err = p.ParseExpression(lowest)
-	if err != nil {
+	if node.Condition, err = p.ParseExpression(lowest); err != nil {
 		return nil, err
 	}
 	if err := p.consumeNewlines(); err != nil {
 		return nil, err
 	}
-	node.Statements, err = p.ParseFunctionStatementBlock(token.EndWhile)
-	if err != nil {
+	if node.Statements, err = p.ParseFunctionStatementBlock(token.EndWhile); err != nil {
 		return nil, err
 	}
 	node.EndKeywordLocation = p.token.Location
@@ -1105,7 +1084,7 @@ func (p *parser) ParseWhile() (*ast.While, error) {
 func (p *parser) ParseProperty() (*ast.Property, error) {
 	var err error
 	node := &ast.Property{
-		LineTrivia: ast.LineTrivia{HasPrecedingBlankLine: p.hasPrecedingBlankLine()},
+		HasPrecedingBlankLine: p.hasPrecedingBlankLine(),
 	}
 	if node.Type, err = p.ParseTypeLiteral(); err != nil {
 		return nil, err
@@ -1372,7 +1351,7 @@ func (p *parser) ParseProperty() (*ast.Property, error) {
 func (p *parser) ParseScriptVariable() (*ast.ScriptVariable, error) {
 	var err error
 	node := &ast.ScriptVariable{
-		LineTrivia: ast.LineTrivia{HasPrecedingBlankLine: p.hasPrecedingBlankLine()},
+		HasPrecedingBlankLine: p.hasPrecedingBlankLine(),
 	}
 	if node.Type, err = p.ParseTypeLiteral(); err != nil {
 		return nil, err
@@ -1521,8 +1500,7 @@ func (p *parser) ParseUnary() (ast.Expression, error) {
 	if err := p.tryConsume(token.Minus, token.LogicalNot); err != nil {
 		return nil, err
 	}
-	node.Operand, err = p.ParseExpression(prefix)
-	if err != nil {
+	if node.Operand, err = p.ParseExpression(prefix); err != nil {
 		return nil, err
 	}
 	return node, nil
@@ -1665,8 +1643,7 @@ func (p *parser) ParseParenthetical() (*ast.Parenthetical, error) {
 	if err := p.tryConsume(token.ParenthesisOpen); err != nil {
 		return nil, err
 	}
-	node.Value, err = p.ParseExpression(lowest)
-	if err != nil {
+	if node.Value, err = p.ParseExpression(lowest); err != nil {
 		return nil, err
 	}
 	node.CloseLocation = p.token.Location

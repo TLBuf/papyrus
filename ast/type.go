@@ -7,22 +7,24 @@ import (
 
 // TypeLiteral represents a literal type name in source.
 type TypeLiteral struct {
-	InfixTrivia
-
 	// Type is the type the literal represents.
 	Type types.Type
 	// NodeLocation is the source location of the node.
 	NodeLocation source.Location
-}
-
-// Trivia returns the [InfixTrivia] associated with this node.
-func (t *TypeLiteral) Trivia() InfixTrivia {
-	return t.InfixTrivia
+	// NodeComments are the comments on before and/or after a node on the
+	// same line or nil if the node has no comments associated with it.
+	NodeComments *InlineComments
 }
 
 // Accept calls the appropriate visitor method for the node.
 func (t *TypeLiteral) Accept(v Visitor) error {
 	return v.VisitTypeLiteral(t)
+}
+
+// Comments returns the [InlineComments] associated
+// with this node or nil if there are none.
+func (t *TypeLiteral) Comments() *InlineComments {
+	return t.NodeComments
 }
 
 // Location returns the source location of the node.

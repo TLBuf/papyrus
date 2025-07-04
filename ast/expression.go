@@ -4,8 +4,10 @@ package ast
 type Expression interface {
 	Node
 
-	// Trivia returns the [InfixTrivia] associated with this node.
-	Trivia() InfixTrivia
+	// Comments returns the [InlineComments] associated
+	// with this node or nil if there are none.
+	Comments() *InlineComments
+
 	expression()
 }
 
