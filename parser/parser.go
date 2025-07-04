@@ -5,10 +5,9 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
-
-	"slices"
 
 	"github.com/TLBuf/papyrus/ast"
 	"github.com/TLBuf/papyrus/lexer"
@@ -234,23 +233,25 @@ func (p *parser) next() (err error) {
 	}
 	// Consume loose comments immediately so the rest of the
 	// parser never has to deal with them directly.
+	var comment ast.Comment = nil
 	if p.token.Kind == token.Semicolon {
-		tok, err := p.ParseLineComment()
-		if err != nil {
-			return err
-		}
-		if p.attachLooseComments {
-			p.comments = append(p.comments, tok)
+		if newline {
+			if comment, err = p.ParseCommentBlock(); err != nil {
+				return err
+			}
+		} else {
+			if comment, err = p.ParseLineComment(); err != nil {
+				return err
+			}
 		}
 	}
 	if p.token.Kind == token.BlockCommentOpen {
-		tok, err := p.ParseBlockComment()
-		if err != nil {
+		if comment, err = p.ParseBlockComment(); err != nil {
 			return err
 		}
-		if p.attachLooseComments {
-			p.comments = append(p.comments, tok)
-		}
+	}
+	if p.attachLooseComments && comment != nil {
+		p.comments = append(p.comments, comment)
 	}
 	return nil
 }
@@ -277,7 +278,7 @@ func unexpectedTokenError(got token.Token, want token.Kind, alts ...token.Kind) 
 			got.Kind,
 		)
 	}
-	return newError(got.Location, "expected: %s, but found: %s", want, got.Kind)
+	return newError(got.Location, "expected '%s', but found: %s", want, got.Kind)
 }
 
 func tokensTypesToString(kinds ...token.Kind) string {
@@ -344,6 +345,23 @@ func (p *parser) ParseBlockComment() (*ast.BlockComment, error) {
 	node.CloseLocation = p.token.Location
 	if err := p.tryConsume(token.BlockCommentClose); err != nil {
 		return nil, err
+	}
+	return node, nil
+}
+
+func (p *parser) ParseCommentBlock() (*ast.CommentBlock, error) {
+	node := &ast.CommentBlock{
+		HasPrecedingBlankLine: p.hasPrecedingBlankLine(),
+	}
+	for p.token.Kind == token.Semicolon {
+		comment, err := p.ParseLineComment()
+		if err != nil {
+			return nil, err
+		}
+		node.Elements = append(node.Elements, comment)
+		if err := p.tryConsume(token.Newline, token.EOF); err != nil {
+			return nil, err
+		}
 	}
 	return node, nil
 }

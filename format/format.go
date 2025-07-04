@@ -456,8 +456,8 @@ func (f *formatter) VisitFunction(node *ast.Function) error {
 	if err := node.Name.Accept(f); err != nil {
 		return fmt.Errorf("failed for format name: %w", err)
 	}
-	if err := f.str(token.ParenthesisClose.Symbol()); err != nil {
-		return fmt.Errorf("failed for format close parenthesis: %w", err)
+	if err := f.str(token.ParenthesisOpen.Symbol()); err != nil {
+		return fmt.Errorf("failed for format open parenthesis: %w", err)
 	}
 	for i, parameter := range node.ParameterList {
 		if i > 0 {
