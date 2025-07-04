@@ -40,6 +40,40 @@ func (*BlockComment) comment() {}
 
 var _ Comment = (*BlockComment)(nil)
 
+// CommentBlock represents a block of one or more line comments.
+//
+// Not to be confused with a block comment, this construct consists of one or
+// more standard line comments that appear on their own lines and one after the
+// other without intervening blank lines.
+type CommentBlock struct {
+	LineTrivia
+
+	// Comments are the line comments in this block in the order they appear.
+	Elements []*LineComment
+}
+
+// Trivia returns the [LineTrivia] associated with this node.
+func (c *CommentBlock) Trivia() LineTrivia {
+	return c.LineTrivia
+}
+
+// Accept calls the appropriate method on the [Visitor] for the node.
+func (c *CommentBlock) Accept(v Visitor) error {
+	return v.VisitCommentBlock(c)
+}
+
+// Location returns the source location of the node.
+func (c *CommentBlock) Location() source.Location {
+	if len(c.Elements) == 1 {
+		return c.Elements[0].Location()
+	}
+	return source.Span(c.Elements[0].Location(), c.Elements[len(c.Elements)-1].Location())
+}
+
+func (*CommentBlock) comment() {}
+
+var _ Comment = (*CommentBlock)(nil)
+
 // LineComment represents line comment.
 type LineComment struct {
 	LineTrivia

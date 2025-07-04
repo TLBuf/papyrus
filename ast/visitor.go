@@ -20,6 +20,8 @@ type Visitor interface {
 	VisitDocumentation(*Documentation) error
 	// VisitBlockComment visits a [BlockComment] node.
 	VisitBlockComment(*BlockComment) error
+	// VisitCommentBlock visits a [CommentBlock] node.
+	VisitCommentBlock(*CommentBlock) error
 	// VisitLineComment visits a [LineComment] node.
 	VisitLineComment(*LineComment) error
 	// VisitEvent visits an [Event] node.

@@ -325,6 +325,25 @@ func (f *formatter) VisitBlockComment(node *ast.BlockComment) error {
 	return nil
 }
 
+func (f *formatter) VisitCommentBlock(node *ast.CommentBlock) error {
+	if node.HasPrecedingBlankLine {
+		if err := f.newline(); err != nil {
+			return fmt.Errorf("failed to format newline: %w", err)
+		}
+	}
+	for i, e := range node.Elements {
+		if i > 0 {
+			if err := f.newline(); err != nil {
+				return fmt.Errorf("failed to format newline: %w", err)
+			}
+		}
+		if err := e.Accept(f); err != nil {
+			return fmt.Errorf("failed to format comment element: %w", err)
+		}
+	}
+	return nil
+}
+
 func (f *formatter) VisitLineComment(node *ast.LineComment) error {
 	if node.HasPrecedingBlankLine {
 		if err := f.newline(); err != nil {

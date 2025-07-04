@@ -205,6 +205,20 @@ func (v *PreorderVisitor) VisitBlockComment(c *BlockComment) error {
 	return nil
 }
 
+// VisitCommentBlock visits the [CommentBlock] node then all children nodes and
+// returns an error if any call returns an error.
+func (v *PreorderVisitor) VisitCommentBlock(c *CommentBlock) error {
+	if err := v.Delegate.VisitCommentBlock(c); err != nil {
+		return fmt.Errorf("delegate: %w", err)
+	}
+	for _, e := range c.Elements {
+		if err := e.Accept(v); err != nil {
+			return fmt.Errorf("element: %w", err)
+		}
+	}
+	return nil
+}
+
 // VisitLineComment visits the [LineComment] node then all children nodes and
 // returns an error if any call returns an error.
 func (v *PreorderVisitor) VisitLineComment(c *LineComment) error {
