@@ -8,20 +8,21 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-var file = &source.File{
+var file = source.File{
 	Text: []byte(strings.Repeat("12345678901234567890123456789012345678\r\n", 6)),
 }
 
 func TestSnippet(t *testing.T) {
 	tests := []struct {
 		name     string
+		file     source.File
 		location source.Location
 		want     source.Snippet
 	}{
 		{
 			"point_single_line_fits",
+			source.File{Text: []byte("1234567890\r\n")},
 			source.Location{
-				File:            &source.File{Text: []byte("1234567890\r\n")},
 				ByteOffset:      2,
 				Length:          1,
 				StartLine:       1,
@@ -43,8 +44,8 @@ func TestSnippet(t *testing.T) {
 		},
 		{
 			"point_single_line_tabs",
+			source.File{Text: []byte("123\t4567890\r\n")},
 			source.Location{
-				File:            &source.File{Text: []byte("123\t4567890\r\n")},
 				ByteOffset:      2,
 				Length:          3,
 				StartLine:       1,
@@ -66,8 +67,8 @@ func TestSnippet(t *testing.T) {
 		},
 		{
 			"point_single_line_first_half",
+			file,
 			source.Location{
-				File:            file,
 				ByteOffset:      42,
 				Length:          1,
 				StartLine:       1,
@@ -90,8 +91,8 @@ func TestSnippet(t *testing.T) {
 		},
 		{
 			"point_single_line_second_half",
+			file,
 			source.Location{
-				File:            file,
 				ByteOffset:      75,
 				Length:          1,
 				StartLine:       1,
@@ -114,8 +115,8 @@ func TestSnippet(t *testing.T) {
 		},
 		{
 			"point_single_line_middle",
+			file,
 			source.Location{
-				File:            file,
 				ByteOffset:      60,
 				Length:          1,
 				StartLine:       1,
@@ -139,8 +140,8 @@ func TestSnippet(t *testing.T) {
 		},
 		{
 			"range_single_line_fits",
+			source.File{Text: []byte("1234567890\r\n")},
 			source.Location{
-				File:            &source.File{Text: []byte("1234567890\r\n")},
 				ByteOffset:      2,
 				Length:          5,
 				StartLine:       1,
@@ -162,8 +163,8 @@ func TestSnippet(t *testing.T) {
 		},
 		{
 			"range_single_line_first_half",
+			file,
 			source.Location{
-				File:            file,
 				ByteOffset:      42,
 				Length:          5,
 				StartLine:       1,
@@ -186,8 +187,8 @@ func TestSnippet(t *testing.T) {
 		},
 		{
 			"range_single_line_second_half",
+			file,
 			source.Location{
-				File:            file,
 				ByteOffset:      71,
 				Length:          5,
 				StartLine:       1,
@@ -210,8 +211,8 @@ func TestSnippet(t *testing.T) {
 		},
 		{
 			"range_single_line_middle",
+			file,
 			source.Location{
-				File:            file,
 				ByteOffset:      59,
 				Length:          3,
 				StartLine:       1,
@@ -235,8 +236,8 @@ func TestSnippet(t *testing.T) {
 		},
 		{
 			"range_single_line_middle_and_end",
+			file,
 			source.Location{
-				File:            file,
 				ByteOffset:      44,
 				Length:          18,
 				StartLine:       1,
@@ -261,8 +262,8 @@ func TestSnippet(t *testing.T) {
 		},
 		{
 			"range_single_line_middle_and_start",
+			file,
 			source.Location{
-				File:            file,
 				ByteOffset:      56,
 				Length:          18,
 				StartLine:       1,
@@ -287,8 +288,8 @@ func TestSnippet(t *testing.T) {
 		},
 		{
 			"range_single_line_start_middle_end",
+			file,
 			source.Location{
-				File:            file,
 				ByteOffset:      50,
 				Length:          18,
 				StartLine:       1,
@@ -314,8 +315,8 @@ func TestSnippet(t *testing.T) {
 		},
 		{
 			"range_single_line_start_middle_end",
+			file,
 			source.Location{
-				File:            file,
 				ByteOffset:      56,
 				Length:          7,
 				StartLine:       1,
@@ -339,8 +340,8 @@ func TestSnippet(t *testing.T) {
 		},
 		{
 			"range_multi_line",
+			file,
 			source.Location{
-				File:            file,
 				ByteOffset:      2,
 				Length:          201,
 				StartLine:       1,
@@ -367,7 +368,7 @@ func TestSnippet(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			got, err := test.location.Snippet(20, 4)
+			got, err := test.location.Snippet(test.file, 20, 4)
 			if err != nil {
 				t.Fatalf("Snippet() returned an unexpected error: %v", err)
 			}

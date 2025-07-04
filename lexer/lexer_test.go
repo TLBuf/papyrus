@@ -100,7 +100,7 @@ EndState ; Comment
 	}
 	// Papyrus uses Windows line endings.
 	text = strings.ReplaceAll(text, "\n", "\r\n")
-	file := &source.File{
+	file := source.File{
 		Text: []byte(text),
 	}
 	lex, err := lexer.New(file)
@@ -115,7 +115,7 @@ EndState ; Comment
 		if tok.Kind != tt.wantType {
 			t.Errorf("token type mismatch at token %d %q, want: %v, got: %v", i, tok, tt.wantType, tok.Kind)
 		}
-		gotText := string(tok.Location.Text())
+		gotText := string(tok.Location.Text(file))
 		if gotText != tt.wantText {
 			t.Errorf("token text mismatch at token %d %q, want: %q, got: %q", i, tok, tt.wantText, gotText)
 		}

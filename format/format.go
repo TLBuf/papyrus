@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/TLBuf/papyrus/ast"
+	"github.com/TLBuf/papyrus/source"
 	"github.com/TLBuf/papyrus/token"
 	"github.com/TLBuf/papyrus/types"
 )
@@ -70,6 +71,7 @@ func WithKeywords(overrides Keywords) Option {
 // Format writes the formatted script.
 func Format(w io.Writer, script *ast.Script, opts ...Option) error {
 	f := &formatter{
+		file:            script.File,
 		out:             w,
 		indentWidth:     DefaultIndentWidth,
 		useTabs:         DefaultUseTabs,
@@ -86,6 +88,7 @@ func Format(w io.Writer, script *ast.Script, opts ...Option) error {
 }
 
 type formatter struct {
+	file            source.File
 	out             io.Writer
 	indentWidth     int
 	useTabs         bool
@@ -237,7 +240,7 @@ func (f *formatter) VisitDocumentation(node *ast.Documentation) error {
 	if err := f.str(token.BraceOpen.Symbol()); err != nil {
 		return fmt.Errorf("failed for format open brace: %w", err)
 	}
-	text := trimRight(node.TextLocation.Text())
+	text := trimRight(node.TextLocation.Text(f.file))
 	if bytes.ContainsRune(text, '\n') {
 		f.level++
 		if err := f.newline(); err != nil {
@@ -279,7 +282,7 @@ func (f *formatter) VisitBlockComment(node *ast.BlockComment) error {
 	if err := f.str(token.BlockCommentOpen.Symbol()); err != nil {
 		return fmt.Errorf("failed for format block comment open: %w", err)
 	}
-	text := trimRight(node.TextLocation.Text())
+	text := trimRight(node.TextLocation.Text(f.file))
 	if bytes.ContainsRune(text, '\n') {
 		f.level++
 		if err := f.newline(); err != nil {
@@ -324,7 +327,7 @@ func (f *formatter) VisitLineComment(node *ast.LineComment) error {
 	if err := f.space(); err != nil {
 		return fmt.Errorf("failed to format space: %w", err)
 	}
-	if err := f.bytes(trimRight(node.TextLocation.Text())); err != nil {
+	if err := f.bytes(trimRight(node.TextLocation.Text(f.file))); err != nil {
 		return fmt.Errorf("failed to format comment text: %w", err)
 	}
 	return nil
@@ -499,7 +502,7 @@ func (f *formatter) VisitFunction(node *ast.Function) error {
 }
 
 func (f *formatter) VisitIdentifier(node *ast.Identifier) error {
-	return f.bytes(node.Location().Text())
+	return f.bytes(node.Location().Text(f.file))
 }
 
 func (f *formatter) VisitIf(node *ast.If) error {
@@ -650,21 +653,21 @@ func (f *formatter) VisitBoolLiteral(node *ast.BoolLiteral) error {
 }
 
 func (f *formatter) VisitIntLiteral(node *ast.IntLiteral) error {
-	if err := f.bytes(node.Location().Text()); err != nil {
+	if err := f.bytes(node.Location().Text(f.file)); err != nil {
 		return fmt.Errorf("failed to format text: %w", err)
 	}
 	return nil
 }
 
 func (f *formatter) VisitFloatLiteral(node *ast.FloatLiteral) error {
-	if err := f.bytes(node.Location().Text()); err != nil {
+	if err := f.bytes(node.Location().Text(f.file)); err != nil {
 		return fmt.Errorf("failed to format text: %w", err)
 	}
 	return nil
 }
 
 func (f *formatter) VisitStringLiteral(node *ast.StringLiteral) error {
-	if err := f.bytes(node.Location().Text()); err != nil {
+	if err := f.bytes(node.Location().Text(f.file)); err != nil {
 		return fmt.Errorf("failed to format text: %w", err)
 	}
 	return nil
@@ -1056,7 +1059,7 @@ func (f *formatter) VisitTypeLiteral(node *ast.TypeLiteral) error {
 	case types.String:
 		text = f.keywords.String
 	case types.Object:
-		text = string(node.Location().Text())
+		text = string(node.Location().Text(f.file))
 	default:
 		return fmt.Errorf("unexpected types: %T", baseType)
 	}

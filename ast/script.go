@@ -7,6 +7,8 @@ import "github.com/TLBuf/papyrus/source"
 type Script struct {
 	LineTrivia
 
+	// File is the source file for this script.
+	File source.File
 	// KeywordLocation is the location of the ScriptName keyword that starts the
 	// script.
 	KeywordLocation source.Location

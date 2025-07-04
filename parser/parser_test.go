@@ -396,8 +396,7 @@ func TestHeader(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			f := &source.File{Text: []byte(test.input)}
-			got, err := parser.Parse(f)
+			got, err := parser.Parse(source.File{Text: []byte(test.input)})
 			if err != nil {
 				t.Errorf("ParseScript() returned an unexpected error: %v", err)
 			}
@@ -416,7 +415,6 @@ var ignoreFields = []cmp.Option{
 	// byte offset and length match, that's sufficient for this test.
 	cmpopts.IgnoreFields(
 		source.Location{},
-		"File",
 		"StartLine",
 		"StartColumn",
 		"EndLine",

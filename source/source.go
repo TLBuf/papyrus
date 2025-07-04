@@ -13,8 +13,6 @@ type File struct {
 
 // Location points to a range of bytes in a source code file.
 type Location struct {
-	// File is the file that contains the range.
-	File *File
 	// ByteOffset is the number of bytes from the start of the file for this
 	// position.
 	ByteOffset uint32
@@ -37,23 +35,26 @@ type Location struct {
 }
 
 // Text returns the text this range represents.
-func (l Location) Text() []byte {
-	return l.File.Text[l.ByteOffset : l.ByteOffset+l.Length]
+func (l Location) Text(file File) []byte {
+	ln := len(file.Text)
+	return file.Text[min(int(l.ByteOffset), ln):min(int(l.ByteOffset+l.Length), ln)]
 }
 
 // Preamble returns the text on the same line before this range.
-func (l Location) Preamble() []byte {
-	return l.File.Text[l.ByteOffset-l.PreambleLength : l.ByteOffset]
+func (l Location) Preamble(file File) []byte {
+	ln := len(file.Text)
+	return file.Text[min(int(l.ByteOffset-l.PreambleLength), ln):min(int(l.ByteOffset), ln)]
 }
 
 // Postamble returns the text on the same line after this range.
-func (l Location) Postamble() []byte {
-	return l.File.Text[l.ByteOffset+l.Length : l.ByteOffset+l.Length+l.PostambleLength]
+func (l Location) Postamble(file File) []byte {
+	ln := len(file.Text)
+	return file.Text[min(int(l.ByteOffset+l.Length), ln):min(int(l.ByteOffset+l.Length+l.PostambleLength), ln)]
 }
 
 // String implements [fmt.Stringer].
 func (l Location) String() string {
-	return fmt.Sprintf("%s:%d:%d", l.File.Path, l.StartLine, l.StartColumn)
+	return fmt.Sprintf("[%d:%d]", l.StartLine, l.StartColumn)
 }
 
 // Compare returns 0 if this location has the same byte offset as the given
@@ -66,7 +67,6 @@ func (l Location) Compare(o Location) int {
 // Span returns a Range that spans two given Ranges.
 func Span(start, end Location) Location {
 	return Location{
-		File:            start.File,
 		ByteOffset:      start.ByteOffset,
 		Length:          end.ByteOffset - start.ByteOffset + end.Length,
 		StartLine:       start.StartLine,

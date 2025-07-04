@@ -73,7 +73,7 @@ func formatFile(path string) error {
 	if err != nil {
 		return fmt.Errorf("failed to read %q: %w", path, err)
 	}
-	file := &source.File{
+	file := source.File{
 		Path: path,
 		Text: text,
 	}
@@ -83,7 +83,7 @@ func formatFile(path string) error {
 		if !errors.As(err, &perr) {
 			return fmt.Errorf("failed to extract a parser.Error from: %w", err)
 		}
-		snip, serr := perr.Location.Snippet(80, 9)
+		snip, serr := perr.Location.Snippet(file, 80, 9)
 		if serr != nil {
 			return fmt.Errorf("failed to create snippet for parser error: %w: %w", serr, err)
 		}

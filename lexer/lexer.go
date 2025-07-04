@@ -4,6 +4,7 @@ package lexer
 import (
 	"fmt"
 	"math"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/TLBuf/papyrus/source"
@@ -27,7 +28,7 @@ const (
 
 // Lexer provides the ability to lex a Papyrus script.
 type Lexer struct {
-	file            *source.File
+	file            source.File
 	position        uint32
 	next            uint32
 	column          uint32
@@ -41,7 +42,7 @@ type Lexer struct {
 }
 
 // New returns a new [Lexer] ready to read tokens from a sorce file.
-func New(file *source.File) (*Lexer, error) {
+func New(file source.File) (*Lexer, error) {
 	if len(file.Text) > math.MaxUint32 {
 		return nil, Error{
 			Err: fmt.Errorf("input exceeds the maximum number of bytes (%d, 4GB)", math.MaxUint32),
@@ -297,6 +298,7 @@ func (l *Lexer) nextToken() (token.Token, error) {
 func (l *Lexer) newToken(t token.Kind) token.Token {
 	return token.Token{
 		Kind:     t,
+		Text:     l.file.Text[l.position : l.position+1],
 		Location: l.here(),
 	}
 }
@@ -304,6 +306,7 @@ func (l *Lexer) newToken(t token.Kind) token.Token {
 func (l *Lexer) newTokenAt(t token.Kind, at source.Location) token.Token {
 	return token.Token{
 		Kind:     t,
+		Text:     l.file.Text[at.ByteOffset : at.ByteOffset+at.Length],
 		Location: at,
 	}
 }
@@ -311,13 +314,13 @@ func (l *Lexer) newTokenAt(t token.Kind, at source.Location) token.Token {
 func (l *Lexer) newTokenFrom(t token.Kind, from source.Location) token.Token {
 	return token.Token{
 		Kind:     t,
+		Text:     l.file.Text[from.ByteOffset : from.ByteOffset+from.Length],
 		Location: source.Span(from, l.here()),
 	}
 }
 
 func (l *Lexer) here() source.Location {
 	return source.Location{
-		File:           l.file,
 		ByteOffset:     l.position,
 		Length:         l.next - l.position,
 		StartLine:      l.line,
@@ -330,7 +333,6 @@ func (l *Lexer) here() source.Location {
 
 func (l *Lexer) nextByteLocation() source.Location {
 	return source.Location{
-		File:           l.file,
 		ByteOffset:     l.position,
 		Length:         1,
 		StartLine:      l.line,
@@ -343,18 +345,21 @@ func (l *Lexer) nextByteLocation() source.Location {
 
 func (l *Lexer) readIdentifier() (token.Token, error) {
 	start := l.here()
+	var text strings.Builder
+	text.WriteRune(l.character)
 	if err := l.readChar(); err != nil {
 		return l.newToken(token.Illegal), err
 	}
+	end := start
 	for isLetter(l.character) || isDigit(l.character) {
+		text.WriteRune(l.character)
+		end = l.here()
 		if err := l.readChar(); err != nil {
 			return l.newToken(token.Illegal), err
 		}
 	}
-	loc := source.Span(start, l.here())
-	loc.Length -= 1
-	loc.EndColumn -= 1
-	tok := l.newTokenAt(token.LookupIdentifier(string(loc.Text())), loc)
+	loc := source.Span(start, end)
+	tok := l.newTokenAt(token.LookupIdentifier(text.String()), loc)
 	if l.character == '[' {
 		next, err := l.peek()
 		if err != nil {

@@ -14,13 +14,15 @@ import (
 type Token struct {
 	// Kind defines the specific kind of token the text represents.
 	Kind Kind
+	// The text of the token.
+	Text []byte
 	// Location describes exactly where in a file the token is.
 	Location source.Location
 }
 
 // String returns the text of the token as it appears in the lexed source.
 func (t Token) String() string {
-	return string(t.Location.Text())
+	return string(t.Text)
 }
 
 // LookupIdentifier returns the [Kind] of the given identifier or keyword.
