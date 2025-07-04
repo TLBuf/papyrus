@@ -6,6 +6,7 @@ import "github.com/TLBuf/papyrus/source"
 // as a condition is true.
 type While struct {
 	LineTrivia
+
 	// StartKeywordLocation is the location of the While keyword that starts
 	// the statement.
 	StartKeywordLocation source.Location
@@ -20,7 +21,7 @@ type While struct {
 	EndKeywordLocation source.Location
 }
 
-// Trivia returns the [LineTrivia] assocaited with this node.
+// Trivia returns the [LineTrivia] associated with this node.
 func (w *While) Trivia() LineTrivia {
 	return w.LineTrivia
 }

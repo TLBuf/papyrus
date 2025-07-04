@@ -56,7 +56,7 @@ type snippetOptions struct {
 	tabWidth int
 }
 
-// SnippetOption
+// SnippetOption is an option to configure how snippets are created.
 type SnippetOption func(*snippetOptions)
 
 // WithTabWidth returns a [SnippetOption] that overrides the [DefaultTabWidth].
@@ -112,7 +112,7 @@ func formatMultiLineSnippet(r Location, width, height, tabWidth int) Snippet {
 	available := max(0, height-3)
 	lines := []Line{{Number: int(r.StartLine), Chunks: first}}
 	if remaining <= available+1 {
-		for i := 0; i < remaining; i++ {
+		for i := range remaining {
 			chunks, _, _ := fitLine(text[i+1], 0, 0, width, tabWidth)
 			lines = append(lines, Line{Number: int(r.StartLine) + i + 1, Chunks: chunks})
 		}
@@ -125,13 +125,13 @@ func formatMultiLineSnippet(r Location, width, height, tabWidth int) Snippet {
 	}
 	heightA := available/2 + available%2
 	heightB := available / 2
-	for i := 0; i < heightA; i++ {
+	for i := range heightA {
 		chunks, _, _ := fitLine(text[i+1], 0, 0, width, tabWidth)
 		lines = append(lines, Line{Number: int(r.StartLine) + i + 1, Chunks: chunks})
 	}
 	omitted := remaining - available
 	lines = append(lines, Line{Chunks: []Chunk{{Text: fmt.Sprintf("... %d lines ...", omitted)}}})
-	for i := 0; i < heightB; i++ {
+	for i := range heightB {
 		chunks, _, _ := fitLine(text[i+omitted+1], 0, 0, width, tabWidth)
 		lines = append(lines, Line{Number: int(r.StartLine) + i + omitted + 1, Chunks: chunks})
 	}
@@ -283,7 +283,7 @@ func substituteTabs(text []rune, start, end, tabWidth int) ([]rune, int, int) {
 	offset := 0
 	for i, r := range text {
 		if r == '\t' {
-			for i := 0; i < tabWidth; i++ {
+			for range tabWidth {
 				out = append(out, ' ')
 			}
 			offset += tabWidth - 1

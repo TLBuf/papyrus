@@ -112,7 +112,7 @@ const (
 	BracketClose
 	// BracketOpen, '[', is the openning bracket symbol used by arrays.
 	BracketOpen
-	// Comma, ',', is the symbol used to seperate list elements.
+	// Comma, ',', is the symbol used to separate list elements.
 	Comma
 	// Comment denotes a token that contains all content of a comment.
 	Comment
@@ -240,7 +240,7 @@ const (
 // kind or an empty string if it is not a keyword.
 //
 // This method will always return a standardized
-// captialization regardless of any lexed text.
+// capitalization regardless of any lexed text.
 func (k Kind) Keyword() string {
 	if k.IsKeyword() {
 		return names[k]
@@ -293,8 +293,9 @@ func (k Kind) IsKeyword() bool {
 		True,
 		While:
 		return true
+	default:
+		return false
 	}
-	return false
 }
 
 // Symbol returns the string representation of this
@@ -342,8 +343,9 @@ func (k Kind) IsSymbol() bool {
 		Plus,
 		Semicolon:
 		return true
+	default:
+		return false
 	}
-	return false
 }
 
 // String returns the string representation of this Kind.
@@ -352,7 +354,7 @@ func (k Kind) IsSymbol() bool {
 // [Kind.Symbol] and [Kind.Keyword] respectively, otherwise it returns the name
 // of the token surrounded by angle brackets.
 //
-// This method will always return a standardized captialization regardless of
+// This method will always return a standardized capitalization regardless of
 // any lexed text.
 func (k Kind) String() string {
 	if int(k) < len(names) {

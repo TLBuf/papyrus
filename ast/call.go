@@ -5,6 +5,7 @@ import "github.com/TLBuf/papyrus/source"
 // Call is an expression the calls a function defined elsewhere.
 type Call struct {
 	InfixTrivia
+
 	// Function is the reference to the function being called.
 	Function Expression
 	// OpenLocation is the location of the opening parenthesis that starts the
@@ -18,7 +19,7 @@ type Call struct {
 	CloseLocation source.Location
 }
 
-// Trivia returns the [InfixTrivia] assocaited with this node.
+// Trivia returns the [InfixTrivia] associated with this node.
 func (c *Call) Trivia() InfixTrivia {
 	return c.InfixTrivia
 }

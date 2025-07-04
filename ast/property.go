@@ -12,7 +12,7 @@ const (
 	// Full is a full property definition that defines either a get or set
 	// function or both.
 	Full = PropertyKind(0)
-	// Auto is a mutable property that has implicity defined get and set
+	// Auto is a mutable property that has implicitly defined get and set
 	// functions.
 	Auto = PropertyKind(token.Auto)
 	// AutoReadOnly is an immutable property that has an implicit get function.
@@ -25,6 +25,7 @@ const (
 // referenced by the engine.
 type Property struct {
 	LineTrivia
+
 	// Kind is the kind of property this statement represents.
 	Kind PropertyKind
 	// Type is the type of this property.
@@ -52,7 +53,7 @@ type Property struct {
 	// property as hidden (i.e. it doesn't appear in the editor) or empty if this
 	// property is not hidden.
 	//
-	// Errata: This being multiple values is due to the offical Papyrus parser
+	// Errata: This being multiple values is due to the official Papyrus parser
 	// accepting any number of flag tokens. They are all included here for
 	// completeness, but only one is required to consider the property hidden.
 	HiddenLocations []source.Location
@@ -60,7 +61,7 @@ type Property struct {
 	// mark this property as conditional (i.e. it can appear in conditions) or
 	// empty if this property is not conditional.
 	//
-	// Errata: This being multiple values is due to the offical Papyrus parser
+	// Errata: This being multiple values is due to the official Papyrus parser
 	// accepting any number of flag tokens. They are all included here for
 	// completeness, but only one is required to consider the property
 	// conditional.
@@ -89,7 +90,7 @@ type Property struct {
 	EndKeywordLocation source.Location
 }
 
-// Trivia returns the [LineTrivia] assocaited with this node.
+// Trivia returns the [LineTrivia] associated with this node.
 func (p *Property) Trivia() LineTrivia {
 	return p.LineTrivia
 }

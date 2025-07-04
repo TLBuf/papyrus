@@ -50,6 +50,7 @@ func (k AssignmentKind) Symbol() string {
 // property).
 type Assignment struct {
 	LineTrivia
+
 	// Kind is the kind of assignment this expression represents.
 	Kind AssignmentKind
 	// Assignee is the reference to a variable to assign the value to.
@@ -60,7 +61,7 @@ type Assignment struct {
 	Value Expression
 }
 
-// Trivia returns the [LineTrivia] assocaited with this node.
+// Trivia returns the [LineTrivia] associated with this node.
 func (a *Assignment) Trivia() LineTrivia {
 	return a.LineTrivia
 }

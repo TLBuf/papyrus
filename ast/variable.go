@@ -5,6 +5,7 @@ import "github.com/TLBuf/papyrus/source"
 // ScriptVariable is a variable definition at the script level.
 type ScriptVariable struct {
 	LineTrivia
+
 	// Type is the type literal that defines the type of the variable.
 	Type *TypeLiteral
 	// Name is the name of the variable.
@@ -20,14 +21,14 @@ type ScriptVariable struct {
 	// mark this variable as conditional (i.e. it can appear in conditions) or
 	// empty if this variable is not conditional.
 	//
-	// Errata: This being multiple values is due to the offical Papyrus parser
+	// Errata: This being multiple values is due to the official Papyrus parser
 	// accepting any number of flag tokens. They are all included here for
 	// completeness, but only one is required to consider the variable
 	// conditional.
 	ConditionalLocations []source.Location
 }
 
-// Trivia returns the [LineTrivia] assocaited with this node.
+// Trivia returns the [LineTrivia] associated with this node.
 func (s *ScriptVariable) Trivia() LineTrivia {
 	return s.LineTrivia
 }
@@ -59,6 +60,7 @@ var _ ScriptStatement = (*ScriptVariable)(nil)
 // event).
 type FunctionVariable struct {
 	LineTrivia
+
 	// Type is the type literal that defines the type of the variable.
 	Type *TypeLiteral
 	// Name is the name of the variable.
@@ -74,7 +76,7 @@ type FunctionVariable struct {
 	NodeLocation source.Location
 }
 
-// Trivia returns the [LineTrivia] assocaited with this node.
+// Trivia returns the [LineTrivia] associated with this node.
 func (f *FunctionVariable) Trivia() LineTrivia {
 	return f.LineTrivia
 }

@@ -147,7 +147,7 @@ func (v *PreorderVisitor) VisitCall(c *Call) error {
 		}
 	}
 	if err := c.Function.Accept(v); err != nil {
-		return fmt.Errorf("reciever: %w", err)
+		return fmt.Errorf("receiver: %w", err)
 	}
 	for _, a := range c.Arguments {
 		if err := a.Accept(v); err != nil {

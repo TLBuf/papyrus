@@ -6,6 +6,7 @@ import "github.com/TLBuf/papyrus/source"
 // Script represents a single Papyrus script file.
 type Script struct {
 	LineTrivia
+
 	// KeywordLocation is the location of the ScriptName keyword that starts the
 	// script.
 	KeywordLocation source.Location
@@ -23,7 +24,7 @@ type Script struct {
 	// script as hidden (i.e. it doesn't appear in the editor) or empty if this
 	// script is not hidden.
 	//
-	// Errata: This being multiple values is due to the offical Papyrus parser
+	// Errata: This being multiple values is due to the official Papyrus parser
 	// accepting any number of flag tokens. They are all included here for
 	// completeness, but only one is required to consider the script hidden.
 	HiddenLocations []source.Location
@@ -31,7 +32,7 @@ type Script struct {
 	// mark this script as conditional (i.e. conditional properties it defines can
 	// appear in conditions) or empty if this script is not conditional.
 	//
-	// Errata: This being multiple values is due to the offical Papyrus parser
+	// Errata: This being multiple values is due to the official Papyrus parser
 	// accepting any number of flag tokens. They are all included here for
 	// completeness, but only one is required to consider the script conditional.
 	ConditionalLocations []source.Location
@@ -45,7 +46,7 @@ type Script struct {
 	NodeLocation source.Location
 }
 
-// Trivia returns the [LineTrivia] assocaited with this node.
+// Trivia returns the [LineTrivia] associated with this node.
 func (s *Script) Trivia() LineTrivia {
 	return s.LineTrivia
 }

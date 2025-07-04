@@ -16,6 +16,7 @@ type Node interface {
 // Block is a common interface for nodes that form blocks of statements.
 type Block interface {
 	Node
+
 	// Body returns the nodes that comprise the body of this block.
 	Body() []FunctionStatement
 	block()

@@ -60,7 +60,7 @@ func (o Object) scalar() {}
 
 var _ Scalar = Object{}
 
-// Array represents the array type
+// Array represents the array type.
 type Array struct {
 	ElementType Scalar
 }

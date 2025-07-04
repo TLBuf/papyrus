@@ -5,6 +5,7 @@ import "github.com/TLBuf/papyrus/source"
 // Return is a statement that terminates a function potentially with a value.
 type Return struct {
 	LineTrivia
+
 	// KeywordLocation is the location of the Return keyword that starts the
 	// statement.
 	KeywordLocation source.Location
@@ -13,7 +14,7 @@ type Return struct {
 	Value Expression
 }
 
-// Trivia returns the [LineTrivia] assocaited with this node.
+// Trivia returns the [LineTrivia] associated with this node.
 func (r *Return) Trivia() LineTrivia {
 	return r.LineTrivia
 }

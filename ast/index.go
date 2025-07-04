@@ -5,6 +5,7 @@ import "github.com/TLBuf/papyrus/source"
 // Index represents the access of a specific element in an array.
 type Index struct {
 	InfixTrivia
+
 	// Value is the expression that defines the array to reference.
 	Value Expression
 	// OpenLocation is the location of the opening bracket.
@@ -16,7 +17,7 @@ type Index struct {
 	CloseLocation source.Location
 }
 
-// Trivia returns the [InfixTrivia] assocaited with this node.
+// Trivia returns the [InfixTrivia] associated with this node.
 func (i *Index) Trivia() InfixTrivia {
 	return i.InfixTrivia
 }

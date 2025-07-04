@@ -84,6 +84,7 @@ func (k BinaryKind) Symbol() string {
 // Binary is an expression that computes a value from two operands.
 type Binary struct {
 	InfixTrivia
+
 	// Kind is the kind of binary operation this expression represents.
 	Kind BinaryKind
 	// LeftOperand is the operand on the left of the operator.
@@ -94,7 +95,7 @@ type Binary struct {
 	RightOperand Expression
 }
 
-// Trivia returns the [InfixTrivia] assocaited with this node.
+// Trivia returns the [InfixTrivia] associated with this node.
 func (b *Binary) Trivia() InfixTrivia {
 	return b.InfixTrivia
 }

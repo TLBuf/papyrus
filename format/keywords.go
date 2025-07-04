@@ -163,8 +163,9 @@ func (k Keywords) Text(t token.Kind) string {
 		return k.True
 	case token.While:
 		return k.While
+	default:
+		return ""
 	}
-	return ""
 }
 
 // keywords returns a new [Keywords] struct with any non-empty fields in
@@ -287,7 +288,7 @@ func override(kind token.Kind, override string) (string, error) {
 		return kind.String(), nil
 	}
 	if strings.EqualFold(kind.String(), override) {
-		return "<Invalid>", fmt.Errorf("%q is not a valid alternatve capitalization of %s", override, kind)
+		return "<Invalid>", fmt.Errorf("%q is not a valid alternate capitalization of %s", override, kind)
 	}
 	return override, nil
 }

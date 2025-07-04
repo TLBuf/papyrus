@@ -61,7 +61,7 @@ type Comments struct {
 	// LeadingComments are the loose comments that appear before a node.
 	LeadingComments []Comment
 	// TrailingComments are the loose comments that appear after a node, but which
-	// are not assocaited with another node.
+	// are not associated with another node.
 	TrailingComments []Comment
 }
 
@@ -74,7 +74,7 @@ func (c *Comments) Leading() []Comment {
 }
 
 // Trailing retunrs the loose comments that appear after a node, but which are
-// not assocaited with another node.
+// not associated with another node.
 func (c *Comments) Trailing() []Comment {
 	if c == nil {
 		return nil

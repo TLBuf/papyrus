@@ -5,6 +5,7 @@ import "github.com/TLBuf/papyrus/source"
 // Parenthetical represents a parenthesized expression.
 type Parenthetical struct {
 	InfixTrivia
+
 	// OpenLocation is the location of the opening parenthesis.
 	OpenLocation source.Location
 	// Value is the expression within the parentheses.
@@ -13,7 +14,7 @@ type Parenthetical struct {
 	CloseLocation source.Location
 }
 
-// Trivia returns the [InfixTrivia] assocaited with this node.
+// Trivia returns the [InfixTrivia] associated with this node.
 func (p *Parenthetical) Trivia() InfixTrivia {
 	return p.InfixTrivia
 }

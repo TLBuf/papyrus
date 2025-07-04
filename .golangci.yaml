@@ -1,0 +1,35 @@
+version: "2"
+linters:
+  default: standard
+  enable:
+    - asciicheck
+    - embeddedstructfieldcheck 
+    - errname
+    - errorlint
+    - exptostd
+    - fatcontext
+    - forcetypeassert
+    - gocheckcompilerdirectives
+    - gocritic
+    - godot
+    - gosec
+    - intrange
+    - misspell
+    - perfsprint
+    - prealloc
+    - predeclared
+    - testpackage
+    - unconvert
+    - unparam
+  settings:
+    embeddedstructfieldcheck:
+      forbid-mutex: true
+    exhaustive:
+      check:
+        - switch
+        - map
+      default-signifies-exhaustive: true
+
+
+formatters:
+  enable:

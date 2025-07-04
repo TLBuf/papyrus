@@ -3,7 +3,8 @@ package ast
 // Expression is a common interface for all expression nodes.
 type Expression interface {
 	Node
-	// Trivia returns the [InfixTrivia] assocaited with this node.
+
+	// Trivia returns the [InfixTrivia] associated with this node.
 	Trivia() InfixTrivia
 	expression()
 }
@@ -12,5 +13,6 @@ type Expression interface {
 // values.
 type Literal interface {
 	Expression
+
 	literal()
 }

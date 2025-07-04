@@ -65,7 +65,7 @@ func New(file *source.File) (*Lexer, error) {
 	l.lineEndOffset = l.findNextNewlineOffset()
 	if err := l.readChar(); err != nil {
 		return nil, Error{
-			Err: fmt.Errorf("failed to read input: %v", err),
+			Err: fmt.Errorf("failed to read input: %w", err),
 			Location: source.Location{
 				ByteOffset:  0,
 				Length:      1,
@@ -275,11 +275,12 @@ func (l *Lexer) nextToken() (token.Token, error) {
 	case '"':
 		return l.readString()
 	default:
-		if isLetter(l.character) {
+		switch {
+		case isLetter(l.character):
 			return l.readIdentifier()
-		} else if isDigit(l.character) {
+		case isDigit(l.character):
 			return l.readNumber()
-		} else {
+		default:
 			tok = l.newToken(token.Illegal)
 			if err := l.readChar(); err != nil {
 				return l.newToken(token.Illegal), err

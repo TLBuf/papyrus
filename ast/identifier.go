@@ -5,13 +5,14 @@ import "github.com/TLBuf/papyrus/source"
 // Identifier represents an arbitrary identifier.
 type Identifier struct {
 	InfixTrivia
+
 	// Normalized is the normalized text of the identifier.
 	Normalized string
 	// NodeLocation is the source location of the node.
 	NodeLocation source.Location
 }
 
-// Trivia returns the [InfixTrivia] assocaited with this node.
+// Trivia returns the [InfixTrivia] associated with this node.
 func (i *Identifier) Trivia() InfixTrivia {
 	return i.InfixTrivia
 }

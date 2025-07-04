@@ -32,6 +32,7 @@ func (k UnaryKind) Symbol() string {
 // Unary is an expression that computes a value from two operands.
 type Unary struct {
 	InfixTrivia
+
 	// Kind is the kind of unary operation this expression represents.
 	Kind UnaryKind
 	// OperatorLocation is the location of the unary operator.
@@ -40,7 +41,7 @@ type Unary struct {
 	Operand Expression
 }
 
-// Trivia returns the [InfixTrivia] assocaited with this node.
+// Trivia returns the [InfixTrivia] associated with this node.
 func (u *Unary) Trivia() InfixTrivia {
 	return u.InfixTrivia
 }

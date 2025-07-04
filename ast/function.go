@@ -5,6 +5,7 @@ import "github.com/TLBuf/papyrus/source"
 // Function defines a Papyrus function.
 type Function struct {
 	LineTrivia
+
 	// ReturnType is the type of value this function returns or nil if it doesn't
 	// return a value.
 	ReturnType *TypeLiteral
@@ -25,7 +26,7 @@ type Function struct {
 	// a global function (i.e. it does not actually run on an object, and has no
 	// "Self" variable) or empty if this function in non-global.
 	//
-	// Errata: This being multiple values is due to the offical Papyrus parser
+	// Errata: This being multiple values is due to the official Papyrus parser
 	// accepting any number of flag tokens. They are all included here for
 	// completeness, but only one is required to consider the function global.
 	GlobalLocations []source.Location
@@ -35,7 +36,7 @@ type Function struct {
 	// If non-empty, Statements will be empty and EndKeywordLocation will be
 	// invalid.
 	//
-	// Errata: This being multiple values is due to the offical Papyrus parser
+	// Errata: This being multiple values is due to the official Papyrus parser
 	// accepting any number of flag tokens. They are all included here for
 	// completeness, but only one is required to consider the event native.
 	NativeLocations []source.Location
@@ -62,7 +63,7 @@ func (f *Function) Body() []FunctionStatement {
 	return f.Statements
 }
 
-// Trivia returns the [LineTrivia] assocaited with this node.
+// Trivia returns the [LineTrivia] associated with this node.
 func (f *Function) Trivia() LineTrivia {
 	return f.LineTrivia
 }

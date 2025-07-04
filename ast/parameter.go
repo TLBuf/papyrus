@@ -5,6 +5,7 @@ import "github.com/TLBuf/papyrus/source"
 // Parameter is a named and typed parameter to an invokable.
 type Parameter struct {
 	InfixTrivia
+
 	// Type is the type literal that defines the type of the parameter.
 	Type *TypeLiteral
 	// Name is the name of the parameter.

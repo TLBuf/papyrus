@@ -6,6 +6,7 @@ import "github.com/TLBuf/papyrus/source"
 // some scope.
 type Access struct {
 	InfixTrivia
+
 	// Value is the expression that defines the value have something accessed.
 	Value Expression
 	// DotLocation is the location of the dot operator.
@@ -14,7 +15,7 @@ type Access struct {
 	Name *Identifier
 }
 
-// Trivia returns the [InfixTrivia] assocaited with this node.
+// Trivia returns the [InfixTrivia] associated with this node.
 func (a *Access) Trivia() InfixTrivia {
 	return a.InfixTrivia
 }

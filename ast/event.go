@@ -7,6 +7,7 @@ import "github.com/TLBuf/papyrus/source"
 // Events are like functions that are predefined by the engine.
 type Event struct {
 	LineTrivia
+
 	// StartKeywordLocation is the location of the Event keyword that starts the
 	// statement.
 	StartKeywordLocation source.Location
@@ -26,7 +27,7 @@ type Event struct {
 	// If non-empty, Statements will be empty and EndKeywordLocation will be
 	// invalid.
 	//
-	// Errata: This being multiple values is due to the offical Papyrus parser
+	// Errata: This being multiple values is due to the official Papyrus parser
 	// accepting any number of flag tokens. They are all included here for
 	// completeness, but only one is required to consider the event native.
 	NativeLocations []source.Location
@@ -53,7 +54,7 @@ func (e *Event) Body() []FunctionStatement {
 	return e.Statements
 }
 
-// Trivia returns the [LineTrivia] assocaited with this node.
+// Trivia returns the [LineTrivia] associated with this node.
 func (e *Event) Trivia() LineTrivia {
 	return e.LineTrivia
 }

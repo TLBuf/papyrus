@@ -3,6 +3,7 @@ package parser
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -56,9 +57,23 @@ func WithRecovery(enabled bool) Option {
 func Parse(file *source.File, opts ...Option) (*ast.Script, error) {
 	lex, err := lexer.New(file)
 	if err != nil {
+		var lerr lexer.Error
+		if !errors.As(err, &lerr) {
+			return nil, Error{
+				Err: fmt.Errorf("failed to initialize lexer: failed to extract a lexer.Error from: %w", err),
+				Location: source.Location{
+					ByteOffset:  0,
+					Length:      1,
+					StartLine:   1,
+					StartColumn: 1,
+					EndLine:     1,
+					EndColumn:   1,
+				},
+			}
+		}
 		return nil, Error{
 			Err:      fmt.Errorf("failed to initialize lexer: %w", err),
-			Location: err.(lexer.Error).Location,
+			Location: lerr.Location,
 		}
 	}
 	p := &parser{
@@ -193,9 +208,16 @@ func (p *parser) next() (err error) {
 	p.token = p.lookahead
 	p.lookahead, err = p.lex.NextToken()
 	if err != nil {
+		var lerr lexer.Error
+		if !errors.As(err, &lerr) {
+			return Error{
+				Err:      fmt.Errorf("failed to extract a lexer.Error from: %w", err),
+				Location: p.token.Location,
+			}
+		}
 		return Error{
 			Err:      err,
-			Location: err.(lexer.Error).Location,
+			Location: lerr.Location,
 		}
 	}
 	if p.token.Kind == token.Illegal {
@@ -704,27 +726,27 @@ func (p *parser) ParseFunction() (*ast.Function, error) {
 	return node, p.tryConsume(token.Newline, token.EOF)
 }
 
-func (p *parser) ParseParameterList() (open source.Location, params []*ast.Parameter, close source.Location, err error) {
-	open = p.token.Location
+func (p *parser) ParseParameterList() (openLoc source.Location, params []*ast.Parameter, closeLoc source.Location, err error) {
+	openLoc = p.token.Location
 	if err := p.tryConsume(token.ParenthesisOpen); err != nil {
-		return open, params, close, err
+		return openLoc, params, closeLoc, err
 	}
 	for {
 		switch p.token.Kind {
 		case token.Comma:
 			if err := p.next(); err != nil {
-				return open, params, close, err
+				return openLoc, params, closeLoc, err
 			}
 		case token.ParenthesisClose:
-			close := p.token.Location
+			closeLoc = p.token.Location
 			if err := p.next(); err != nil {
-				return open, params, close, err
+				return openLoc, params, closeLoc, err
 			}
-			return open, params, close, nil
+			return openLoc, params, closeLoc, nil
 		default:
 			param, err := p.ParseParameter()
 			if err != nil {
-				return open, params, close, err
+				return openLoc, params, closeLoc, err
 			}
 			params = append(params, param)
 		}

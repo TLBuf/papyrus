@@ -7,6 +7,7 @@ import "github.com/TLBuf/papyrus/source"
 // false.
 type If struct {
 	LineTrivia
+
 	// StartKeywordLocation is the location of the If keyword that starts the
 	// statement.
 	StartKeywordLocation source.Location
@@ -30,7 +31,7 @@ func (i *If) Body() []FunctionStatement {
 	return i.Statements
 }
 
-// Trivia returns the [LineTrivia] assocaited with this node.
+// Trivia returns the [LineTrivia] associated with this node.
 func (i *If) Trivia() LineTrivia {
 	return i.LineTrivia
 }
@@ -57,6 +58,7 @@ var _ FunctionStatement = (*If)(nil)
 // and all previous conditions evaluate to false.
 type ElseIf struct {
 	LineTrivia
+
 	// KeywordLocation is the location of the ElseIf keyword that starts the
 	// block.
 	KeywordLocation source.Location
@@ -67,7 +69,7 @@ type ElseIf struct {
 	Statements []FunctionStatement
 }
 
-// Trivia returns the [LineTrivia] assocaited with this node.
+// Trivia returns the [LineTrivia] associated with this node.
 func (e *ElseIf) Trivia() LineTrivia {
 	return e.LineTrivia
 }
@@ -95,13 +97,14 @@ var _ Node = (*ElseIf)(nil)
 // evaluate to false.
 type Else struct {
 	LineTrivia
+
 	// KeywordLocation is the location of the Else keyword that starts the block.
 	KeywordLocation source.Location
 	// Statements is the list of statements that should be evaluated.
 	Statements []FunctionStatement
 }
 
-// Trivia returns the [LineTrivia] assocaited with this node.
+// Trivia returns the [LineTrivia] associated with this node.
 func (e *Else) Trivia() LineTrivia {
 	return e.LineTrivia
 }

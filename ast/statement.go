@@ -5,7 +5,8 @@ import "github.com/TLBuf/papyrus/source"
 // Statement is a common interface for all statement nodes.
 type Statement interface {
 	Node
-	// Trivia returns the [LineTrivia] assocaited with this node.
+
+	// Trivia returns the [LineTrivia] associated with this node.
 	Trivia() LineTrivia
 	statement()
 }
@@ -13,6 +14,7 @@ type Statement interface {
 // ScriptStatement is a common interface for all script statement nodes.
 type ScriptStatement interface {
 	Statement
+
 	scriptStatement()
 }
 
@@ -20,6 +22,7 @@ type ScriptStatement interface {
 // (i.e. functions and events).
 type Invokable interface {
 	ScriptStatement
+
 	// Parameters returns the list of parameters defined for this invokable.
 	Parameters() []*Parameter
 	invokable()
@@ -29,6 +32,7 @@ type Invokable interface {
 // statement nodes.
 type FunctionStatement interface {
 	Statement
+
 	functionStatement()
 }
 
@@ -36,11 +40,12 @@ type FunctionStatement interface {
 // statement that is just an expression.
 type ExpressionStatement struct {
 	LineTrivia
+
 	// Expression is the expression that makes up the statement.
 	Expression Expression
 }
 
-// Trivia returns the [LineTrivia] assocaited with this node.
+// Trivia returns the [LineTrivia] associated with this node.
 func (s *ExpressionStatement) Trivia() LineTrivia {
 	return s.LineTrivia
 }

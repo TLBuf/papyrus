@@ -8,6 +8,7 @@ import "github.com/TLBuf/papyrus/source"
 // time.
 type State struct {
 	LineTrivia
+
 	// IsAuto is true if the script should start in this state automatically.
 	IsAuto bool
 	// AutoLocation is the location of the Auto keyword that identifies this state
@@ -27,7 +28,7 @@ type State struct {
 	EndKeywordLocation source.Location
 }
 
-// Trivia returns the [LineTrivia] assocaited with this node.
+// Trivia returns the [LineTrivia] associated with this node.
 func (s *State) Trivia() LineTrivia {
 	return s.LineTrivia
 }

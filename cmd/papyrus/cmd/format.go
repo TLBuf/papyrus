@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -66,8 +67,11 @@ func formatFile(path string) error {
 	}
 	script, err := parser.Parse(file)
 	if err != nil {
-		err := err.(parser.Error)
-		snip, serr := err.Location.Snippet(80, 9)
+		var perr parser.Error
+		if !errors.As(err, &perr) {
+			return fmt.Errorf("failed to extract a parser.Error from: %w", err)
+		}
+		snip, serr := perr.Location.Snippet(80, 9)
 		if serr != nil {
 			return fmt.Errorf("failed to create snippet for parser error: %w: %w", serr, err)
 		}
@@ -75,7 +79,7 @@ func formatFile(path string) error {
 		if err := source.Format(&sb, snip); err != nil {
 			return fmt.Errorf("failed to format snippet: %w", err)
 		}
-		return fmt.Errorf("failed to parse: %v\n\n%s\n%s", err.Err, err.Location, sb.String())
+		return fmt.Errorf("failed to parse: %w\n\n%s\n%s", perr.Err, perr.Location, sb.String())
 	}
 	var formatted bytes.Buffer
 	if err := format.Format(&formatted, script, format.WithTabs(formatTabs), format.WithUnixLineEndings(formatUnix), format.WithIndentWidth(formatIndent)); err != nil {

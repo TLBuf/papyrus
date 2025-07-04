@@ -8,13 +8,14 @@ import (
 // TypeLiteral represents a literal type name in source.
 type TypeLiteral struct {
 	InfixTrivia
+
 	// Type is the type the literal represents.
 	Type types.Type
 	// NodeLocation is the source location of the node.
 	NodeLocation source.Location
 }
 
-// Trivia returns the [InfixTrivia] assocaited with this node.
+// Trivia returns the [InfixTrivia] associated with this node.
 func (t *TypeLiteral) Trivia() InfixTrivia {
 	return t.InfixTrivia
 }

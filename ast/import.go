@@ -10,6 +10,7 @@ import (
 // scope of another script.
 type Import struct {
 	LineTrivia
+
 	// KeywordLocation is the location of the Import keyword that starts the
 	// statement.
 	KeywordLocation source.Location
@@ -17,7 +18,7 @@ type Import struct {
 	Name *Identifier
 }
 
-// Trivia returns the [LineTrivia] assocaited with this node.
+// Trivia returns the [LineTrivia] associated with this node.
 func (i *Import) Trivia() LineTrivia {
 	return i.LineTrivia
 }

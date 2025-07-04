@@ -75,6 +75,7 @@ func Format(w io.Writer, script *ast.Script, opts ...Option) error {
 		useTabs:         DefaultUseTabs,
 		unixLineEndings: DefaultUnixLineEndings,
 		keywords:        defaultKeywords,
+		level:           0,
 	}
 	for _, opt := range opts {
 		if err := opt(f); err != nil {
@@ -921,9 +922,7 @@ func (f *formatter) VisitScript(node *ast.Script) error {
 			if i == 0 {
 				break
 			}
-			s := states[0]
-			states[0] = states[i]
-			states[i] = s
+			states[0], states[i] = states[i], states[0]
 			break
 		}
 	}

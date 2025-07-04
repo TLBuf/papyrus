@@ -5,6 +5,7 @@ import "github.com/TLBuf/papyrus/source"
 // Argument is a named argument for a function call.
 type Argument struct {
 	InfixTrivia
+
 	// Name is the name of the parameter for this argument or nil if using
 	// positional syntax.
 	Name *Identifier
@@ -16,7 +17,7 @@ type Argument struct {
 	Value Expression
 }
 
-// Trivia returns the [InfixTrivia] assocaited with this node.
+// Trivia returns the [InfixTrivia] associated with this node.
 func (a *Argument) Trivia() InfixTrivia {
 	return a.InfixTrivia
 }
