@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 
+	"slices"
+
 	"github.com/TLBuf/papyrus/ast"
 	"github.com/TLBuf/papyrus/lexer"
 	"github.com/TLBuf/papyrus/source"
@@ -259,10 +261,8 @@ func (p *parser) tryConsume(t token.Kind, alts ...token.Kind) error {
 	if p.token.Kind == t {
 		return p.next()
 	}
-	for _, t := range alts {
-		if p.token.Kind == t {
-			return p.next()
-		}
+	if slices.Contains(alts, p.token.Kind) {
+		return p.next()
 	}
 	return unexpectedTokenError(p.token, t, alts...)
 }
