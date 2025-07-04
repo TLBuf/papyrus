@@ -66,6 +66,9 @@ func (l Location) Compare(o Location) int {
 
 // Span returns a Range that spans two given Ranges.
 func Span(start, end Location) Location {
+	if end.ByteOffset < start.ByteOffset {
+		panic(fmt.Sprintf("end before start: %d < %d", end.ByteOffset, start.ByteOffset))
+	}
 	return Location{
 		ByteOffset:      start.ByteOffset,
 		Length:          end.ByteOffset - start.ByteOffset + end.Length,

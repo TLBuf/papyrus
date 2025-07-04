@@ -279,6 +279,11 @@ func (f *formatter) VisitDocumentation(node *ast.Documentation) error {
 }
 
 func (f *formatter) VisitBlockComment(node *ast.BlockComment) error {
+	if node.HasPrecedingBlankLine {
+		if err := f.newline(); err != nil {
+			return fmt.Errorf("failed to format newline: %w", err)
+		}
+	}
 	if err := f.str(token.BlockCommentOpen.Symbol()); err != nil {
 		return fmt.Errorf("failed for format block comment open: %w", err)
 	}
@@ -321,6 +326,11 @@ func (f *formatter) VisitBlockComment(node *ast.BlockComment) error {
 }
 
 func (f *formatter) VisitLineComment(node *ast.LineComment) error {
+	if node.HasPrecedingBlankLine {
+		if err := f.newline(); err != nil {
+			return fmt.Errorf("failed to format newline: %w", err)
+		}
+	}
 	if err := f.str(token.Semicolon.Symbol()); err != nil {
 		return fmt.Errorf("failed for format semicolon: %w", err)
 	}
@@ -469,6 +479,9 @@ func (f *formatter) VisitFunction(node *ast.Function) error {
 		if err := node.Documentation.Accept(f); err != nil {
 			return fmt.Errorf("failed to format documentation: %w", err)
 		}
+		if err := f.newline(); err != nil {
+			return fmt.Errorf("failed to format newline: %w", err)
+		}
 	}
 	if len(node.NativeLocations) == 0 {
 		if node.Documentation != nil {
@@ -484,6 +497,11 @@ func (f *formatter) VisitFunction(node *ast.Function) error {
 			if i > 0 {
 				if err := f.newline(); err != nil {
 					return fmt.Errorf("failed to format newline: %w", err)
+				}
+				if statement.Trivia().HasPrecedingBlankLine {
+					if err := f.newline(); err != nil {
+						return fmt.Errorf("failed to format newline: %w", err)
+					}
 				}
 			}
 			if err := statement.Accept(f); err != nil {
@@ -523,6 +541,11 @@ func (f *formatter) VisitIf(node *ast.If) error {
 		if i > 0 {
 			if err := f.newline(); err != nil {
 				return fmt.Errorf("failed to format newline: %w", err)
+			}
+			if statement.Trivia().HasPrecedingBlankLine {
+				if err := f.newline(); err != nil {
+					return fmt.Errorf("failed to format newline: %w", err)
+				}
 			}
 		}
 		if err := statement.Accept(f); err != nil {
@@ -574,6 +597,11 @@ func (f *formatter) VisitElseIf(node *ast.ElseIf) error {
 			if err := f.newline(); err != nil {
 				return fmt.Errorf("failed to format newline: %w", err)
 			}
+			if statement.Trivia().HasPrecedingBlankLine {
+				if err := f.newline(); err != nil {
+					return fmt.Errorf("failed to format newline: %w", err)
+				}
+			}
 		}
 		if err := statement.Accept(f); err != nil {
 			return fmt.Errorf("failed to format statement: %w", err)
@@ -595,6 +623,11 @@ func (f *formatter) VisitElse(node *ast.Else) error {
 		if i > 0 {
 			if err := f.newline(); err != nil {
 				return fmt.Errorf("failed to format newline: %w", err)
+			}
+			if statement.Trivia().HasPrecedingBlankLine {
+				if err := f.newline(); err != nil {
+					return fmt.Errorf("failed to format newline: %w", err)
+				}
 			}
 		}
 		if err := statement.Accept(f); err != nil {
@@ -1159,6 +1192,11 @@ func (f *formatter) VisitWhile(node *ast.While) error {
 		if i > 0 {
 			if err := f.newline(); err != nil {
 				return fmt.Errorf("failed to format newline: %w", err)
+			}
+			if statement.Trivia().HasPrecedingBlankLine {
+				if err := f.newline(); err != nil {
+					return fmt.Errorf("failed to format newline: %w", err)
+				}
 			}
 		}
 		if err := statement.Accept(f); err != nil {

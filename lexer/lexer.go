@@ -4,7 +4,6 @@ package lexer
 import (
 	"fmt"
 	"math"
-	"strings"
 	"unicode/utf8"
 
 	"github.com/TLBuf/papyrus/source"
@@ -345,21 +344,18 @@ func (l *Lexer) nextByteLocation() source.Location {
 
 func (l *Lexer) readIdentifier() (token.Token, error) {
 	start := l.here()
-	var text strings.Builder
-	text.WriteRune(l.character)
 	if err := l.readChar(); err != nil {
 		return l.newToken(token.Illegal), err
 	}
 	end := start
 	for isLetter(l.character) || isDigit(l.character) {
-		text.WriteRune(l.character)
 		end = l.here()
 		if err := l.readChar(); err != nil {
 			return l.newToken(token.Illegal), err
 		}
 	}
 	loc := source.Span(start, end)
-	tok := l.newTokenAt(token.LookupIdentifier(text.String()), loc)
+	tok := l.newTokenAt(token.LookupIdentifier(string(loc.Text(l.file))), loc)
 	if l.character == '[' {
 		next, err := l.peek()
 		if err != nil {
@@ -490,7 +486,7 @@ func (l *Lexer) commentLine() (token.Token, error) {
 		return terminal, nil
 	}
 	start := l.here()
-	var end source.Location
+	end := start
 	for {
 		terminal := l.here()
 		if l.character != 0 && l.character != '\r' && l.character != '\n' {

@@ -421,5 +421,8 @@ var ignoreFields = []cmp.Option{
 		"EndColumn",
 		"PreambleLength",
 		"PostambleLength",
+	), cmpopts.IgnoreFields(
+		ast.Script{},
+		"File",
 	),
 }

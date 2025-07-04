@@ -10,6 +10,8 @@ type Comment interface {
 
 // BlockComment represents block comment.
 type BlockComment struct {
+	LineTrivia
+
 	// OpenLocation is the location of the opening block comment token.
 	OpenLocation source.Location
 	// TextLocation is the location of the text of the comment (which may include
@@ -17,6 +19,11 @@ type BlockComment struct {
 	TextLocation source.Location
 	// CloseLocation is the location of the closing block comment token.
 	CloseLocation source.Location
+}
+
+// Trivia returns the [LineTrivia] associated with this node.
+func (c *BlockComment) Trivia() LineTrivia {
+	return c.LineTrivia
 }
 
 // Accept calls the appropriate method on the [Visitor] for the node.
@@ -35,11 +42,18 @@ var _ Comment = (*BlockComment)(nil)
 
 // LineComment represents line comment.
 type LineComment struct {
+	LineTrivia
+
 	// SemicolonLocation is the location of the semicolon that starts the comment.
 	SemicolonLocation source.Location
 	// TextLocation is the location of the text of the comment (which will never
 	// include newlines).
 	TextLocation source.Location
+}
+
+// Trivia returns the [LineTrivia] associated with this node.
+func (c *LineComment) Trivia() LineTrivia {
+	return c.LineTrivia
 }
 
 // Accept calls the appropriate method on the [Visitor] for the node.
