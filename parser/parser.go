@@ -119,10 +119,10 @@ func Parse(file source.File, opts ...Option) (*ast.Script, error) {
 	registerInfix(p, p.ParseCast, token.As)
 	registerInfix(p, p.ParseIndex, token.BracketOpen)
 
-	if err := p.consume(); err != nil {
+	if err := p.advance(); err != nil {
 		return nil, err
 	}
-	if err := p.consume(); err != nil {
+	if err := p.advance(); err != nil {
 		return nil, err
 	}
 	script, err := p.ParseScript()
@@ -429,6 +429,9 @@ func (p *parser) ParseScript() (*ast.Script, error) {
 		if err := p.consumeNewlines(); err != nil {
 			return nil, err
 		}
+		if err := p.consumeComments(false); err != nil {
+			return nil, err
+		}
 		if len(p.standaloneComments) > 0 {
 			node.HeaderComments = append(node.HeaderComments, p.standaloneComments...)
 			p.standaloneComments = p.standaloneComments[:0]
@@ -468,12 +471,16 @@ func (p *parser) ParseScript() (*ast.Script, error) {
 			return nil, err
 		}
 	}
-	if err := p.consumeNewlines(); err != nil {
-		return nil, err
-	}
 	for p.token.Kind != token.EOF {
+		if err := p.consumeNewlines(); err != nil {
+			return nil, err
+		}
 		if len(p.standaloneComments) > 0 {
 			node.Statements = append(node.Statements, p.commentStatement())
+			continue
+		}
+		if p.token.Kind == token.EOF {
+			break
 		}
 		stmt, err := p.ParseScriptStatement()
 		if err != nil {
@@ -481,9 +488,6 @@ func (p *parser) ParseScript() (*ast.Script, error) {
 		}
 		if stmt != nil {
 			node.Statements = append(node.Statements, stmt)
-		}
-		if err := p.consumeNewlines(); err != nil {
-			return nil, err
 		}
 	}
 	if len(p.standaloneComments) > 0 {

@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"slices"
 	"strings"
 
 	"github.com/TLBuf/papyrus/ast"
@@ -24,6 +23,11 @@ const (
 	// DefaultUnixLineEndings is whether or not
 	// UNIX-style line endings should be used.
 	DefaultUnixLineEndings = false
+)
+
+var (
+	fragmentHeader = []byte("BEGIN FRAGMENT CODE")
+	fragmentFooter = []byte("END FRAGMENT CODE")
 )
 
 // Option defines a format option.
@@ -105,6 +109,9 @@ func (f *formatter) visitPrefixComments(node interface{ Comments() *ast.Comments
 		if err := c.Accept(f); err != nil {
 			return fmt.Errorf("failed to format prefix comment: %w", err)
 		}
+		if err := f.space(); err != nil {
+			return fmt.Errorf("failed to format space: %w", err)
+		}
 	}
 	return nil
 }
@@ -114,6 +121,9 @@ func (f *formatter) visitSuffixComments(node interface{ Comments() *ast.Comments
 		return nil
 	}
 	for _, c := range node.Comments().SuffixComments {
+		if err := f.space(); err != nil {
+			return fmt.Errorf("failed to format space: %w", err)
+		}
 		if err := c.Accept(f); err != nil {
 			return fmt.Errorf("failed to format suffix comment: %w", err)
 		}
@@ -285,7 +295,7 @@ func (f *formatter) VisitDocumentation(node *ast.Documentation) error {
 	if err := f.str(token.BraceOpen.Symbol()); err != nil {
 		return fmt.Errorf("failed for format open brace: %w", err)
 	}
-	text := trimRight(node.TextLocation.Text(f.file))
+	text := bytes.TrimSpace(node.TextLocation.Text(f.file))
 	if bytes.ContainsRune(text, '\n') {
 		f.level++
 		if err := f.newline(); err != nil {
@@ -306,15 +316,8 @@ func (f *formatter) VisitDocumentation(node *ast.Documentation) error {
 			return fmt.Errorf("failed to format newline: %w", err)
 		}
 	} else {
-		text = bytes.TrimSpace(text)
-		if err := f.space(); err != nil {
-			return fmt.Errorf("failed to format space: %w", err)
-		}
-		if err := f.bytes(text); err != nil {
+		if err := f.bytes(bytes.TrimSpace(text)); err != nil {
 			return fmt.Errorf("failed to format comment text: %w", err)
-		}
-		if err := f.space(); err != nil {
-			return fmt.Errorf("failed to format space: %w", err)
 		}
 	}
 	if err := f.str(token.BraceClose.Symbol()); err != nil {
@@ -376,6 +379,11 @@ func (f *formatter) VisitCommentStatement(node *ast.CommentStatement) error {
 			if err := f.newline(); err != nil {
 				return fmt.Errorf("failed to format newline: %w", err)
 			}
+			if e.LeadingBlankLine() {
+				if err := f.newline(); err != nil {
+					return fmt.Errorf("failed to format newline: %w", err)
+				}
+			}
 		}
 		if err := e.Accept(f); err != nil {
 			return fmt.Errorf("failed to format comment element: %w", err)
@@ -385,18 +393,17 @@ func (f *formatter) VisitCommentStatement(node *ast.CommentStatement) error {
 }
 
 func (f *formatter) VisitLineComment(node *ast.LineComment) error {
-	if node.HasLeadingBlankLine {
-		if err := f.newline(); err != nil {
-			return fmt.Errorf("failed to format newline: %w", err)
-		}
-	}
 	if err := f.str(token.Semicolon.Symbol()); err != nil {
 		return fmt.Errorf("failed for format semicolon: %w", err)
 	}
-	if err := f.space(); err != nil {
-		return fmt.Errorf("failed to format space: %w", err)
+	text := trimRight(node.TextLocation.Text(f.file))
+	if bytes.HasPrefix(text, fragmentHeader) {
+		f.level--
 	}
-	if err := f.bytes(trimRight(node.TextLocation.Text(f.file))); err != nil {
+	if bytes.HasPrefix(text, fragmentFooter) {
+		f.level++
+	}
+	if err := f.bytes(text); err != nil {
 		return fmt.Errorf("failed to format comment text: %w", err)
 	}
 	return nil
@@ -451,11 +458,6 @@ func (f *formatter) VisitEvent(node *ast.Event) error {
 		}
 	}
 	if len(node.NativeLocations) == 0 {
-		if node.Documentation != nil {
-			if err := f.newline(); err != nil {
-				return fmt.Errorf("failed to format newline: %w", err)
-			}
-		}
 		f.level++
 		if err := f.newline(); err != nil {
 			return fmt.Errorf("failed to format newline: %w", err)
@@ -464,6 +466,11 @@ func (f *formatter) VisitEvent(node *ast.Event) error {
 			if i > 0 {
 				if err := f.newline(); err != nil {
 					return fmt.Errorf("failed to format newline: %w", err)
+				}
+				if statement.LeadingBlankLine() {
+					if err := f.newline(); err != nil {
+						return fmt.Errorf("failed to format newline: %w", err)
+					}
 				}
 			}
 			if err := statement.Accept(f); err != nil {
@@ -549,11 +556,6 @@ func (f *formatter) VisitFunction(node *ast.Function) error {
 		}
 	}
 	if len(node.NativeLocations) == 0 {
-		if node.Documentation != nil {
-			if err := f.newline(); err != nil {
-				return fmt.Errorf("failed to format newline: %w", err)
-			}
-		}
 		f.level++
 		if err := f.newline(); err != nil {
 			return fmt.Errorf("failed to format newline: %w", err)
@@ -995,6 +997,14 @@ func (f *formatter) VisitReturn(node *ast.Return) error {
 }
 
 func (f *formatter) VisitScript(node *ast.Script) error {
+	for _, c := range node.HeaderComments {
+		if err := c.Accept(f); err != nil {
+			return fmt.Errorf("failed to format header comment: %w", err)
+		}
+		if err := f.newline(); err != nil {
+			return fmt.Errorf("failed to format newline: %w", err)
+		}
+	}
 	if err := f.str(f.keywords.ScriptName); err != nil {
 		return fmt.Errorf("failed for format ScriptName keyword: %w", err)
 	}
@@ -1048,100 +1058,14 @@ func (f *formatter) VisitScript(node *ast.Script) error {
 	if err := f.newline(); err != nil {
 		return fmt.Errorf("failed to format newline: %w", err)
 	}
-	// Extract statements and prepare for formatting each one.
-	var imports []*ast.Import
-	var properties []*ast.Property
-	var variables []*ast.ScriptVariable
-	var states []*ast.State
-	var invokables []ast.Invokable
-	for _, stmt := range node.Statements {
-		switch stmt := stmt.(type) {
-		case *ast.Import:
-			imports = append(imports, stmt)
-		case *ast.Property:
-			properties = append(properties, stmt)
-		case *ast.ScriptVariable:
-			variables = append(variables, stmt)
-		case *ast.State:
-			states = append(states, stmt)
-		case ast.Invokable:
-			invokables = append(invokables, stmt)
-		default:
-			panic(fmt.Errorf("unknown script statement type: %T", stmt))
-		}
-	}
-	slices.SortFunc(imports, func(a, b *ast.Import) int { return strings.Compare(a.Name.Normalized, b.Name.Normalized) })
-	for i, state := range states {
-		// Always pull the Auto state to the top, but otherwise maintain order.
-		if state.IsAuto {
-			if i == 0 {
-				break
-			}
-			states[0], states[i] = states[i], states[0]
-			break
-		}
-	}
-	for _, i := range imports {
-		if err := i.Accept(f); err != nil {
-			return fmt.Errorf("failed to format import: %w", err)
-		}
-		if err := f.newline(); err != nil {
-			return fmt.Errorf("failed to format newline: %w", err)
-		}
-	}
-	if len(imports) > 0 {
-		if err := f.newline(); err != nil {
-			return fmt.Errorf("failed to format newline: %w", err)
-		}
-	}
-	for _, p := range properties {
-		if err := p.Accept(f); err != nil {
-			return fmt.Errorf("failed to format property: %w", err)
-		}
-		if err := f.newline(); err != nil {
-			return fmt.Errorf("failed to format newline: %w", err)
-		}
-		if p.Kind == ast.Full || p.Documentation != nil {
+	for i, stmt := range node.Statements {
+		if i > 0 && stmt.LeadingBlankLine() {
 			if err := f.newline(); err != nil {
 				return fmt.Errorf("failed to format newline: %w", err)
 			}
 		}
-	}
-	if len(properties) > 0 {
-		if err := f.newline(); err != nil {
-			return fmt.Errorf("failed to format newline: %w", err)
-		}
-	}
-	for _, v := range variables {
-		if err := v.Accept(f); err != nil {
-			return fmt.Errorf("failed to format variable: %w", err)
-		}
-		if err := f.newline(); err != nil {
-			return fmt.Errorf("failed to format newline: %w", err)
-		}
-	}
-	if len(variables) > 0 {
-		if err := f.newline(); err != nil {
-			return fmt.Errorf("failed to format newline: %w", err)
-		}
-	}
-	for _, i := range invokables {
-		if err := i.Accept(f); err != nil {
-			return fmt.Errorf("failed to format invokable: %w", err)
-		}
-		if err := f.newline(); err != nil {
-			return fmt.Errorf("failed to format newline: %w", err)
-		}
-		if err := f.newline(); err != nil {
-			return fmt.Errorf("failed to format newline: %w", err)
-		}
-	}
-	for _, s := range states {
-		if err := s.Accept(f); err != nil {
-			return fmt.Errorf("failed to format state: %w", err)
-		}
-		if err := f.newline(); err != nil {
-			return fmt.Errorf("failed to format newline: %w", err)
+		if err := stmt.Accept(f); err != nil {
+			return fmt.Errorf("failed to format script statement: %w", err)
 		}
 		if err := f.newline(); err != nil {
 			return fmt.Errorf("failed to format newline: %w", err)
@@ -1180,8 +1104,10 @@ func (f *formatter) VisitState(node *ast.State) error {
 			if err := f.newline(); err != nil {
 				return fmt.Errorf("failed to format newline: %w", err)
 			}
-			if err := f.newline(); err != nil {
-				return fmt.Errorf("failed to format newline: %w", err)
+			if invokable.LeadingBlankLine() {
+				if err := f.newline(); err != nil {
+					return fmt.Errorf("failed to format newline: %w", err)
+				}
 			}
 		}
 		if err := invokable.Accept(f); err != nil {
@@ -1223,6 +1149,11 @@ func (f *formatter) VisitTypeLiteral(node *ast.TypeLiteral) error {
 	}
 	if err := f.str(text); err != nil {
 		return fmt.Errorf("failed to format type: %w", err)
+	}
+	if _, ok := node.Type.(types.Array); ok {
+		if err := f.str("[]"); err != nil {
+			return fmt.Errorf("failed to format array type: %w", err)
+		}
 	}
 	return f.visitSuffixComments(node)
 }
@@ -1337,7 +1268,7 @@ func (f *formatter) VisitWhile(node *ast.While) error {
 			}
 		}
 		if err := statement.Accept(f); err != nil {
-			return fmt.Errorf("failed to format Statement: %w", err)
+			return fmt.Errorf("failed to format statement: %w", err)
 		}
 	}
 	f.level--
@@ -1371,7 +1302,7 @@ func (f *formatter) newline() error {
 }
 
 func (f *formatter) indent() error {
-	if f.level == 0 {
+	if f.level <= 0 {
 		return nil
 	}
 	if f.useTabs {
@@ -1392,4 +1323,8 @@ func (f *formatter) bytes(text []byte) error {
 
 func trimRight(text []byte) []byte {
 	return bytes.TrimRight(text, " \r\n\t")
+}
+
+func trim(text []byte) []byte {
+	return bytes.Trim(text, " \r\n\t")
 }
