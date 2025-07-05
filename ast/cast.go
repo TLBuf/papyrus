@@ -12,7 +12,7 @@ type Cast struct {
 	AsLocation source.Location
 	// NodeComments are the comments on before and/or after a node on the
 	// same line or nil if the node has no comments associated with it.
-	NodeComments *InlineComments
+	NodeComments *Comments
 }
 
 // Accept calls the appropriate visitor method for the node.
@@ -20,9 +20,9 @@ func (c *Cast) Accept(v Visitor) error {
 	return v.VisitCast(c)
 }
 
-// Comments returns the [InlineComments] associated
+// Comments returns the [Comments] associated
 // with this node or nil if there are none.
-func (c *Cast) Comments() *InlineComments {
+func (c *Cast) Comments() *Comments {
 	return c.NodeComments
 }
 

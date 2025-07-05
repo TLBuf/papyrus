@@ -16,7 +16,7 @@ type ArrayCreation struct {
 	CloseLocation source.Location
 	// NodeComments are the comments on before and/or after a node on the
 	// same line or nil if the node has no comments associated with it.
-	NodeComments *InlineComments
+	NodeComments *Comments
 }
 
 // Accept calls the appropriate visitor method for the node.
@@ -24,9 +24,9 @@ func (a *ArrayCreation) Accept(v Visitor) error {
 	return v.VisitArrayCreation(a)
 }
 
-// Comments returns the [InlineComments] associated
+// Comments returns the [Comments] associated
 // with this node or nil if there are none.
-func (a *ArrayCreation) Comments() *InlineComments {
+func (a *ArrayCreation) Comments() *Comments {
 	return a.NodeComments
 }
 

@@ -78,7 +78,7 @@ func formatFile(path string) error {
 		Path: path,
 		Text: text,
 	}
-	script, err := parser.Parse(file)
+	script, err := parser.Parse(file, parser.WithComments(true))
 	if err != nil {
 		var perr parser.Error
 		if !errors.As(err, &perr) {
@@ -92,7 +92,7 @@ func formatFile(path string) error {
 		if err := source.Format(&sb, snip); err != nil {
 			return fmt.Errorf("failed to format snippet: %w", err)
 		}
-		return fmt.Errorf("failed to parse: %w\n\n%s\n%s", perr.Err, perr.Location, sb.String())
+		return fmt.Errorf("failed to parse: %w\n\n%s %s\n%s", perr.Err, file.Path, perr.Location, sb.String())
 	}
 	var formatted bytes.Buffer
 	if err := format.Format(&formatted, script, format.WithTabs(formatTabs), format.WithUnixLineEndings(formatUnix), format.WithIndentWidth(formatIndent)); err != nil {

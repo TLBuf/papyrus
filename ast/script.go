@@ -44,15 +44,9 @@ type Script struct {
 	ExtendsLocation source.Location
 	// NodeLocation is the source location of the node.
 	NodeLocation source.Location
-	// NodeComments are the comments on lines before and/or after a
-	// node or nil if the node has no comments associated with it.
-	NodeComments *CrosslineComments
-}
-
-// Comments returns the [CrosslineComments] associated
-// with this node or nil if there are none.
-func (s *Script) Comments() *CrosslineComments {
-	return s.NodeComments
+	// HeaderComments are the standalone comments
+	// that appear before the script header.
+	HeaderComments []Comment
 }
 
 // Accept calls the appropriate visitor method for the node.

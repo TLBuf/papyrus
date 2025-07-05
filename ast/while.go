@@ -5,8 +5,8 @@ import "github.com/TLBuf/papyrus/source"
 // While is a statement that evaluates some set of statements repeatedly so long
 // as a condition is true.
 type While struct {
-	// HasPrecedingBlankLine is true if this node was preceded by a blank line.
-	HasPrecedingBlankLine bool
+	// HasLeadingBlankLine is true if this node was preceded by a blank line.
+	HasLeadingBlankLine bool
 	// Condition is the expression that defines the condition to check before each
 	// iteration.
 	Condition Expression
@@ -19,9 +19,9 @@ type While struct {
 	// EndKeywordLocation is the location of the EndWhile keyword that ends the
 	// statement.
 	EndKeywordLocation source.Location
-	// NodeComments are the comments on lines before and/or after a
-	// node or nil if the node has no comments associated with it.
-	NodeComments *CrosslineComments
+	// NodeComments are the comments on before and/or after a node on the
+	// same line or nil if the node has no comments associated with it.
+	NodeComments *Comments
 }
 
 // Body returns the nodes that comprise the body of this block.
@@ -29,9 +29,9 @@ func (w *While) Body() []FunctionStatement {
 	return w.Statements
 }
 
-// PrecedingBlankLine returns true if this node was preceded by a blank line.
-func (w *While) PrecedingBlankLine() bool {
-	return w.HasPrecedingBlankLine
+// LeadingBlankLine returns true if this node was preceded by a blank line.
+func (w *While) LeadingBlankLine() bool {
+	return w.HasLeadingBlankLine
 }
 
 // Accept calls the appropriate visitor method for the node.
@@ -39,9 +39,9 @@ func (w *While) Accept(v Visitor) error {
 	return v.VisitWhile(w)
 }
 
-// Comments returns the [CrosslineComments] associated
+// Comments returns the [Comments] associated
 // with this node or nil if there are none.
-func (w *While) Comments() *CrosslineComments {
+func (w *While) Comments() *Comments {
 	return w.NodeComments
 }
 

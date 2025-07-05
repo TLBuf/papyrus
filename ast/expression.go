@@ -6,7 +6,7 @@ type Expression interface {
 
 	// Comments returns the [InlineComments] associated
 	// with this node or nil if there are none.
-	Comments() *InlineComments
+	Comments() *Comments
 
 	expression()
 }

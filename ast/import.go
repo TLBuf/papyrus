@@ -9,21 +9,21 @@ import (
 // These are used to bring identifiers available within one script into the
 // scope of another script.
 type Import struct {
-	// HasPrecedingBlankLine is true if this node was preceded by a blank line.
-	HasPrecedingBlankLine bool
+	// HasLeadingBlankLine is true if this node was preceded by a blank line.
+	HasLeadingBlankLine bool
 	// Name is the name of the script being imported.
 	Name *Identifier
 	// KeywordLocation is the location of the Import keyword that starts the
 	// statement.
 	KeywordLocation source.Location
-	// NodeComments are the comments on lines before and/or after a
-	// node or nil if the node has no comments associated with it.
-	NodeComments *CrosslineComments
+	// NodeComments are the comments on before and/or after a node on the
+	// same line or nil if the node has no comments associated with it.
+	NodeComments *Comments
 }
 
-// PrecedingBlankLine returns true if this node was preceded by a blank line.
-func (i *Import) PrecedingBlankLine() bool {
-	return i.HasPrecedingBlankLine
+// LeadingBlankLine returns true if this node was preceded by a blank line.
+func (i *Import) LeadingBlankLine() bool {
+	return i.HasLeadingBlankLine
 }
 
 // Accept calls the appropriate visitor method for the node.
@@ -31,9 +31,9 @@ func (i *Import) Accept(v Visitor) error {
 	return v.VisitImport(i)
 }
 
-// Comments returns the [CrosslineComments] associated
+// Comments returns the [Comments] associated
 // with this node or nil if there are none.
-func (i *Import) Comments() *CrosslineComments {
+func (i *Import) Comments() *Comments {
 	return i.NodeComments
 }
 

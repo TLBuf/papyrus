@@ -10,7 +10,7 @@ type BoolLiteral struct {
 	NodeLocation source.Location
 	// NodeComments are the comments on before and/or after a node on the
 	// same line or nil if the node has no comments associated with it.
-	NodeComments *InlineComments
+	NodeComments *Comments
 }
 
 // Accept calls the appropriate visitor method for the node.
@@ -18,9 +18,9 @@ func (l *BoolLiteral) Accept(v Visitor) error {
 	return v.VisitBoolLiteral(l)
 }
 
-// Comments returns the [InlineComments] associated
+// Comments returns the [Comments] associated
 // with this node or nil if there are none.
-func (l *BoolLiteral) Comments() *InlineComments {
+func (l *BoolLiteral) Comments() *Comments {
 	return l.NodeComments
 }
 
@@ -43,7 +43,7 @@ type IntLiteral struct {
 	NodeLocation source.Location
 	// NodeComments are the comments on before and/or after a node on the
 	// same line or nil if the node has no comments associated with it.
-	NodeComments *InlineComments
+	NodeComments *Comments
 }
 
 // Accept calls the appropriate method on the [Visitor] for the node.
@@ -51,9 +51,9 @@ func (l *IntLiteral) Accept(v Visitor) error {
 	return v.VisitIntLiteral(l)
 }
 
-// Comments returns the [InlineComments] associated
+// Comments returns the [Comments] associated
 // with this node or nil if there are none.
-func (l *IntLiteral) Comments() *InlineComments {
+func (l *IntLiteral) Comments() *Comments {
 	return l.NodeComments
 }
 
@@ -76,7 +76,7 @@ type FloatLiteral struct {
 	NodeLocation source.Location
 	// NodeComments are the comments on before and/or after a node on the
 	// same line or nil if the node has no comments associated with it.
-	NodeComments *InlineComments
+	NodeComments *Comments
 }
 
 // Accept calls the appropriate method on the [Visitor] for the node.
@@ -84,9 +84,9 @@ func (l *FloatLiteral) Accept(v Visitor) error {
 	return v.VisitFloatLiteral(l)
 }
 
-// Comments returns the [InlineComments] associated
+// Comments returns the [Comments] associated
 // with this node or nil if there are none.
-func (l *FloatLiteral) Comments() *InlineComments {
+func (l *FloatLiteral) Comments() *Comments {
 	return l.NodeComments
 }
 
@@ -109,7 +109,7 @@ type StringLiteral struct {
 	NodeLocation source.Location
 	// NodeComments are the comments on before and/or after a node on the
 	// same line or nil if the node has no comments associated with it.
-	NodeComments *InlineComments
+	NodeComments *Comments
 }
 
 // Accept calls the appropriate method on the [Visitor] for the node.
@@ -117,9 +117,9 @@ func (l *StringLiteral) Accept(v Visitor) error {
 	return v.VisitStringLiteral(l)
 }
 
-// Comments returns the [InlineComments] associated
+// Comments returns the [Comments] associated
 // with this node or nil if there are none.
-func (l *StringLiteral) Comments() *InlineComments {
+func (l *StringLiteral) Comments() *Comments {
 	return l.NodeComments
 }
 
@@ -140,7 +140,7 @@ type NoneLiteral struct {
 	NodeLocation source.Location
 	// NodeComments are the comments on before and/or after a node on the
 	// same line or nil if the node has no comments associated with it.
-	NodeComments *InlineComments
+	NodeComments *Comments
 }
 
 // Accept calls the appropriate method on the [Visitor] for the node.
@@ -148,9 +148,9 @@ func (l *NoneLiteral) Accept(v Visitor) error {
 	return v.VisitNoneLiteral(l)
 }
 
-// Comments returns the [InlineComments] associated
+// Comments returns the [Comments] associated
 // with this node or nil if there are none.
-func (l *NoneLiteral) Comments() *InlineComments {
+func (l *NoneLiteral) Comments() *Comments {
 	return l.NodeComments
 }
 

@@ -39,7 +39,7 @@ type Unary struct {
 	OperatorLocation source.Location
 	// NodeComments are the comments on before and/or after a node on the
 	// same line or nil if the node has no comments associated with it.
-	NodeComments *InlineComments
+	NodeComments *Comments
 }
 
 // Accept calls the appropriate visitor method for the node.
@@ -47,9 +47,9 @@ func (u *Unary) Accept(v Visitor) error {
 	return v.VisitUnary(u)
 }
 
-// Comments returns the [InlineComments] associated
+// Comments returns the [Comments] associated
 // with this node or nil if there are none.
-func (u *Unary) Comments() *InlineComments {
+func (u *Unary) Comments() *Comments {
 	return u.NodeComments
 }
 

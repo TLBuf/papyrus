@@ -54,22 +54,22 @@ func (k AssignmentKind) Symbol() string {
 type Assignment struct {
 	// Kind is the kind of assignment this expression represents.
 	Kind AssignmentKind
-	// HasPrecedingBlankLine is true if this node was preceded by a blank line.
-	HasPrecedingBlankLine bool
+	// HasLeadingBlankLine is true if this node was preceded by a blank line.
+	HasLeadingBlankLine bool
 	// Assignee is the reference to a variable to assign the value to.
 	Assignee Expression
 	// Value is the expression that defines the value to use in the assignment.
 	Value Expression
 	// OperatorLocation is the location of the assignment operator.
 	OperatorLocation source.Location
-	// NodeComments are the comments on lines before and/or after a
-	// node or nil if the node has no comments associated with it.
-	NodeComments *CrosslineComments
+	// NodeComments are the comments on before and/or after a node on the
+	// same line or nil if the node has no comments associated with it.
+	NodeComments *Comments
 }
 
-// PrecedingBlankLine returns true if this node was preceded by a blank line.
-func (a *Assignment) PrecedingBlankLine() bool {
-	return a.HasPrecedingBlankLine
+// LeadingBlankLine returns true if this node was preceded by a blank line.
+func (a *Assignment) LeadingBlankLine() bool {
+	return a.HasLeadingBlankLine
 }
 
 // Accept calls the appropriate visitor method for the node.
@@ -77,9 +77,9 @@ func (a *Assignment) Accept(v Visitor) error {
 	return v.VisitAssignment(a)
 }
 
-// Comments returns the [CrosslineComments] associated
+// Comments returns the [Comments] associated
 // with this node or nil if there are none.
-func (a *Assignment) Comments() *CrosslineComments {
+func (a *Assignment) Comments() *Comments {
 	return a.NodeComments
 }
 

@@ -20,9 +20,9 @@ func (*ErrorStatement) Parameters() []*Parameter {
 	return nil
 }
 
-// PrecedingBlankLine implements the [Statement]
+// LeadingBlankLine implements the [Statement]
 // interface and always returns false.
-func (*ErrorStatement) PrecedingBlankLine() bool {
+func (*ErrorStatement) LeadingBlankLine() bool {
 	return false
 }
 
@@ -32,7 +32,7 @@ func (e *ErrorStatement) Accept(v Visitor) error {
 }
 
 // Comments implements the [Statement] interface and always returns nil.
-func (*ErrorStatement) Comments() *CrosslineComments {
+func (*ErrorStatement) Comments() *Comments {
 	return nil
 }
 

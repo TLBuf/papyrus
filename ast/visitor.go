@@ -1,5 +1,7 @@
 package ast
 
+import "fmt"
+
 // Visitor is a visitor of AST nodes.
 type Visitor interface {
 	// VisitAccess visits an [Access] node.
@@ -20,8 +22,8 @@ type Visitor interface {
 	VisitDocumentation(*Documentation) error
 	// VisitBlockComment visits a [BlockComment] node.
 	VisitBlockComment(*BlockComment) error
-	// VisitCommentBlock visits a [CommentBlock] node.
-	VisitCommentBlock(*CommentBlock) error
+	// VisitCommentStatement visits a [CommentStatement] node.
+	VisitCommentStatement(*CommentStatement) error
 	// VisitLineComment visits a [LineComment] node.
 	VisitLineComment(*LineComment) error
 	// VisitEvent visits an [Event] node.
@@ -76,4 +78,37 @@ type Visitor interface {
 	VisitWhile(*While) error
 	// VisitErrorStatement visits an [ErrorStatement] node.
 	VisitErrorStatement(*ErrorStatement) error
+}
+
+func visitComments(v Visitor, node interface{ Comments() *Comments }) error {
+	if err := visitPrefixComments(v, node); err != nil {
+		return err
+	}
+	return visitSuffixComments(v, node)
+}
+
+func visitPrefixComments(v Visitor, node interface{ Comments() *Comments }) error {
+	comments := node.Comments()
+	if comments == nil {
+		return nil
+	}
+	for _, c := range comments.Prefix() {
+		if err := c.Accept(v); err != nil {
+			return fmt.Errorf("prefix comment: %w", err)
+		}
+	}
+	return nil
+}
+
+func visitSuffixComments(v Visitor, node interface{ Comments() *Comments }) error {
+	comments := node.Comments()
+	if comments == nil {
+		return nil
+	}
+	for _, c := range comments.Suffix() {
+		if err := c.Accept(v); err != nil {
+			return fmt.Errorf("suffix comment: %w", err)
+		}
+	}
+	return nil
 }

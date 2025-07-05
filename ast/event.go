@@ -6,8 +6,8 @@ import "github.com/TLBuf/papyrus/source"
 //
 // Events are like functions that are predefined by the engine.
 type Event struct {
-	// HasPrecedingBlankLine is true if this node was preceded by a blank line.
-	HasPrecedingBlankLine bool
+	// HasLeadingBlankLine is true if this node was preceded by a blank line.
+	HasLeadingBlankLine bool
 	// Name is the name of the event.
 	Name *Identifier
 	// ParameterList is the list of parameters this event defines in order.
@@ -42,9 +42,9 @@ type Event struct {
 	//
 	// This is only valid if NativeLocations is empty.
 	EndKeywordLocation source.Location
-	// NodeComments are the comments on lines before and/or after a
-	// node or nil if the node has no comments associated with it.
-	NodeComments *CrosslineComments
+	// NodeComments are the comments on before and/or after a node on the
+	// same line or nil if the node has no comments associated with it.
+	NodeComments *Comments
 }
 
 // Parameters returns the list of parameters defined for this invokable.
@@ -57,9 +57,9 @@ func (e *Event) Body() []FunctionStatement {
 	return e.Statements
 }
 
-// PrecedingBlankLine returns true if this node was preceded by a blank line.
-func (e *Event) PrecedingBlankLine() bool {
-	return e.HasPrecedingBlankLine
+// LeadingBlankLine returns true if this node was preceded by a blank line.
+func (e *Event) LeadingBlankLine() bool {
+	return e.HasLeadingBlankLine
 }
 
 // Accept calls the appropriate visitor method for the node.
@@ -67,9 +67,9 @@ func (e *Event) Accept(v Visitor) error {
 	return v.VisitEvent(e)
 }
 
-// Comments returns the [CrosslineComments] associated
+// Comments returns the [Comments] associated
 // with this node or nil if there are none.
-func (e *Event) Comments() *CrosslineComments {
+func (e *Event) Comments() *Comments {
 	return e.NodeComments
 }
 

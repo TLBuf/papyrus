@@ -26,14 +26,14 @@ func (o option) apply(p *parser) {
 	o(p)
 }
 
-// WithLooseComments controls block and line (i.e. loose) comment processing.
+// WithComments controls block and line (i.e. loose) comment processing.
 //
-// If enabled, loose comments will be attached to the appropriate [ast.Trivia]
-// on returned nodes. This is only required when the nodes may need to be
-// written back out as source, e.g. when formatting.
-func WithLooseComments(enabled bool) Option {
+// If enabled, loose comments will be attached to the appropriate nodes and/or
+// appear as [ast.CommentStatement] nodes. This is only required when the nodes
+// may need to be written back out as source, e.g. when formatting.
+func WithComments(enabled bool) Option {
 	return option(func(p *parser) {
-		p.attachLooseComments = enabled
+		p.keepComments = enabled
 	})
 }
 
@@ -78,12 +78,12 @@ func Parse(file source.File, opts ...Option) (*ast.Script, error) {
 		}
 	}
 	p := &parser{
-		file:                file,
-		lex:                 lex,
-		attachLooseComments: false,
-		attemptRecovery:     false,
-		prefix:              make(map[token.Kind]prefixParser),
-		infix:               make(map[token.Kind]infixParser),
+		file:            file,
+		lex:             lex,
+		keepComments:    false,
+		attemptRecovery: false,
+		prefix:          make(map[token.Kind]prefixParser),
+		infix:           make(map[token.Kind]infixParser),
 	}
 	for _, opt := range opts {
 		opt.apply(p)
@@ -119,19 +119,18 @@ func Parse(file source.File, opts ...Option) (*ast.Script, error) {
 	registerInfix(p, p.ParseCast, token.As)
 	registerInfix(p, p.ParseIndex, token.BracketOpen)
 
-	if err := p.next(); err != nil {
+	if err := p.consume(); err != nil {
 		return nil, err
 	}
-	if err := p.next(); err != nil {
+	if err := p.consume(); err != nil {
 		return nil, err
 	}
 	script, err := p.ParseScript()
 	if err != nil {
 		return nil, err
 	}
-
-	if p.attachLooseComments {
-		if err := attachLooseComments(script, p.comments); err != nil {
+	if p.keepComments {
+		if err := attachLooseComments(script, p.inlineComments); err != nil {
 			return nil, err
 		}
 	}
@@ -146,9 +145,10 @@ type parser struct {
 	token     token.Token
 	lookahead token.Token
 
-	blankLine           bool
-	attachLooseComments bool
-	comments            []ast.Comment
+	blankLine          bool
+	keepComments       bool
+	inlineComments     []ast.Comment
+	standaloneComments []ast.Comment
 
 	attemptRecovery bool
 	recovery        bool
@@ -206,9 +206,44 @@ type (
 	infixParser  func(ast.Expression) (ast.Expression, error)
 )
 
-// next advances token and lookahead by one
+// tryConsume advances the token position if the current token matches the given
+// token type or returns an error, consuming any comments along the way.
+func (p *parser) tryConsume(t token.Kind, alts ...token.Kind) error {
+	if p.token.Kind == t {
+		return p.consume()
+	}
+	if slices.Contains(alts, p.token.Kind) {
+		return p.consume()
+	}
+	return unexpectedTokenError(p.token, t, alts...)
+}
+
+// consume advances token and lookahead by one
 // token while skipping loose comment tokens.
-func (p *parser) next() (err error) {
+func (p *parser) consume() (err error) {
+	suffix := p.token.Kind != token.Newline
+	if err := p.advance(); err != nil {
+		return err
+	}
+	if p.token.Kind == token.Illegal {
+		return nil
+	}
+	// Consume loose comments immediately so the rest of the
+	// parser never has to deal with them directly.
+	return p.consumeComments(suffix)
+}
+
+// tryAdvance advances the token position if the current token matches the given
+// token type or returns an error, but does not consume comments.
+func (p *parser) tryAdvance(t token.Kind) error {
+	if p.token.Kind == t {
+		return p.advance()
+	}
+	return unexpectedTokenError(p.token, t)
+}
+
+// advance advances token and lookahead by one.
+func (p *parser) advance() (err error) {
 	newline := p.token.Kind == token.Newline
 	p.token = p.lookahead
 	p.lookahead, err = p.lex.Next()
@@ -225,47 +260,50 @@ func (p *parser) next() (err error) {
 			Location: lerr.Location,
 		}
 	}
-	if p.token.Kind == token.Illegal {
-		return nil
-	}
 	if !p.blankLine && newline && p.token.Kind == token.Newline {
 		p.blankLine = true
-	}
-	// Consume loose comments immediately so the rest of the
-	// parser never has to deal with them directly.
-	var comment ast.Comment = nil
-	if p.token.Kind == token.Semicolon {
-		if newline {
-			if comment, err = p.ParseCommentBlock(); err != nil {
-				return err
-			}
-		} else {
-			if comment, err = p.ParseLineComment(); err != nil {
-				return err
-			}
-		}
-	}
-	if p.token.Kind == token.BlockCommentOpen {
-		if comment, err = p.ParseBlockComment(); err != nil {
-			return err
-		}
-	}
-	if p.attachLooseComments && comment != nil {
-		p.comments = append(p.comments, comment)
 	}
 	return nil
 }
 
-// tryConsume advances the token position if the current token matches the given
-// token type or returns an error.
-func (p *parser) tryConsume(t token.Kind, alts ...token.Kind) error {
-	if p.token.Kind == t {
-		return p.next()
+func (p *parser) consumeComments(suffix bool) (err error) {
+	for p.token.Kind == token.Semicolon || p.token.Kind == token.BlockCommentOpen {
+		var comment ast.Comment
+		switch p.token.Kind {
+		case token.Semicolon:
+			if comment, err = p.ParseLineComment(suffix); err != nil {
+				return err
+			}
+		case token.BlockCommentOpen:
+			if comment, err = p.ParseBlockComment(suffix); err != nil {
+				return err
+			}
+		}
+		if p.keepComments && comment != nil {
+			if !comment.Prefix() && !comment.Suffix() {
+				p.standaloneComments = append(p.standaloneComments, comment)
+				continue
+			}
+			p.inlineComments = append(p.inlineComments, comment)
+			return nil
+		}
+		if p.token.Kind == token.Newline &&
+			(p.lookahead.Kind == token.Semicolon || p.lookahead.Kind == token.BlockCommentOpen) {
+			if err := p.advance(); err != nil {
+				return err
+			}
+		}
 	}
-	if slices.Contains(alts, p.token.Kind) {
-		return p.next()
+	return nil
+}
+
+func (p *parser) commentStatement() *ast.CommentStatement {
+	stmt := &ast.CommentStatement{
+		Elements: make([]ast.Comment, 0, len(p.standaloneComments)),
 	}
-	return unexpectedTokenError(p.token, t, alts...)
+	stmt.Elements = append(stmt.Elements, p.standaloneComments...)
+	p.standaloneComments = p.standaloneComments[:0]
+	return stmt
 }
 
 func unexpectedTokenError(got token.Token, want token.Kind, alts ...token.Kind) error {
@@ -299,14 +337,14 @@ func tokensTypesToString(kinds ...token.Kind) string {
 // possible until a non-newline token is found.
 func (p *parser) consumeNewlines() error {
 	for p.token.Kind == token.Newline {
-		if err := p.next(); err != nil {
+		if err := p.consume(); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (p *parser) hasPrecedingBlankLine() bool {
+func (p *parser) hasLeadingBlankLine() bool {
 	l := p.blankLine
 	p.blankLine = false
 	return l
@@ -330,53 +368,49 @@ func (p *parser) ParseDocComment() (*ast.Documentation, error) {
 	return node, nil
 }
 
-func (p *parser) ParseBlockComment() (*ast.BlockComment, error) {
+func (p *parser) ParseBlockComment(suffix bool) (*ast.BlockComment, error) {
 	node := &ast.BlockComment{
-		HasPrecedingBlankLine: p.hasPrecedingBlankLine(),
-		OpenLocation:          p.token.Location,
+		IsPrefix:            true,
+		IsSuffix:            suffix,
+		HasLeadingBlankLine: p.hasLeadingBlankLine(),
+		OpenLocation:        p.token.Location,
 	}
-	if err := p.tryConsume(token.BlockCommentOpen); err != nil {
+	if err := p.tryAdvance(token.BlockCommentOpen); err != nil {
 		return nil, err
 	}
 	node.TextLocation = p.token.Location
-	if err := p.tryConsume(token.Comment); err != nil {
+	if err := p.tryAdvance(token.Comment); err != nil {
 		return nil, err
 	}
 	node.CloseLocation = p.token.Location
-	if err := p.tryConsume(token.BlockCommentClose); err != nil {
+	if err := p.tryAdvance(token.BlockCommentClose); err != nil {
 		return nil, err
 	}
-	return node, nil
-}
-
-func (p *parser) ParseCommentBlock() (*ast.CommentBlock, error) {
-	node := &ast.CommentBlock{
-		HasPrecedingBlankLine: p.hasPrecedingBlankLine(),
-	}
-	for p.token.Kind == token.Semicolon {
-		comment, err := p.ParseLineComment()
-		if err != nil {
-			return nil, err
-		}
-		node.Elements = append(node.Elements, comment)
-		if err := p.tryConsume(token.Newline, token.EOF); err != nil {
-			return nil, err
+	if p.token.Kind == token.Newline || p.token.Kind == token.EOF {
+		node.IsPrefix = false
+		if p.lookahead.Kind == token.Newline || p.lookahead.Kind == token.EOF {
+			node.HasTrailingBlankLine = true
 		}
 	}
 	return node, nil
 }
 
-func (p *parser) ParseLineComment() (*ast.LineComment, error) {
+func (p *parser) ParseLineComment(suffix bool) (*ast.LineComment, error) {
 	node := &ast.LineComment{
-		HasPrecedingBlankLine: p.hasPrecedingBlankLine(),
-		SemicolonLocation:     p.token.Location,
+		IsSuffix:            suffix,
+		HasLeadingBlankLine: p.hasLeadingBlankLine(),
+		SemicolonLocation:   p.token.Location,
 	}
-	if err := p.tryConsume(token.Semicolon); err != nil {
+	if err := p.tryAdvance(token.Semicolon); err != nil {
 		return nil, err
 	}
 	node.TextLocation = p.token.Location
-	if err := p.tryConsume(token.Comment); err != nil {
+	if err := p.tryAdvance(token.Comment); err != nil {
 		return nil, err
+	}
+	if (p.token.Kind == token.Newline || p.token.Kind == token.EOF) &&
+		(p.lookahead.Kind == token.Newline || p.lookahead.Kind == token.EOF) {
+		node.HasTrailingBlankLine = true
 	}
 	return node, nil
 }
@@ -391,8 +425,14 @@ func (p *parser) ParseScript() (*ast.Script, error) {
 			StartColumn: 1,
 		},
 	}
-	if err := p.consumeNewlines(); err != nil {
-		return nil, err
+	for p.token.Kind != token.ScriptName {
+		if err := p.consumeNewlines(); err != nil {
+			return nil, err
+		}
+		if len(p.standaloneComments) > 0 {
+			node.HeaderComments = append(node.HeaderComments, p.standaloneComments...)
+			p.standaloneComments = p.standaloneComments[:0]
+		}
 	}
 	node.KeywordLocation = p.token.Location
 	if err := p.tryConsume(token.ScriptName); err != nil {
@@ -403,7 +443,7 @@ func (p *parser) ParseScript() (*ast.Script, error) {
 	}
 	if p.token.Kind == token.Extends {
 		node.ExtendsLocation = p.token.Location
-		if err := p.next(); err != nil {
+		if err := p.consume(); err != nil {
 			return nil, err
 		}
 		if node.Parent, err = p.ParseIdentifier(); err != nil {
@@ -416,7 +456,7 @@ func (p *parser) ParseScript() (*ast.Script, error) {
 		} else {
 			node.ConditionalLocations = append(node.ConditionalLocations, p.token.Location)
 		}
-		if err := p.next(); err != nil {
+		if err := p.consume(); err != nil {
 			return nil, err
 		}
 	}
@@ -432,6 +472,9 @@ func (p *parser) ParseScript() (*ast.Script, error) {
 		return nil, err
 	}
 	for p.token.Kind != token.EOF {
+		if len(p.standaloneComments) > 0 {
+			node.Statements = append(node.Statements, p.commentStatement())
+		}
 		stmt, err := p.ParseScriptStatement()
 		if err != nil {
 			return nil, err
@@ -442,6 +485,9 @@ func (p *parser) ParseScript() (*ast.Script, error) {
 		if err := p.consumeNewlines(); err != nil {
 			return nil, err
 		}
+	}
+	if len(p.standaloneComments) > 0 {
+		node.Statements = append(node.Statements, p.commentStatement())
 	}
 	return node, nil
 }
@@ -516,7 +562,7 @@ func (p *parser) ParseScriptStatement() (ast.ScriptStatement, error) {
 		NodeLocation: source.Span(start.Location, p.token.Location),
 	}
 	p.errors = append(p.errors, errStmt)
-	if err := p.next(); err != nil {
+	if err := p.consume(); err != nil {
 		return nil, err
 	}
 	p.recovery = false
@@ -542,7 +588,7 @@ func (p *parser) recoverScriptStatement() error {
 			// Next token is the start of a valid statement.
 			return nil
 		default:
-			if err := p.next(); err != nil {
+			if err := p.consume(); err != nil {
 				return err // An error during recovery just fails.
 			}
 		}
@@ -552,8 +598,8 @@ func (p *parser) recoverScriptStatement() error {
 func (p *parser) ParseImport() (*ast.Import, error) {
 	var err error
 	node := &ast.Import{
-		HasPrecedingBlankLine: p.hasPrecedingBlankLine(),
-		KeywordLocation:       p.token.Location,
+		HasLeadingBlankLine: p.hasLeadingBlankLine(),
+		KeywordLocation:     p.token.Location,
 	}
 	if err := p.tryConsume(token.Import); err != nil {
 		return nil, err
@@ -567,13 +613,13 @@ func (p *parser) ParseImport() (*ast.Import, error) {
 func (p *parser) ParseState() (ast.ScriptStatement, error) {
 	var err error
 	node := &ast.State{
-		HasPrecedingBlankLine: p.hasPrecedingBlankLine(),
+		HasLeadingBlankLine: p.hasLeadingBlankLine(),
 	}
 	start := p.token.Location
 	if p.token.Kind == token.Auto {
 		node.IsAuto = true
 		node.AutoLocation = p.token.Location
-		if err := p.next(); err != nil {
+		if err := p.consume(); err != nil {
 			return nil, err
 		}
 	}
@@ -586,7 +632,7 @@ func (p *parser) ParseState() (ast.ScriptStatement, error) {
 	}
 	for p.token.Kind != token.EndState {
 		if p.token.Kind == token.EOF {
-			// State was never closed, proactively create a
+			// State was never closed, proactively create an error statement.
 			errStmt := &ast.ErrorStatement{
 				ErrorMessage: fmt.Sprintf(
 					"hit end of file while parsing state %q, did you forget %s?",
@@ -600,6 +646,9 @@ func (p *parser) ParseState() (ast.ScriptStatement, error) {
 		}
 		if err := p.consumeNewlines(); err != nil {
 			return nil, err
+		}
+		if len(p.standaloneComments) > 0 {
+			node.Invokables = append(node.Invokables, p.commentStatement())
 		}
 		if p.token.Kind == token.EndState {
 			break
@@ -658,7 +707,7 @@ func (p *parser) ParseInvokable() (ast.Invokable, error) {
 		NodeLocation: source.Span(start.Location, p.token.Location),
 	}
 	p.errors = append(p.errors, errStmt)
-	if err := p.next(); err != nil {
+	if err := p.consume(); err != nil {
 		return nil, err
 	}
 	p.recovery = false
@@ -675,7 +724,7 @@ func (p *parser) recoverInvokable() error {
 			// Next token is the start of a valid invokable.
 			return nil
 		default:
-			if err := p.next(); err != nil {
+			if err := p.consume(); err != nil {
 				return err // An error during recovery just fails.
 			}
 		}
@@ -685,8 +734,8 @@ func (p *parser) recoverInvokable() error {
 func (p *parser) ParseEvent() (*ast.Event, error) {
 	var err error
 	node := &ast.Event{
-		HasPrecedingBlankLine: p.hasPrecedingBlankLine(),
-		StartKeywordLocation:  p.token.Location,
+		HasLeadingBlankLine:  p.hasLeadingBlankLine(),
+		StartKeywordLocation: p.token.Location,
 	}
 	if err := p.tryConsume(token.Event); err != nil {
 		return nil, err
@@ -707,7 +756,7 @@ func (p *parser) ParseEvent() (*ast.Event, error) {
 	}
 	for p.token.Kind == token.Native {
 		node.NativeLocations = append(node.NativeLocations, p.token.Location)
-		if err := p.next(); err != nil {
+		if err := p.consume(); err != nil {
 			return nil, err
 		}
 	}
@@ -740,7 +789,7 @@ func (p *parser) ParseEvent() (*ast.Event, error) {
 func (p *parser) ParseFunction() (*ast.Function, error) {
 	var err error
 	node := &ast.Function{
-		HasPrecedingBlankLine: p.hasPrecedingBlankLine(),
+		HasLeadingBlankLine: p.hasLeadingBlankLine(),
 	}
 	if p.token.Kind != token.Function {
 		if node.ReturnType, err = p.ParseTypeLiteral(); err != nil {
@@ -771,7 +820,7 @@ func (p *parser) ParseFunction() (*ast.Function, error) {
 		} else {
 			node.GlobalLocations = append(node.GlobalLocations, p.token.Location)
 		}
-		if err := p.next(); err != nil {
+		if err := p.consume(); err != nil {
 			return nil, err
 		}
 	}
@@ -802,7 +851,7 @@ func (p *parser) ParseParameterList() (params []*ast.Parameter, err error) {
 	for {
 		switch p.token.Kind {
 		case token.Comma:
-			if err := p.next(); err != nil {
+			if err := p.consume(); err != nil {
 				return params, err
 			}
 		case token.ParenthesisClose:
@@ -849,6 +898,9 @@ func (p *parser) ParseFunctionStatementBlock(terminals ...token.Kind) ([]ast.Fun
 		if err := p.consumeNewlines(); err != nil {
 			return nil, err
 		}
+		if len(p.standaloneComments) > 0 {
+			stmts = append(stmts, p.commentStatement())
+		}
 		if _, ok := terms[p.token.Kind]; ok {
 			return stmts, nil
 		}
@@ -889,7 +941,7 @@ func (p *parser) recoverFunctionStatement() error {
 			// Next token is the start of a valid invokable.
 			return nil
 		default:
-			if err := p.next(); err != nil {
+			if err := p.consume(); err != nil {
 				return err // An error during recovery just fails.
 			}
 		}
@@ -941,15 +993,15 @@ func (p *parser) ParseFunctionStatement() (ast.FunctionStatement, error) {
 		return p.ParseAssignment(expr)
 	}
 	return &ast.ExpressionStatement{
-		HasPrecedingBlankLine: p.hasPrecedingBlankLine(),
-		Expression:            expr,
+		HasLeadingBlankLine: p.hasLeadingBlankLine(),
+		Expression:          expr,
 	}, nil
 }
 
 func (p *parser) ParseFunctionVariable() (*ast.FunctionVariable, error) {
 	var err error
 	node := &ast.FunctionVariable{
-		HasPrecedingBlankLine: p.hasPrecedingBlankLine(),
+		HasLeadingBlankLine: p.hasLeadingBlankLine(),
 	}
 	if node.Type, err = p.ParseTypeLiteral(); err != nil {
 		return nil, err
@@ -977,9 +1029,10 @@ func (p *parser) ParseAssignment(assignee ast.Expression) (node *ast.Assignment,
 		}
 	}
 	node = &ast.Assignment{
-		HasPrecedingBlankLine: p.hasPrecedingBlankLine(),
-		Assignee:              assignee,
-		OperatorLocation:      p.token.Location,
+		Kind:                ast.AssignmentKind(p.token.Kind),
+		HasLeadingBlankLine: p.hasLeadingBlankLine(),
+		Assignee:            assignee,
+		OperatorLocation:    p.token.Location,
 	}
 	if err := p.tryConsume(
 		token.Assign,
@@ -999,8 +1052,8 @@ func (p *parser) ParseAssignment(assignee ast.Expression) (node *ast.Assignment,
 func (p *parser) ParseReturn() (*ast.Return, error) {
 	var err error
 	node := &ast.Return{
-		HasPrecedingBlankLine: p.hasPrecedingBlankLine(),
-		KeywordLocation:       p.token.Location,
+		HasLeadingBlankLine: p.hasLeadingBlankLine(),
+		KeywordLocation:     p.token.Location,
 	}
 	if err := p.tryConsume(token.Return); err != nil {
 		return nil, err
@@ -1017,8 +1070,8 @@ func (p *parser) ParseReturn() (*ast.Return, error) {
 func (p *parser) ParseIf() (*ast.If, error) {
 	var err error
 	node := &ast.If{
-		HasPrecedingBlankLine: p.hasPrecedingBlankLine(),
-		StartKeywordLocation:  p.token.Location,
+		HasLeadingBlankLine:  p.hasLeadingBlankLine(),
+		StartKeywordLocation: p.token.Location,
 	}
 	if err := p.tryConsume(token.If); err != nil {
 		return nil, err
@@ -1026,24 +1079,18 @@ func (p *parser) ParseIf() (*ast.If, error) {
 	if node.Condition, err = p.ParseExpression(lowest); err != nil {
 		return nil, err
 	}
-	if err := p.consumeNewlines(); err != nil {
-		return nil, err
-	}
 	if node.Statements, err = p.ParseFunctionStatementBlock(token.EndIf, token.Else, token.ElseIf); err != nil {
 		return nil, err
 	}
 	for p.token.Kind == token.ElseIf {
 		block := &ast.ElseIf{
-			HasPrecedingBlankLine: p.hasPrecedingBlankLine(),
-			KeywordLocation:       p.token.Location,
+			HasLeadingBlankLine: p.hasLeadingBlankLine(),
+			KeywordLocation:     p.token.Location,
 		}
 		if err := p.tryConsume(token.ElseIf); err != nil {
 			return nil, err
 		}
 		if block.Condition, err = p.ParseExpression(lowest); err != nil {
-			return nil, err
-		}
-		if err := p.consumeNewlines(); err != nil {
 			return nil, err
 		}
 		if block.Statements, err = p.ParseFunctionStatementBlock(token.EndIf, token.Else, token.ElseIf); err != nil {
@@ -1053,13 +1100,10 @@ func (p *parser) ParseIf() (*ast.If, error) {
 	}
 	if p.token.Kind == token.Else {
 		block := &ast.Else{
-			HasPrecedingBlankLine: p.hasPrecedingBlankLine(),
-			KeywordLocation:       p.token.Location,
+			HasLeadingBlankLine: p.hasLeadingBlankLine(),
+			KeywordLocation:     p.token.Location,
 		}
 		if err := p.tryConsume(token.Else); err != nil {
-			return nil, err
-		}
-		if err := p.consumeNewlines(); err != nil {
 			return nil, err
 		}
 		if block.Statements, err = p.ParseFunctionStatementBlock(token.EndIf); err != nil {
@@ -1077,16 +1121,13 @@ func (p *parser) ParseIf() (*ast.If, error) {
 func (p *parser) ParseWhile() (*ast.While, error) {
 	var err error
 	node := &ast.While{
-		HasPrecedingBlankLine: p.hasPrecedingBlankLine(),
-		StartKeywordLocation:  p.token.Location,
+		HasLeadingBlankLine:  p.hasLeadingBlankLine(),
+		StartKeywordLocation: p.token.Location,
 	}
 	if err := p.tryConsume(token.While); err != nil {
 		return nil, err
 	}
 	if node.Condition, err = p.ParseExpression(lowest); err != nil {
-		return nil, err
-	}
-	if err := p.consumeNewlines(); err != nil {
 		return nil, err
 	}
 	if node.Statements, err = p.ParseFunctionStatementBlock(token.EndWhile); err != nil {
@@ -1102,7 +1143,7 @@ func (p *parser) ParseWhile() (*ast.While, error) {
 func (p *parser) ParseProperty() (*ast.Property, error) {
 	var err error
 	node := &ast.Property{
-		HasPrecedingBlankLine: p.hasPrecedingBlankLine(),
+		HasLeadingBlankLine: p.hasLeadingBlankLine(),
 	}
 	if node.Type, err = p.ParseTypeLiteral(); err != nil {
 		return nil, err
@@ -1174,7 +1215,7 @@ func (p *parser) ParseProperty() (*ast.Property, error) {
 		return nil, err
 	}
 	if p.token.Kind == token.BraceOpen {
-		if err := p.next(); err != nil {
+		if err := p.consume(); err != nil {
 			return nil, err
 		}
 		comment, err := p.ParseDocComment()
@@ -1369,7 +1410,7 @@ func (p *parser) ParseProperty() (*ast.Property, error) {
 func (p *parser) ParseScriptVariable() (*ast.ScriptVariable, error) {
 	var err error
 	node := &ast.ScriptVariable{
-		HasPrecedingBlankLine: p.hasPrecedingBlankLine(),
+		HasLeadingBlankLine: p.hasLeadingBlankLine(),
 	}
 	if node.Type, err = p.ParseTypeLiteral(); err != nil {
 		return nil, err
@@ -1388,7 +1429,7 @@ func (p *parser) ParseScriptVariable() (*ast.ScriptVariable, error) {
 	}
 	for p.token.Kind == token.Conditional {
 		node.ConditionalLocations = append(node.ConditionalLocations, p.token.Location)
-		if err := p.next(); err != nil {
+		if err := p.consume(); err != nil {
 			return nil, err
 		}
 	}
@@ -1449,7 +1490,7 @@ func (p *parser) ParseTypeLiteral() (*ast.TypeLiteral, error) {
 			token.String,
 			token.Identifier)
 	}
-	if err := p.next(); err != nil {
+	if err := p.consume(); err != nil {
 		return nil, err
 	}
 	return node, nil
@@ -1481,6 +1522,7 @@ func (p *parser) ParseExpression(precedence int) (ast.Expression, error) {
 func (p *parser) ParseBinary(left ast.Expression) (node *ast.Binary, err error) {
 	precedence := precedenceOf(p.token.Kind)
 	node = &ast.Binary{
+		Kind:             ast.BinaryKind(p.token.Kind),
 		LeftOperand:      left,
 		OperatorLocation: p.token.Location,
 	}
@@ -1513,6 +1555,7 @@ func (p *parser) ParseUnary() (ast.Expression, error) {
 	}
 	var err error
 	node := &ast.Unary{
+		Kind:             ast.UnaryKind(p.token.Kind),
 		OperatorLocation: p.token.Location,
 	}
 	if err := p.tryConsume(token.Minus, token.LogicalNot); err != nil {
@@ -1593,7 +1636,7 @@ func (p *parser) ParseArgumentList() ([]*ast.Argument, error) {
 	for {
 		switch p.token.Kind {
 		case token.Comma:
-			if err := p.next(); err != nil {
+			if err := p.consume(); err != nil {
 				return nil, err
 			}
 		case token.ParenthesisClose:
@@ -1678,7 +1721,7 @@ func (p *parser) ParseLiteral() (ast.Literal, error) {
 		// because there are some contexts where a literal is required which can
 		// include a sign, but where a Unary is not allowed.
 		sign := p.token
-		if err := p.next(); err != nil {
+		if err := p.consume(); err != nil {
 			return nil, err
 		}
 		switch p.token.Kind {

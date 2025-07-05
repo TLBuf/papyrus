@@ -4,8 +4,8 @@ import "github.com/TLBuf/papyrus/source"
 
 // ScriptVariable is a variable definition at the script level.
 type ScriptVariable struct {
-	// HasPrecedingBlankLine is true if this node was preceded by a blank line.
-	HasPrecedingBlankLine bool
+	// HasLeadingBlankLine is true if this node was preceded by a blank line.
+	HasLeadingBlankLine bool
 	// Type is the type literal that defines the type of the variable.
 	Type *TypeLiteral
 	// Name is the name of the variable.
@@ -26,14 +26,14 @@ type ScriptVariable struct {
 	//
 	// This is only valid if Value is not nil.
 	OperatorLocation source.Location
-	// NodeComments are the comments on lines before and/or after a
-	// node or nil if the node has no comments associated with it.
-	NodeComments *CrosslineComments
+	// NodeComments are the comments on before and/or after a node on the
+	// same line or nil if the node has no comments associated with it.
+	NodeComments *Comments
 }
 
-// PrecedingBlankLine returns true if this node was preceded by a blank line.
-func (s *ScriptVariable) PrecedingBlankLine() bool {
-	return s.HasPrecedingBlankLine
+// LeadingBlankLine returns true if this node was preceded by a blank line.
+func (s *ScriptVariable) LeadingBlankLine() bool {
+	return s.HasLeadingBlankLine
 }
 
 // Accept calls the appropriate visitor method for the node.
@@ -41,9 +41,9 @@ func (s *ScriptVariable) Accept(v Visitor) error {
 	return v.VisitScriptVariable(s)
 }
 
-// Comments returns the [CrosslineComments] associated
+// Comments returns the [Comments] associated
 // with this node or nil if there are none.
-func (s *ScriptVariable) Comments() *CrosslineComments {
+func (s *ScriptVariable) Comments() *Comments {
 	return s.NodeComments
 }
 
@@ -68,8 +68,8 @@ var _ ScriptStatement = (*ScriptVariable)(nil)
 // FunctionVariable is a variable definition within the body of a function (or
 // event).
 type FunctionVariable struct {
-	// HasPrecedingBlankLine is true if this node was preceded by a blank line.
-	HasPrecedingBlankLine bool
+	// HasLeadingBlankLine is true if this node was preceded by a blank line.
+	HasLeadingBlankLine bool
 	// Type is the type literal that defines the type of the variable.
 	Type *TypeLiteral
 	// Name is the name of the variable.
@@ -81,14 +81,14 @@ type FunctionVariable struct {
 	//
 	// This is only valid if Value is not nil.
 	OperatorLocation source.Location
-	// NodeComments are the comments on lines before and/or after a
-	// node or nil if the node has no comments associated with it.
-	NodeComments *CrosslineComments
+	// NodeComments are the comments on before and/or after a node on the
+	// same line or nil if the node has no comments associated with it.
+	NodeComments *Comments
 }
 
-// PrecedingBlankLine returns true if this node was preceded by a blank line.
-func (f *FunctionVariable) PrecedingBlankLine() bool {
-	return f.HasPrecedingBlankLine
+// LeadingBlankLine returns true if this node was preceded by a blank line.
+func (f *FunctionVariable) LeadingBlankLine() bool {
+	return f.HasLeadingBlankLine
 }
 
 // Accept calls the appropriate method on the [Visitor] for the node.
@@ -96,9 +96,9 @@ func (f *FunctionVariable) Accept(v Visitor) error {
 	return v.VisitFunctionVariable(f)
 }
 
-// Comments returns the [CrosslineComments] associated
+// Comments returns the [Comments] associated
 // with this node or nil if there are none.
-func (f *FunctionVariable) Comments() *CrosslineComments {
+func (f *FunctionVariable) Comments() *Comments {
 	return f.NodeComments
 }
 

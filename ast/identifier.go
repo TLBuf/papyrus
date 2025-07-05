@@ -10,7 +10,7 @@ type Identifier struct {
 	NodeLocation source.Location
 	// NodeComments are the comments on before and/or after a node on the
 	// same line or nil if the node has no comments associated with it.
-	NodeComments *InlineComments
+	NodeComments *Comments
 }
 
 // Accept calls the appropriate visitor method for the node.
@@ -18,9 +18,9 @@ func (i *Identifier) Accept(v Visitor) error {
 	return v.VisitIdentifier(i)
 }
 
-// Comments returns the [InlineComments] associated
+// Comments returns the [Comments] associated
 // with this node or nil if there are none.
-func (i *Identifier) Comments() *InlineComments {
+func (i *Identifier) Comments() *Comments {
 	return i.NodeComments
 }
 

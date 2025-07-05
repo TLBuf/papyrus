@@ -24,8 +24,8 @@ const (
 // Properties are like variables but which can be accessed in the editor and
 // referenced by the engine.
 type Property struct {
-	// HasPrecedingBlankLine is true if this node was preceded by a blank line.
-	HasPrecedingBlankLine bool
+	// HasLeadingBlankLine is true if this node was preceded by a blank line.
+	HasLeadingBlankLine bool
 	// Kind is the kind of property this statement represents.
 	Kind PropertyKind
 	// Type is the type of this property.
@@ -88,14 +88,14 @@ type Property struct {
 	//
 	// This is only valid if Kind is [Full].
 	EndKeywordLocation source.Location
-	// NodeComments are the comments on lines before and/or after a
-	// node or nil if the node has no comments associated with it.
-	NodeComments *CrosslineComments
+	// NodeComments are the comments on before and/or after a node on the
+	// same line or nil if the node has no comments associated with it.
+	NodeComments *Comments
 }
 
-// PrecedingBlankLine returns true if this node was preceded by a blank line.
-func (p *Property) PrecedingBlankLine() bool {
-	return p.HasPrecedingBlankLine
+// LeadingBlankLine returns true if this node was preceded by a blank line.
+func (p *Property) LeadingBlankLine() bool {
+	return p.HasLeadingBlankLine
 }
 
 // Accept calls the appropriate visitor method for the node.
@@ -103,9 +103,9 @@ func (p *Property) Accept(v Visitor) error {
 	return v.VisitProperty(p)
 }
 
-// Comments returns the [CrosslineComments] associated
+// Comments returns the [Comments] associated
 // with this node or nil if there are none.
-func (p *Property) Comments() *CrosslineComments {
+func (p *Property) Comments() *Comments {
 	return p.NodeComments
 }
 

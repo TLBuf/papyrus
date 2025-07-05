@@ -4,8 +4,8 @@ import "github.com/TLBuf/papyrus/source"
 
 // Function defines a Papyrus function.
 type Function struct {
-	// HasPrecedingBlankLine is true if this node was preceded by a blank line.
-	HasPrecedingBlankLine bool
+	// HasLeadingBlankLine is true if this node was preceded by a blank line.
+	HasLeadingBlankLine bool
 	// ReturnType is the type of value this function returns or nil if it doesn't
 	// return a value.
 	ReturnType *TypeLiteral
@@ -51,9 +51,9 @@ type Function struct {
 	//
 	// This is only valid if NativeLocations is empty.
 	EndKeywordLocation source.Location
-	// NodeComments are the comments on lines before and/or after a
-	// node or nil if the node has no comments associated with it.
-	NodeComments *CrosslineComments
+	// NodeComments are the comments on before and/or after a node on the
+	// same line or nil if the node has no comments associated with it.
+	NodeComments *Comments
 }
 
 // Parameters returns the list of parameters defined for this invokable.
@@ -66,9 +66,9 @@ func (f *Function) Body() []FunctionStatement {
 	return f.Statements
 }
 
-// PrecedingBlankLine returns true if this node was preceded by a blank line.
-func (f *Function) PrecedingBlankLine() bool {
-	return f.HasPrecedingBlankLine
+// LeadingBlankLine returns true if this node was preceded by a blank line.
+func (f *Function) LeadingBlankLine() bool {
+	return f.HasLeadingBlankLine
 }
 
 // Accept calls the appropriate visitor method for the node.
@@ -76,9 +76,9 @@ func (f *Function) Accept(v Visitor) error {
 	return v.VisitFunction(f)
 }
 
-// Comments returns the [CrosslineComments] associated
+// Comments returns the [Comments] associated
 // with this node or nil if there are none.
-func (f *Function) Comments() *CrosslineComments {
+func (f *Function) Comments() *Comments {
 	return f.NodeComments
 }
 
