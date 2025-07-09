@@ -10,7 +10,6 @@ import (
 	"github.com/TLBuf/papyrus/ast"
 	"github.com/TLBuf/papyrus/source"
 	"github.com/TLBuf/papyrus/token"
-	"github.com/TLBuf/papyrus/types"
 )
 
 const (
@@ -1128,24 +1127,23 @@ func (f *formatter) VisitTypeLiteral(node *ast.TypeLiteral) error {
 	if err := f.visitPrefixComments(node); err != nil {
 		return err
 	}
-	baseType := node.Type
-	if arrayType, ok := baseType.(types.Array); ok {
-		baseType = arrayType.ElementType
-	}
 	text := ""
-	switch baseType.(type) {
-	case types.Bool:
+	switch kind := token.LookupIdentifier(node.Name.Normalized); kind {
+	case token.Bool:
 		text = f.keywords.Bool
-	case types.Int:
+	case token.Int:
 		text = f.keywords.Int
-	case types.Float:
+	case token.Float:
 		text = f.keywords.Float
-	case types.String:
+	case token.String:
 		text = f.keywords.String
-	case types.Object:
-		text = string(node.Location().Text(f.file))
+	case token.Identifier:
+		text = string(node.Name.Location().Text(f.file))
 	default:
-		return fmt.Errorf("unexpected types: %T", baseType)
+		return fmt.Errorf("unexpected type identifier: %q", kind)
+	}
+	if node.IsArray {
+		text += "[]"
 	}
 	if err := f.str(text); err != nil {
 		return fmt.Errorf("failed to format type: %w", err)

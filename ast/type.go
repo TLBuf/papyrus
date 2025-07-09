@@ -2,15 +2,20 @@ package ast
 
 import (
 	"github.com/TLBuf/papyrus/source"
-	"github.com/TLBuf/papyrus/types"
 )
 
 // TypeLiteral represents a literal type name in source.
 type TypeLiteral struct {
-	// Type is the type the literal represents.
-	Type types.Type
-	// NodeLocation is the source location of the node.
-	NodeLocation source.Location
+	// IsArray is true if this is an array type.
+	IsArray bool
+	// Name is the scalar type of the literal, either
+	// this is a primitive type or the name of an object.
+	Name *Identifier
+	// BracketLocation is the location of both brackets defining this type as an
+	// array type.
+	//
+	// This is only valid if IsArray is true.
+	BracketLocation source.Location
 	// NodeComments are the comments on before and/or after a node on the
 	// same line or nil if the node has no comments associated with it.
 	NodeComments *Comments
@@ -29,7 +34,10 @@ func (t *TypeLiteral) Comments() *Comments {
 
 // Location returns the source location of the node.
 func (t *TypeLiteral) Location() source.Location {
-	return t.NodeLocation
+	if !t.IsArray {
+		return t.Name.Location()
+	}
+	return source.Span(t.Name.Location(), t.BracketLocation)
 }
 
 var _ Node = (*TypeLiteral)(nil)

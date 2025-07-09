@@ -13,7 +13,6 @@ import (
 	"github.com/TLBuf/papyrus/lexer"
 	"github.com/TLBuf/papyrus/source"
 	"github.com/TLBuf/papyrus/token"
-	"github.com/TLBuf/papyrus/types"
 )
 
 // Option defines an option to configure how parsing is performed.
@@ -496,10 +495,8 @@ func (p *parser) ParseScript() (*ast.Script, error) {
 	return node, nil
 }
 
-func (p *parser) ParseScriptStatement() (ast.ScriptStatement, error) {
+func (p *parser) ParseScriptStatement() (stmt ast.ScriptStatement, err error) {
 	start := p.token
-	var stmt ast.ScriptStatement
-	var err error
 	switch p.token.Kind {
 	case token.Import:
 		stmt, err = p.ParseImport()
@@ -508,27 +505,26 @@ func (p *parser) ParseScriptStatement() (ast.ScriptStatement, error) {
 	case token.Auto, token.State:
 		stmt, err = p.ParseState()
 	case token.Function:
-		stmt, err = p.ParseFunction()
+		stmt, err = p.ParseFunction(nil)
 	case token.Bool,
-		token.BoolArray,
 		token.Float,
-		token.FloatArray,
 		token.Int,
-		token.IntArray,
 		token.String,
-		token.StringArray,
-		token.Identifier,
-		token.ObjectArray:
-		switch p.lookahead.Kind {
+		token.Identifier:
+		var typeLiteral *ast.TypeLiteral
+		if typeLiteral, err = p.ParseTypeLiteral(); err != nil {
+			return nil, err
+		}
+		switch p.token.Kind {
 		case token.Property:
-			stmt, err = p.ParseProperty()
+			stmt, err = p.ParseProperty(typeLiteral)
 		case token.Function:
-			stmt, err = p.ParseFunction()
+			stmt, err = p.ParseFunction(typeLiteral)
 		case token.Identifier:
-			stmt, err = p.ParseScriptVariable()
+			stmt, err = p.ParseScriptVariable(typeLiteral)
 		default:
 			err = unexpectedTokenError(
-				p.lookahead,
+				p.token,
 				token.Property,
 				token.Function,
 				token.Identifier)
@@ -672,15 +668,19 @@ func (p *parser) ParseState() (ast.ScriptStatement, error) {
 	return node, p.tryConsume(token.Newline, token.EOF)
 }
 
-func (p *parser) ParseInvokable() (ast.Invokable, error) {
+func (p *parser) ParseInvokable() (stmt ast.Invokable, err error) {
 	start := p.token
-	var stmt ast.Invokable
-	var err error
 	switch p.token.Kind {
 	case token.Event:
 		stmt, err = p.ParseEvent()
-	case token.Function, token.Bool, token.Float, token.Int, token.String, token.Identifier:
-		stmt, err = p.ParseFunction()
+	case token.Function:
+		stmt, err = p.ParseFunction(nil)
+	case token.Bool, token.Float, token.Int, token.String, token.Identifier:
+		var typeLiteral *ast.TypeLiteral
+		if typeLiteral, err = p.ParseTypeLiteral(); err != nil {
+			return nil, err
+		}
+		stmt, err = p.ParseFunction(typeLiteral)
 	default:
 		err = unexpectedTokenError(
 			p.token,
@@ -790,15 +790,11 @@ func (p *parser) ParseEvent() (*ast.Event, error) {
 	return node, p.tryConsume(token.Newline, token.EOF)
 }
 
-func (p *parser) ParseFunction() (*ast.Function, error) {
+func (p *parser) ParseFunction(returnType *ast.TypeLiteral) (*ast.Function, error) {
 	var err error
 	node := &ast.Function{
 		HasLeadingBlankLine: p.hasLeadingBlankLine(),
-	}
-	if p.token.Kind != token.Function {
-		if node.ReturnType, err = p.ParseTypeLiteral(); err != nil {
-			return nil, err
-		}
+		ReturnType:          returnType, // May be nil.
 	}
 	node.StartKeywordLocation = p.token.Location
 	if err := p.tryConsume(token.Function); err != nil {
@@ -961,18 +957,13 @@ func (p *parser) ParseFunctionStatement() (ast.FunctionStatement, error) {
 	case token.While:
 		return p.ParseWhile()
 	case token.Bool,
-		token.BoolArray,
 		token.Int,
-		token.IntArray,
 		token.Float,
-		token.FloatArray,
-		token.String,
-		token.StringArray,
-		token.ObjectArray:
+		token.String:
 		return p.ParseFunctionVariable()
 	case token.Identifier:
 		switch p.lookahead.Kind {
-		case token.Identifier: // p.token is an object type, p.lookahead is a variable name
+		case token.Identifier, token.ArrayType:
 			return p.ParseFunctionVariable()
 		case token.Assign,
 			token.AssignAdd,
@@ -1144,13 +1135,11 @@ func (p *parser) ParseWhile() (*ast.While, error) {
 	return node, nil
 }
 
-func (p *parser) ParseProperty() (*ast.Property, error) {
+func (p *parser) ParseProperty(typeLiteral *ast.TypeLiteral) (*ast.Property, error) {
 	var err error
 	node := &ast.Property{
 		HasLeadingBlankLine: p.hasLeadingBlankLine(),
-	}
-	if node.Type, err = p.ParseTypeLiteral(); err != nil {
-		return nil, err
+		Type:                typeLiteral,
 	}
 	node.StartKeywordLocation = p.token.Location
 	if err := p.tryConsume(token.Property); err != nil {
@@ -1231,7 +1220,13 @@ func (p *parser) ParseProperty() (*ast.Property, error) {
 	if err := p.consumeNewlines(); err != nil {
 		return nil, err
 	}
-	first, err := p.ParseFunction()
+	var returnType *ast.TypeLiteral
+	if p.token.Kind != token.Function {
+		if returnType, err = p.ParseTypeLiteral(); err != nil {
+			return nil, err
+		}
+	}
+	first, err := p.ParseFunction(returnType)
 	if err != nil {
 		return nil, err
 	}
@@ -1240,7 +1235,13 @@ func (p *parser) ParseProperty() (*ast.Property, error) {
 	}
 	var second *ast.Function
 	if p.token.Kind != token.EndProperty {
-		second, err = p.ParseFunction()
+		var returnType *ast.TypeLiteral
+		if p.token.Kind != token.Function {
+			if returnType, err = p.ParseTypeLiteral(); err != nil {
+				return nil, err
+			}
+		}
+		second, err = p.ParseFunction(returnType)
 		if err != nil {
 			return nil, err
 		}
@@ -1256,15 +1257,6 @@ func (p *parser) ParseProperty() (*ast.Property, error) {
 				"expected '%s' to have a return type of %s, but found none",
 				first.Name.Location().Text(p.file),
 				node.Type.Location().Text(p.file),
-			)
-		}
-		if first.ReturnType.Type != node.Type.Type {
-			return nil, newError(
-				first.ReturnType.Location(),
-				"expected '%s' to have a return type of %s, but found %s",
-				first.Name.Location().Text(p.file),
-				node.Type.Location().Text(p.file),
-				first.ReturnType.Location().Text(p.file),
 			)
 		}
 		if len(first.ParameterList) != 0 {
@@ -1302,15 +1294,6 @@ func (p *parser) ParseProperty() (*ast.Property, error) {
 				len(first.ParameterList),
 			)
 		}
-		if first.ParameterList[0].Type.Type != node.Type.Type {
-			return nil, newError(
-				first.ReturnType.Location(),
-				"expected '%s' to have a parameter of type %s, but found %s",
-				first.Name.Location().Text(p.file),
-				node.Type.Location().Text(p.file),
-				first.ParameterList[0].Type.Location().Text(p.file),
-			)
-		}
 		node.Set = first
 	default:
 		return nil, newError(
@@ -1331,15 +1314,6 @@ func (p *parser) ParseProperty() (*ast.Property, error) {
 					"expected '%s' to have a return type of %s, but found none",
 					second.Name.Location().Text(p.file),
 					node.Type.Location().Text(p.file),
-				)
-			}
-			if second.ReturnType.Type != node.Type.Type {
-				return nil, newError(
-					second.ReturnType.Location(),
-					"expected '%s' to have a return type of %s, but found %s",
-					second.Name.Location().Text(p.file),
-					node.Type.Location().Text(p.file),
-					second.ReturnType.Location().Text(p.file),
 				)
 			}
 			if len(second.ParameterList) != 0 {
@@ -1386,15 +1360,6 @@ func (p *parser) ParseProperty() (*ast.Property, error) {
 					len(second.ParameterList),
 				)
 			}
-			if second.ParameterList[0].Type.Type != node.Type.Type {
-				return nil, newError(
-					second.ReturnType.Location(),
-					"expected '%s' to have a parameter of type %s, but found %s",
-					second.Name.Location().Text(p.file),
-					node.Type.Location().Text(p.file),
-					second.ParameterList[0].Type.Location().Text(p.file),
-				)
-			}
 			node.Set = second
 		default:
 			return nil, newError(
@@ -1411,13 +1376,11 @@ func (p *parser) ParseProperty() (*ast.Property, error) {
 	return node, p.tryConsume(token.Newline, token.EOF)
 }
 
-func (p *parser) ParseScriptVariable() (*ast.ScriptVariable, error) {
+func (p *parser) ParseScriptVariable(typeLiteral *ast.TypeLiteral) (*ast.ScriptVariable, error) {
 	var err error
 	node := &ast.ScriptVariable{
 		HasLeadingBlankLine: p.hasLeadingBlankLine(),
-	}
-	if node.Type, err = p.ParseTypeLiteral(); err != nil {
-		return nil, err
+		Type:                typeLiteral,
 	}
 	if node.Name, err = p.ParseIdentifier(); err != nil {
 		return nil, err
@@ -1454,48 +1417,22 @@ func (p *parser) ParseIdentifier() (*ast.Identifier, error) {
 	return node, nil
 }
 
-func (p *parser) ParseTypeLiteral() (*ast.TypeLiteral, error) {
-	node := &ast.TypeLiteral{
-		NodeLocation: p.token.Location,
+func (p *parser) ParseTypeLiteral() (node *ast.TypeLiteral, err error) {
+	node = &ast.TypeLiteral{
+		Name: &ast.Identifier{
+			Normalized:   string(bytes.ToLower(p.token.Text)),
+			NodeLocation: p.token.Location,
+		},
 	}
-	switch p.token.Kind {
-	case token.Bool:
-		node.Type = types.Bool{}
-	case token.BoolArray:
-		node.Type = types.Array{ElementType: types.Bool{}}
-	case token.Int:
-		node.Type = types.Int{}
-	case token.IntArray:
-		node.Type = types.Array{ElementType: types.Int{}}
-	case token.Float:
-		node.Type = types.Float{}
-	case token.FloatArray:
-		node.Type = types.Array{ElementType: types.Float{}}
-	case token.String:
-		node.Type = types.String{}
-	case token.StringArray:
-		node.Type = types.Array{ElementType: types.String{}}
-	case token.Identifier:
-		node.Type = types.Object{
-			Name: string(bytes.ToLower(p.token.Text)),
-		}
-	case token.ObjectArray:
-		node.Type = types.Array{
-			ElementType: types.Object{
-				Name: string(bytes.TrimSuffix(bytes.ToLower(p.token.Text), []byte{'[', ']'})),
-			},
-		}
-	default:
-		return nil, unexpectedTokenError(
-			p.token,
-			token.Bool,
-			token.Float,
-			token.Int,
-			token.String,
-			token.Identifier)
-	}
-	if err := p.consume(); err != nil {
+	if err := p.tryConsume(token.Identifier, token.Bool, token.Int, token.Float, token.String); err != nil {
 		return nil, err
+	}
+	if p.token.Kind == token.ArrayType {
+		node.BracketLocation = p.token.Location
+		node.IsArray = true
+		if err := p.consume(); err != nil {
+			return nil, err
+		}
 	}
 	return node, nil
 }

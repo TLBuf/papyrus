@@ -123,7 +123,14 @@ func (l *Lexer) nextToken() (token.Token, error) {
 	case ')':
 		tok = l.newToken(token.ParenthesisClose)
 	case '[':
-		tok = l.newToken(token.BracketOpen)
+		start := l.here()
+		if err := l.readChar(); err != nil {
+			return l.newToken(token.Illegal), err
+		}
+		if l.character != ']' {
+			return l.newTokenAt(token.BracketOpen, start), nil
+		}
+		tok = l.newTokenFrom(token.ArrayType, start)
 	case ']':
 		tok = l.newToken(token.BracketClose)
 	case ',':
@@ -354,37 +361,7 @@ func (l *Lexer) readIdentifier() (token.Token, error) {
 		}
 	}
 	loc := source.Span(start, end)
-	tok := l.newTokenAt(token.LookupIdentifier(string(loc.Text(l.file))), loc)
-	if l.character == '[' {
-		next, err := l.peek()
-		if err != nil {
-			return l.newTokenAt(token.Illegal, l.nextByteLocation()), err
-		}
-		if next == ']' {
-			// Array type (rather than index or declaration).
-			if err := l.readChar(); err != nil {
-				return l.newToken(token.Illegal), err
-			}
-			kind := tok.Kind
-			switch kind {
-			case token.Bool:
-				kind = token.BoolArray
-			case token.Int:
-				kind = token.IntArray
-			case token.Float:
-				kind = token.FloatArray
-			case token.String:
-				kind = token.StringArray
-			default:
-				kind = token.ObjectArray
-			}
-			tok = l.newTokenFrom(kind, tok.Location)
-			if err := l.readChar(); err != nil {
-				return l.newToken(token.Illegal), err
-			}
-		}
-	}
-	return tok, nil
+	return l.newTokenAt(token.LookupIdentifier(string(loc.Text(l.file))), loc), nil
 }
 
 func (l *Lexer) readNumber() (token.Token, error) {
@@ -627,14 +604,6 @@ func (l *Lexer) readChar() error {
 	l.position = l.next
 	l.next += width
 	return nil
-}
-
-func (l *Lexer) peek() (rune, error) {
-	r, _ := utf8.DecodeRune(l.file.Text[l.next:])
-	if r == utf8.RuneError {
-		return 0, newError(l.nextByteLocation(), "encountered invalid UTF-8 at byte %d", l.next)
-	}
-	return r, nil
 }
 
 func (l *Lexer) findNextNewlineOffset() uint32 {
