@@ -8,7 +8,6 @@ linters:
     - errorlint
     - exptostd
     - fatcontext
-    - forcetypeassert
     - gocheckcompilerdirectives
     - gocritic
     - godot
