@@ -993,9 +993,9 @@ func (p *parser) ParseFunctionStatement() (ast.FunctionStatement, error) {
 	}, nil
 }
 
-func (p *parser) ParseFunctionVariable() (*ast.FunctionVariable, error) {
+func (p *parser) ParseFunctionVariable() (*ast.Variable, error) {
 	var err error
-	node := &ast.FunctionVariable{
+	node := &ast.Variable{
 		HasLeadingBlankLine: p.hasLeadingBlankLine(),
 	}
 	if node.Type, err = p.ParseTypeLiteral(); err != nil {
@@ -1376,9 +1376,9 @@ func (p *parser) ParseProperty(typeLiteral *ast.TypeLiteral) (*ast.Property, err
 	return node, p.tryConsume(token.Newline, token.EOF)
 }
 
-func (p *parser) ParseScriptVariable(typeLiteral *ast.TypeLiteral) (*ast.ScriptVariable, error) {
+func (p *parser) ParseScriptVariable(typeLiteral *ast.TypeLiteral) (*ast.Variable, error) {
 	var err error
-	node := &ast.ScriptVariable{
+	node := &ast.Variable{
 		HasLeadingBlankLine: p.hasLeadingBlankLine(),
 		Type:                typeLiteral,
 	}

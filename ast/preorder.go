@@ -582,50 +582,27 @@ func (v *PreorderVisitor) VisitUnary(u *Unary) error {
 	return nil
 }
 
-// VisitScriptVariable visits the [ScriptVariable] node then all children nodes
+// VisitVariable visits the [Variable] node then all children nodes
 // and returns an error if any call returns an error.
-func (v *PreorderVisitor) VisitScriptVariable(s *ScriptVariable) error {
-	if err := v.Delegate.VisitScriptVariable(s); err != nil {
+func (v *PreorderVisitor) VisitVariable(r *Variable) error {
+	if err := v.Delegate.VisitVariable(r); err != nil {
 		return fmt.Errorf("delegate: %w", err)
 	}
-	if err := visitPrefixComments(v, s); err != nil {
+	if err := visitPrefixComments(v, r); err != nil {
 		return err
 	}
-	if err := s.Type.Accept(v); err != nil {
+	if err := r.Type.Accept(v); err != nil {
 		return fmt.Errorf("type: %w", err)
 	}
-	if err := s.Name.Accept(v); err != nil {
+	if err := r.Name.Accept(v); err != nil {
 		return fmt.Errorf("name: %w", err)
 	}
-	if s.Value != nil {
-		if err := s.Value.Accept(v); err != nil {
+	if r.Value != nil {
+		if err := r.Value.Accept(v); err != nil {
 			return fmt.Errorf("value: %w", err)
 		}
 	}
-	return visitSuffixComments(v, s)
-}
-
-// VisitFunctionVariable visits the [FunctionVariable] node then all children
-// nodes and returns an error if any call returns an error.
-func (v *PreorderVisitor) VisitFunctionVariable(f *FunctionVariable) error {
-	if err := v.Delegate.VisitFunctionVariable(f); err != nil {
-		return fmt.Errorf("delegate: %w", err)
-	}
-	if err := visitPrefixComments(v, f); err != nil {
-		return err
-	}
-	if err := f.Type.Accept(v); err != nil {
-		return fmt.Errorf("type: %w", err)
-	}
-	if err := f.Name.Accept(v); err != nil {
-		return fmt.Errorf("name: %w", err)
-	}
-	if f.Value != nil {
-		if err := f.Value.Accept(v); err != nil {
-			return fmt.Errorf("value: %w", err)
-		}
-	}
-	return visitSuffixComments(v, f)
+	return visitSuffixComments(v, r)
 }
 
 // VisitWhile visits the [While] node then all children nodes and returns an

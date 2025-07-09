@@ -2,20 +2,26 @@ package ast
 
 import "github.com/TLBuf/papyrus/source"
 
-// ScriptVariable is a variable definition at the script level.
-type ScriptVariable struct {
+// Variable is a variable definition.
+type Variable struct {
 	// HasLeadingBlankLine is true if this node was preceded by a blank line.
 	HasLeadingBlankLine bool
 	// Type is the type literal that defines the type of the variable.
 	Type *TypeLiteral
 	// Name is the name of the variable.
 	Name *Identifier
-	// Value is the literal the script variable is assigned or nil if there isn't
-	// one (and the variable should have the default value for its type).
-	Value Literal
+	// Value is the expression the variable is assigned or nil if there isn't one
+	// (and the variable should have the default value for its type).
+	//
+	// Only variables defined at the script level (i.e. not in a function or
+	// event) may only set a [Literal] value.
+	Value Expression
 	// ConditionalLocations are the locations of the Conditional keywords that
 	// mark this variable as conditional (i.e. it can appear in conditions) or
 	// empty if this variable is not conditional.
+	//
+	// Only variables defined at the script level (i.e. not in a function or
+	// event) may set this field.
 	//
 	// Errata: This being multiple values is due to the official Papyrus parser
 	// accepting any number of flag tokens. They are all included here for
@@ -32,86 +38,40 @@ type ScriptVariable struct {
 }
 
 // LeadingBlankLine returns true if this node was preceded by a blank line.
-func (s *ScriptVariable) LeadingBlankLine() bool {
-	return s.HasLeadingBlankLine
+func (v *Variable) LeadingBlankLine() bool {
+	return v.HasLeadingBlankLine
 }
 
 // Accept calls the appropriate visitor method for the node.
-func (s *ScriptVariable) Accept(v Visitor) error {
-	return v.VisitScriptVariable(s)
+func (v *Variable) Accept(r Visitor) error {
+	return r.VisitVariable(v)
 }
 
 // Comments returns the [Comments] associated
 // with this node or nil if there are none.
-func (s *ScriptVariable) Comments() *Comments {
-	return s.NodeComments
+func (v *Variable) Comments() *Comments {
+	return v.NodeComments
 }
 
 // Location returns the source location of the node.
-func (s *ScriptVariable) Location() source.Location {
-	end := s.Name.Location()
-	if s.Value != nil {
-		end = s.Value.Location()
+func (v *Variable) Location() source.Location {
+	end := v.Name.Location()
+	if v.Value != nil {
+		end = v.Value.Location()
 	}
-	if len(s.ConditionalLocations) > 0 {
-		end = s.ConditionalLocations[len(s.ConditionalLocations)-1]
+	if len(v.ConditionalLocations) > 0 {
+		end = v.ConditionalLocations[len(v.ConditionalLocations)-1]
 	}
-	return source.Span(s.Type.Location(), end)
+	return source.Span(v.Type.Location(), end)
 }
 
-func (*ScriptVariable) statement() {}
+func (*Variable) statement() {}
 
-func (*ScriptVariable) scriptStatement() {}
+func (*Variable) scriptStatement() {}
 
-var _ ScriptStatement = (*ScriptVariable)(nil)
+func (*Variable) functionStatement() {}
 
-// FunctionVariable is a variable definition within the body of a function (or
-// event).
-type FunctionVariable struct {
-	// HasLeadingBlankLine is true if this node was preceded by a blank line.
-	HasLeadingBlankLine bool
-	// Type is the type literal that defines the type of the variable.
-	Type *TypeLiteral
-	// Name is the name of the variable.
-	Name *Identifier
-	// Value is the expression the variable is assigned or nil if there isn't one
-	// (and the variable should have the default value for its type).
-	Value Expression
-	// OperatorLocation is the location of the assignment operator.
-	//
-	// This is only valid if Value is not nil.
-	OperatorLocation source.Location
-	// NodeComments are the comments on before and/or after a node on the
-	// same line or nil if the node has no comments associated with it.
-	NodeComments *Comments
-}
-
-// LeadingBlankLine returns true if this node was preceded by a blank line.
-func (f *FunctionVariable) LeadingBlankLine() bool {
-	return f.HasLeadingBlankLine
-}
-
-// Accept calls the appropriate method on the [Visitor] for the node.
-func (f *FunctionVariable) Accept(v Visitor) error {
-	return v.VisitFunctionVariable(f)
-}
-
-// Comments returns the [Comments] associated
-// with this node or nil if there are none.
-func (f *FunctionVariable) Comments() *Comments {
-	return f.NodeComments
-}
-
-// Location returns the source location of the node.
-func (f *FunctionVariable) Location() source.Location {
-	if f.Value != nil {
-		return source.Span(f.Type.Location(), f.Value.Location())
-	}
-	return source.Span(f.Type.Location(), f.Name.Location())
-}
-
-func (*FunctionVariable) statement() {}
-
-func (*FunctionVariable) functionStatement() {}
-
-var _ FunctionStatement = (*FunctionVariable)(nil)
+var (
+	_ ScriptStatement   = (*Variable)(nil)
+	_ FunctionStatement = (*Variable)(nil)
+)

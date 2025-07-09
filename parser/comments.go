@@ -127,8 +127,6 @@ func nodeComments(node commentable) (*ast.Comments, error) {
 		ptr = &node.NodeComments
 	case *ast.Function:
 		ptr = &node.NodeComments
-	case *ast.FunctionVariable:
-		ptr = &node.NodeComments
 	case *ast.Identifier:
 		ptr = &node.NodeComments
 	case *ast.If:
@@ -149,8 +147,6 @@ func nodeComments(node commentable) (*ast.Comments, error) {
 		ptr = &node.NodeComments
 	case *ast.Return:
 		ptr = &node.NodeComments
-	case *ast.ScriptVariable:
-		ptr = &node.NodeComments
 	case *ast.State:
 		ptr = &node.NodeComments
 	case *ast.StringLiteral:
@@ -158,6 +154,8 @@ func nodeComments(node commentable) (*ast.Comments, error) {
 	case *ast.TypeLiteral:
 		ptr = &node.NodeComments
 	case *ast.Unary:
+		ptr = &node.NodeComments
+	case *ast.Variable:
 		ptr = &node.NodeComments
 	case *ast.While:
 		ptr = &node.NodeComments
@@ -336,12 +334,7 @@ func (v *nodes) VisitUnary(node *ast.Unary) error {
 	return nil
 }
 
-func (v *nodes) VisitScriptVariable(node *ast.ScriptVariable) error {
-	v.nodes = append(v.nodes, node)
-	return nil
-}
-
-func (v *nodes) VisitFunctionVariable(node *ast.FunctionVariable) error {
+func (v *nodes) VisitVariable(node *ast.Variable) error {
 	v.nodes = append(v.nodes, node)
 	return nil
 }

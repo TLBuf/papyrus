@@ -666,53 +666,27 @@ func (v *PostorderVisitor) VisitUnary(u *Unary) error {
 	return nil
 }
 
-// VisitScriptVariable visits the [ScriptVariable] node then all children nodes
+// VisitVariable visits the [Variable] node then all children nodes
 // and returns an error if any call returns an error.
-func (v *PostorderVisitor) VisitScriptVariable(s *ScriptVariable) error {
-	if err := visitPrefixComments(v, s); err != nil {
+func (v *PostorderVisitor) VisitVariable(r *Variable) error {
+	if err := visitPrefixComments(v, r); err != nil {
 		return err
 	}
-	if err := s.Type.Accept(v); err != nil {
+	if err := r.Type.Accept(v); err != nil {
 		return fmt.Errorf("type: %w", err)
 	}
-	if err := s.Name.Accept(v); err != nil {
+	if err := r.Name.Accept(v); err != nil {
 		return fmt.Errorf("name: %w", err)
 	}
-	if s.Value != nil {
-		if err := s.Value.Accept(v); err != nil {
+	if r.Value != nil {
+		if err := r.Value.Accept(v); err != nil {
 			return fmt.Errorf("value: %w", err)
 		}
 	}
-	if err := visitSuffixComments(v, s); err != nil {
+	if err := visitSuffixComments(v, r); err != nil {
 		return err
 	}
-	if err := v.Delegate.VisitScriptVariable(s); err != nil {
-		return fmt.Errorf("delegate: %w", err)
-	}
-	return nil
-}
-
-// VisitFunctionVariable visits the [FunctionVariable] node then all children
-// nodes and returns an error if any call returns an error.
-func (v *PostorderVisitor) VisitFunctionVariable(f *FunctionVariable) error {
-	if err := visitPrefixComments(v, f); err != nil {
-		return err
-	}
-	if err := f.Type.Accept(v); err != nil {
-		return fmt.Errorf("type: %w", err)
-	}
-	if err := f.Name.Accept(v); err != nil {
-		return fmt.Errorf("name: %w", err)
-	}
-	if f.Value != nil {
-		if err := f.Value.Accept(v); err != nil {
-			return fmt.Errorf("value: %w", err)
-		}
-	}
-	if err := visitSuffixComments(v, f); err != nil {
-		return err
-	}
-	if err := v.Delegate.VisitFunctionVariable(f); err != nil {
+	if err := v.Delegate.VisitVariable(r); err != nil {
 		return fmt.Errorf("delegate: %w", err)
 	}
 	return nil

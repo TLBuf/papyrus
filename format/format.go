@@ -4,6 +4,7 @@ package format
 import (
 	"bytes"
 	"fmt"
+	"go/types"
 	"io"
 	"strings"
 
@@ -1169,7 +1170,7 @@ func (f *formatter) VisitUnary(node *ast.Unary) error {
 	return f.visitSuffixComments(node)
 }
 
-func (f *formatter) VisitScriptVariable(node *ast.ScriptVariable) error {
+func (f *formatter) VisitVariable(node *ast.Variable) error {
 	if err := f.visitPrefixComments(node); err != nil {
 		return err
 	}
@@ -1202,36 +1203,6 @@ func (f *formatter) VisitScriptVariable(node *ast.ScriptVariable) error {
 		}
 		if err := f.str(f.keywords.Conditional); err != nil {
 			return fmt.Errorf("failed to format Conditional keyword: %w", err)
-		}
-	}
-	return f.visitSuffixComments(node)
-}
-
-func (f *formatter) VisitFunctionVariable(node *ast.FunctionVariable) error {
-	if err := f.visitPrefixComments(node); err != nil {
-		return err
-	}
-	if err := node.Type.Accept(f); err != nil {
-		return fmt.Errorf("failed to format Type: %w", err)
-	}
-	if err := f.space(); err != nil {
-		return fmt.Errorf("failed to format space: %w", err)
-	}
-	if err := node.Name.Accept(f); err != nil {
-		return fmt.Errorf("failed to format name: %w", err)
-	}
-	if node.Value != nil {
-		if err := f.space(); err != nil {
-			return fmt.Errorf("failed to format space: %w", err)
-		}
-		if err := f.str(token.Assign.Symbol()); err != nil {
-			return fmt.Errorf("failed to format assign operator: %w", err)
-		}
-		if err := f.space(); err != nil {
-			return fmt.Errorf("failed to format space: %w", err)
-		}
-		if err := node.Value.Accept(f); err != nil {
-			return fmt.Errorf("failed to format value: %w", err)
 		}
 	}
 	return f.visitSuffixComments(node)

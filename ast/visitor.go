@@ -70,10 +70,8 @@ type Visitor interface {
 	VisitTypeLiteral(*TypeLiteral) error
 	// VisitUnary visits a [Unary] node.
 	VisitUnary(*Unary) error
-	// VisitScriptVariable visits a [ScriptVariable] node.
-	VisitScriptVariable(*ScriptVariable) error
-	// VisitFunctionVariable visits a [FunctionVariable] node.
-	VisitFunctionVariable(*FunctionVariable) error
+	// VisitVariable visits a [Variable] node.
+	VisitVariable(*Variable) error
 	// VisitWhile visits a [While] node.
 	VisitWhile(*While) error
 	// VisitErrorStatement visits an [ErrorStatement] node.
