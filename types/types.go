@@ -1,8 +1,14 @@
 // Package types defines the Papyrus type system.
 package types
 
+import (
+	"fmt"
+	"strings"
+)
+
 // Type is the common interface for all types.
 type Type interface {
+	fmt.Stringer
 	types()
 }
 
@@ -12,59 +18,113 @@ type Scalar interface {
 	scalar()
 }
 
-// Bool represents the boolean (i.e. true or false) type.
-type Bool struct{}
+// BasicKind defines the various basic types.
+type BasicKind uint8
 
-func (Bool) types() {}
+const (
+	// BoolKind represents the basic boolean type.
+	BoolKind BasicKind = iota
+	// IntKind represents the basic integer type.
+	IntKind
+	// FloatKind represents the basic floating-point type.
+	FloatKind
+	// StringKind represents the basic string type.
+	StringKind
+)
 
-func (Bool) scalar() {}
+// Basic represents a single basic, built-in type.
+type Basic struct {
+	kind BasicKind
+	name string
+}
 
-var _ Scalar = Bool{}
+// Kind returns the kind of basic type.
+func (b *Basic) Kind() BasicKind {
+	return b.kind
+}
 
-// Int represents the signed 32-bit integer type.
-type Int struct{}
+// Name returns the standard name for the type.
+func (b *Basic) Name() string {
+	return b.name
+}
 
-func (Int) types() {}
+func (b *Basic) String() string {
+	return b.name
+}
 
-func (Int) scalar() {}
+func (*Basic) types() {}
 
-var _ Scalar = Int{}
+func (*Basic) scalar() {}
 
-// Float represents the signed 32-bit floating-point type.
-type Float struct{}
+var _ Scalar = (*Basic)(nil)
 
-func (Float) types() {}
+var (
+	// Bool is the boolean type.
+	Bool = &Basic{BoolKind, "Bool"}
+	// Int is the integer type.
+	Int = &Basic{IntKind, "Int"}
+	// Float is the floating-point type.
+	Float = &Basic{FloatKind, "Float"}
+	// String is the string type.
+	String = &Basic{StringKind, "String"}
+)
 
-func (Float) scalar() {}
+// NewNamed returns a new Named type with a given declared name.
+func NewNamed(name string) *Named {
+	return &Named{
+		name:       name,
+		normalized: strings.ToLower(name),
+	}
+}
 
-var _ Scalar = Float{}
-
-// String represents the string type.
-type String struct{}
-
-func (String) types() {}
-
-func (String) scalar() {}
-
-var _ Scalar = String{}
-
-// Object represents the object type.
-type Object struct {
+// Named represents a named typed (i.e. a script).
+type Named struct {
 	// Name is the normalized object type name.
-	Name string
+	name       string
+	normalized string
 }
 
-func (Object) types() {}
+// Name returns the declared name for the type.
+func (n *Named) Name() string {
+	return n.name
+}
 
-func (Object) scalar() {}
+// Normalized returns the normalized name for the type.
+func (n *Named) Normalized() string {
+	return n.normalized
+}
 
-var _ Scalar = Object{}
+func (n *Named) String() string {
+	return n.name
+}
 
-// Array represents the array type.
+func (*Named) types() {}
+
+func (*Named) scalar() {}
+
+var _ Scalar = (*Named)(nil)
+
+// Array represents an array type with an optionally known length.
 type Array struct {
-	ElementType Scalar
+	elem Scalar
+	len  uint8
 }
 
-func (Array) types() {}
+// Element returns the scalar type for elements of the array.
+func (a *Array) Element() Scalar {
+	return a.elem
+}
 
-var _ Type = Array{}
+// Length returns the length of the array in the
+// range [1, 128] if known or zero if not known.
+func (a *Array) Length() uint8 {
+	return a.len
+}
+
+func (a *Array) String() string {
+	return a.elem.String() + "[]"
+}
+
+func (*Array) types() {}
+
+var _ Type = (*Array)(nil)
