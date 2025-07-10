@@ -4,7 +4,6 @@ package format
 import (
 	"bytes"
 	"fmt"
-	"go/types"
 	"io"
 	"strings"
 
@@ -773,7 +772,7 @@ func (f *formatter) VisitBoolLiteral(node *ast.BoolLiteral) error {
 		return err
 	}
 	text := f.keywords.False
-	if node.Value {
+	if bytes.EqualFold(node.Text, []byte("true")) {
 		text = f.keywords.True
 	}
 	if err := f.str(text); err != nil {
@@ -1149,7 +1148,7 @@ func (f *formatter) VisitTypeLiteral(node *ast.TypeLiteral) error {
 	if err := f.str(text); err != nil {
 		return fmt.Errorf("failed to format type: %w", err)
 	}
-	if _, ok := node.Type.(types.Array); ok {
+	if node.IsArray {
 		if err := f.str("[]"); err != nil {
 			return fmt.Errorf("failed to format array type: %w", err)
 		}
@@ -1292,8 +1291,4 @@ func (f *formatter) bytes(text []byte) error {
 
 func trimRight(text []byte) []byte {
 	return bytes.TrimRight(text, " \r\n\t")
-}
-
-func trim(text []byte) []byte {
-	return bytes.Trim(text, " \r\n\t")
 }

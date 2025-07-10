@@ -2,6 +2,7 @@
 package lexer
 
 import (
+	"bytes"
 	"fmt"
 	"math"
 	"unicode/utf8"
@@ -180,9 +181,19 @@ func (l *Lexer) nextToken() (token.Token, error) {
 		}
 		tok = l.newTokenFrom(token.AssignAdd, start)
 	case '-':
+		// This section is a little complex since we have to determine whether the
+		// '-' is a Minus token or should be folded into a number token.
 		start := l.here()
 		if err := l.readChar(); err != nil {
 			return l.newToken(token.Illegal), err
+		}
+		if bytes.EqualFold(l.file.Text[l.position:l.position+3], []byte{'-', '0', 'x'}) {
+			// Papyrus doesn't allow hex integers to be negative directly, emit Minus.
+			return l.newTokenAt(token.Minus, start), nil
+		}
+		if isDigit(l.character) {
+			// If we see a number next, just fold it into the number token.
+			return l.readNumber(start)
 		}
 		if l.character != '=' {
 			return l.newTokenAt(token.Minus, start), nil
@@ -285,7 +296,7 @@ func (l *Lexer) nextToken() (token.Token, error) {
 		case isLetter(l.character):
 			return l.readIdentifier()
 		case isDigit(l.character):
-			return l.readNumber()
+			return l.readNumber(l.here())
 		default:
 			tok = l.newToken(token.Illegal)
 			if err := l.readChar(); err != nil {
@@ -364,8 +375,7 @@ func (l *Lexer) readIdentifier() (token.Token, error) {
 	return l.newTokenAt(token.LookupIdentifier(string(loc.Text(l.file))), loc), nil
 }
 
-func (l *Lexer) readNumber() (token.Token, error) {
-	start := l.here()
+func (l *Lexer) readNumber(start source.Location) (token.Token, error) {
 	first := l.character
 	if err := l.readChar(); err != nil {
 		return l.newToken(token.Illegal), err

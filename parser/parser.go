@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"slices"
-	"strconv"
 	"strings"
 
 	"github.com/TLBuf/papyrus/ast"
@@ -1657,37 +1656,6 @@ func (p *parser) ParseParenthetical() (*ast.Parenthetical, error) {
 
 func (p *parser) ParseLiteral() (ast.Literal, error) {
 	switch p.token.Kind {
-	case token.Minus:
-		// While this overlaps with a unary expression, we lump these together
-		// because there are some contexts where a literal is required which can
-		// include a sign, but where a Unary is not allowed.
-		sign := p.token
-		if err := p.consume(); err != nil {
-			return nil, err
-		}
-		switch p.token.Kind {
-		case token.IntLiteral:
-			lit, err := p.ParseIntLiteral()
-			if err != nil {
-				return nil, err
-			}
-			lit.NodeLocation = source.Span(sign.Location, lit.Location())
-			lit.Value = -lit.Value
-			return lit, err
-		case token.FloatLiteral:
-			lit, err := p.ParseFloatLiteral()
-			if err != nil {
-				return nil, err
-			}
-			lit.NodeLocation = source.Span(sign.Location, lit.Location())
-			lit.Value = -lit.Value
-			return lit, err
-		default:
-			return nil, unexpectedTokenError(
-				p.token,
-				token.IntLiteral,
-				token.FloatLiteral)
-		}
 	case token.True, token.False:
 		return p.ParseBoolLiteral()
 	case token.IntLiteral:
@@ -1711,39 +1679,29 @@ func (p *parser) ParseLiteral() (ast.Literal, error) {
 
 func (p *parser) ParseIntLiteral() (*ast.IntLiteral, error) {
 	node := &ast.IntLiteral{
+		Text:         p.token.Location.Text(p.file),
 		NodeLocation: p.token.Location,
 	}
 	if err := p.tryConsume(token.IntLiteral); err != nil {
 		return nil, err
 	}
-	text := strings.ToLower(string(node.Location().Text(p.file)))
-	val, err := strconv.ParseInt(text, 0, 32)
-	if err != nil {
-		return nil, newError(node.Location(), "failed to parse %q as an integer: %v", text, err)
-	}
-	node.Value = int(val)
 	return node, nil
 }
 
 func (p *parser) ParseFloatLiteral() (*ast.FloatLiteral, error) {
 	node := &ast.FloatLiteral{
+		Text:         p.token.Location.Text(p.file),
 		NodeLocation: p.token.Location,
 	}
 	if err := p.tryConsume(token.FloatLiteral); err != nil {
 		return nil, err
 	}
-	text := strings.ToLower(string(node.Location().Text(p.file)))
-	val, err := strconv.ParseFloat(text, 32)
-	if err != nil {
-		return nil, newError(node.Location(), "failed to parse %q as a float: %v", text, err)
-	}
-	node.Value = float32(val)
 	return node, nil
 }
 
 func (p *parser) ParseBoolLiteral() (*ast.BoolLiteral, error) {
 	node := &ast.BoolLiteral{
-		Value:        p.token.Kind == token.True,
+		Text:         p.token.Location.Text(p.file),
 		NodeLocation: p.token.Location,
 	}
 	if err := p.tryConsume(token.True, token.False); err != nil {
@@ -1754,7 +1712,7 @@ func (p *parser) ParseBoolLiteral() (*ast.BoolLiteral, error) {
 
 func (p *parser) ParseStringLiteral() (*ast.StringLiteral, error) {
 	node := &ast.StringLiteral{
-		Value:        string(p.token.Text[1 : p.token.Location.Length-1]),
+		Text:         p.token.Location.Text(p.file),
 		NodeLocation: p.token.Location,
 	}
 	if err := p.tryConsume(token.StringLiteral); err != nil {

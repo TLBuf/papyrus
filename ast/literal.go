@@ -4,8 +4,8 @@ import "github.com/TLBuf/papyrus/source"
 
 // BoolLiteral is a boolean literal (i.e. true or false).
 type BoolLiteral struct {
-	// Value is the parsed value of the string literal.
-	Value bool
+	// Text is the raw text of the literal.
+	Text []byte
 	// NodeLocation is the source location of the node.
 	NodeLocation source.Location
 	// NodeComments are the comments on before and/or after a node on the
@@ -37,8 +37,8 @@ var _ Literal = (*BoolLiteral)(nil)
 
 // IntLiteral is an integer literal.
 type IntLiteral struct {
-	// Value is the parsed value of the string literal.
-	Value int
+	// Text is the raw text of the literal.
+	Text []byte
 	// NodeLocation is the source location of the node.
 	NodeLocation source.Location
 	// NodeComments are the comments on before and/or after a node on the
@@ -70,8 +70,8 @@ var _ Literal = (*IntLiteral)(nil)
 
 // FloatLiteral is a floating-point literal.
 type FloatLiteral struct {
-	// Value is the parsed value of the string literal.
-	Value float32
+	// Text is the raw text of the literal.
+	Text []byte
 	// NodeLocation is the source location of the node.
 	NodeLocation source.Location
 	// NodeComments are the comments on before and/or after a node on the
@@ -103,8 +103,8 @@ var _ Literal = (*FloatLiteral)(nil)
 
 // StringLiteral is a string literal.
 type StringLiteral struct {
-	// Value is the parsed value of the string literal.
-	Value string
+	// Text is the raw text of the literal.
+	Text []byte
 	// NodeLocation is the source location of the node.
 	NodeLocation source.Location
 	// NodeComments are the comments on before and/or after a node on the
