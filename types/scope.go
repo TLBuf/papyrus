@@ -24,7 +24,7 @@ func NewScope(parent *Scope) *Scope {
 }
 
 // Parent returns the scope that encloses this
-// one or nil if this is the root scope.
+// one or nil if this is the Global scope.
 func (s *Scope) Parent() *Scope {
 	return s.parent
 }

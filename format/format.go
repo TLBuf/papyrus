@@ -772,7 +772,7 @@ func (f *formatter) VisitBoolLiteral(node *ast.BoolLiteral) error {
 		return err
 	}
 	text := f.keywords.False
-	if bytes.EqualFold(node.Text, []byte("true")) {
+	if bytes.EqualFold(node.Text(), []byte("true")) {
 		text = f.keywords.True
 	}
 	if err := f.str(text); err != nil {

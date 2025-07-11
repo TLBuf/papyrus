@@ -13,8 +13,10 @@ import (
 type Kind uint8
 
 const (
+	// InvalidKind represents an invalid literal.
+	InvalidKind Kind = iota
 	// BoolKind represents a boolean literal.
-	BoolKind Kind = iota
+	BoolKind
 	// IntKind represents an interger literal.
 	IntKind
 	// FloatKind represents a floating-point literal.
@@ -35,29 +37,37 @@ type Value interface {
 }
 
 // NewValue returns a new value built from an [ast.Literal] or returns
-// an error if the node text cannot be parsed as a valid value.
-func NewValue(node ast.Literal) (val Value, err error) {
+// an [InvalidKind] if the node text cannot be parsed as a valid value.
+func NewValue(node ast.Literal) (val Value) {
+	text := string(node.Text())
+	var err error
 	switch node := node.(type) {
 	case *ast.BoolLiteral:
 		v := false
-		v, err = parseBool(string(node.Text))
+		v, err = parseBool(text)
 		val = boolValue(v)
 	case *ast.IntLiteral:
 		v := int32(0)
-		v, err = parseInt(string(node.Text))
+		v, err = parseInt(text)
 		val = intValue(v)
 	case *ast.FloatLiteral:
 		v := float32(0)
-		v, err = parseFloat(string(node.Text))
+		v, err = parseFloat(text)
 		val = floatValue(v)
 	case *ast.StringLiteral:
 		v := ""
-		v, err = parseString(string(node.Text))
+		v, err = parseString(text)
 		val = stringValue(v)
 	default:
-		return nil, fmt.Errorf("cannot create a Value from literal of type %T", node)
+		err = fmt.Errorf("cannot create a Value from literal of type %T", node)
 	}
-	return val, err
+	if err != nil {
+		val = invalidValue{
+			text: text,
+			err:  err,
+		}
+	}
+	return val
 }
 
 func parseBool(text string) (bool, error) {
@@ -218,6 +228,25 @@ func asString(v Value) string {
 	}
 	panic(fmt.Sprintf("%v cannot be converted to a String", v))
 }
+
+type invalidValue struct {
+	text string
+	err  error
+}
+
+func (invalidValue) Kind() Kind {
+	return InvalidKind
+}
+
+func (v invalidValue) Error() error {
+	return v.err
+}
+
+func (v invalidValue) String() string {
+	return v.text
+}
+
+func (invalidValue) value() {}
 
 type boolValue bool
 

@@ -16,5 +16,8 @@ type Expression interface {
 type Literal interface {
 	Expression
 
+	// Text returns the raw text of the literal.
+	Text() []byte
+
 	literal()
 }

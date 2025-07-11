@@ -4,8 +4,8 @@ import "github.com/TLBuf/papyrus/source"
 
 // BoolLiteral is a boolean literal (i.e. true or false).
 type BoolLiteral struct {
-	// Text is the raw text of the literal.
-	Text []byte
+	// RawText is the raw text of the literal.
+	RawText []byte
 	// NodeLocation is the source location of the node.
 	NodeLocation source.Location
 	// NodeComments are the comments on before and/or after a node on the
@@ -24,6 +24,11 @@ func (l *BoolLiteral) Comments() *Comments {
 	return l.NodeComments
 }
 
+// Text returns the raw text of the literal.
+func (l *BoolLiteral) Text() []byte {
+	return l.RawText
+}
+
 // Location returns the source location of the node.
 func (l *BoolLiteral) Location() source.Location {
 	return l.NodeLocation
@@ -37,8 +42,8 @@ var _ Literal = (*BoolLiteral)(nil)
 
 // IntLiteral is an integer literal.
 type IntLiteral struct {
-	// Text is the raw text of the literal.
-	Text []byte
+	// RawText is the raw text of the literal.
+	RawText []byte
 	// NodeLocation is the source location of the node.
 	NodeLocation source.Location
 	// NodeComments are the comments on before and/or after a node on the
@@ -57,6 +62,11 @@ func (l *IntLiteral) Comments() *Comments {
 	return l.NodeComments
 }
 
+// Text returns the raw text of the literal.
+func (l *IntLiteral) Text() []byte {
+	return l.RawText
+}
+
 // Location returns the source location of the node.
 func (l *IntLiteral) Location() source.Location {
 	return l.NodeLocation
@@ -70,8 +80,8 @@ var _ Literal = (*IntLiteral)(nil)
 
 // FloatLiteral is a floating-point literal.
 type FloatLiteral struct {
-	// Text is the raw text of the literal.
-	Text []byte
+	// RawText is the raw text of the literal.
+	RawText []byte
 	// NodeLocation is the source location of the node.
 	NodeLocation source.Location
 	// NodeComments are the comments on before and/or after a node on the
@@ -90,6 +100,11 @@ func (l *FloatLiteral) Comments() *Comments {
 	return l.NodeComments
 }
 
+// Text returns the raw text of the literal.
+func (l *FloatLiteral) Text() []byte {
+	return l.RawText
+}
+
 // Location returns the source location of the node.
 func (l *FloatLiteral) Location() source.Location {
 	return l.NodeLocation
@@ -103,8 +118,8 @@ var _ Literal = (*FloatLiteral)(nil)
 
 // StringLiteral is a string literal.
 type StringLiteral struct {
-	// Text is the raw text of the literal.
-	Text []byte
+	// RawText is the raw text of the literal.
+	RawText []byte
 	// NodeLocation is the source location of the node.
 	NodeLocation source.Location
 	// NodeComments are the comments on before and/or after a node on the
@@ -123,6 +138,11 @@ func (l *StringLiteral) Comments() *Comments {
 	return l.NodeComments
 }
 
+// Text returns the raw text of the literal.
+func (l *StringLiteral) Text() []byte {
+	return l.RawText
+}
+
 // Location returns the source location of the node.
 func (l *StringLiteral) Location() source.Location {
 	return l.NodeLocation
@@ -136,6 +156,8 @@ var _ Literal = (*StringLiteral)(nil)
 
 // NoneLiteral is the none literal (i.e. the null object literal).
 type NoneLiteral struct {
+	// RawText is the raw text of the literal.
+	RawText []byte
 	// NodeLocation is the source location of the node.
 	NodeLocation source.Location
 	// NodeComments are the comments on before and/or after a node on the
@@ -152,6 +174,11 @@ func (l *NoneLiteral) Accept(v Visitor) error {
 // with this node or nil if there are none.
 func (l *NoneLiteral) Comments() *Comments {
 	return l.NodeComments
+}
+
+// Text returns the raw text of the literal.
+func (l *NoneLiteral) Text() []byte {
+	return l.RawText
 }
 
 // Location returns the source location of the node.

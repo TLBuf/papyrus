@@ -1679,7 +1679,7 @@ func (p *parser) ParseLiteral() (ast.Literal, error) {
 
 func (p *parser) ParseIntLiteral() (*ast.IntLiteral, error) {
 	node := &ast.IntLiteral{
-		Text:         p.token.Location.Text(p.file),
+		RawText:      p.token.Location.Text(p.file),
 		NodeLocation: p.token.Location,
 	}
 	if err := p.tryConsume(token.IntLiteral); err != nil {
@@ -1690,7 +1690,7 @@ func (p *parser) ParseIntLiteral() (*ast.IntLiteral, error) {
 
 func (p *parser) ParseFloatLiteral() (*ast.FloatLiteral, error) {
 	node := &ast.FloatLiteral{
-		Text:         p.token.Location.Text(p.file),
+		RawText:      p.token.Location.Text(p.file),
 		NodeLocation: p.token.Location,
 	}
 	if err := p.tryConsume(token.FloatLiteral); err != nil {
@@ -1701,7 +1701,7 @@ func (p *parser) ParseFloatLiteral() (*ast.FloatLiteral, error) {
 
 func (p *parser) ParseBoolLiteral() (*ast.BoolLiteral, error) {
 	node := &ast.BoolLiteral{
-		Text:         p.token.Location.Text(p.file),
+		RawText:      p.token.Location.Text(p.file),
 		NodeLocation: p.token.Location,
 	}
 	if err := p.tryConsume(token.True, token.False); err != nil {
@@ -1712,7 +1712,7 @@ func (p *parser) ParseBoolLiteral() (*ast.BoolLiteral, error) {
 
 func (p *parser) ParseStringLiteral() (*ast.StringLiteral, error) {
 	node := &ast.StringLiteral{
-		Text:         p.token.Location.Text(p.file),
+		RawText:      p.token.Location.Text(p.file),
 		NodeLocation: p.token.Location,
 	}
 	if err := p.tryConsume(token.StringLiteral); err != nil {
@@ -1723,6 +1723,7 @@ func (p *parser) ParseStringLiteral() (*ast.StringLiteral, error) {
 
 func (p *parser) ParseNoneLiteral() (*ast.NoneLiteral, error) {
 	node := &ast.NoneLiteral{
+		RawText:      p.token.Location.Text(p.file),
 		NodeLocation: p.token.Location,
 	}
 	if err := p.tryConsume(token.None); err != nil {
