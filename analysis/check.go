@@ -2,6 +2,7 @@ package analysis
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/TLBuf/papyrus/analysis/symbol"
@@ -43,17 +44,22 @@ func Check(scripts ...*ast.Script) (*Info, error) {
 	checker := &checker{
 		global: global,
 		info: &Info{
-			Types:   make(map[ast.Expression]types.Type),
-			Values:  make(map[ast.Literal]literal.Value),
-			Symbols: make(map[*ast.Identifier]*symbol.Symbol),
-			Scopes:  make(map[ast.Node]*symbol.Scope),
-			Global:  global,
+			Types:  make(map[ast.Expression]types.Type),
+			Values: make(map[ast.Literal]literal.Value),
+			Scopes: make(map[ast.Node]*symbol.Scope),
+			Global: global,
 		},
 		typeNames: make(map[string]types.Type),
 		scope:     global,
 	}
 	for _, t := range []types.Type{types.Bool, types.BoolArray, types.Int, types.IntArray, types.Float, types.FloatArray, types.String, types.StringArray} {
 		checker.typeNames[normalize(t.Name())] = t
+	}
+	if err := sortScripts(scripts); err != nil {
+		return nil, fmt.Errorf("check script inheritance: %w", err)
+	}
+	for _, script := range scripts {
+		global.Symbol(script)
 	}
 	if err := checker.check(scripts); err != nil {
 		return nil, err
@@ -90,6 +96,43 @@ func (c *checker) leaveScope() {
 
 func (c *checker) check(scripts []*ast.Script) error {
 	// TODO: Implement.
+	return nil
+}
+
+func sortScripts(scripts []*ast.Script) error {
+	slices.SortFunc(scripts, func(a, b *ast.Script) int {
+		return strings.Compare(normalize(a.Name.Text), normalize(b.Name.Text))
+	})
+	byName := make(map[string]*ast.Script, len(scripts))
+	for _, s := range scripts {
+		byName[normalize(s.Name.Text)] = s
+	}
+	seen := make(map[*ast.Script]struct{}, len(scripts))
+	children := make(map[*ast.Script][]*ast.Script, len(scripts))
+	queue, sorted := make([]*ast.Script, 0, len(scripts)), make([]*ast.Script, 0, len(scripts))
+	for _, s := range scripts {
+		if s.Parent == nil {
+			queue = append(queue, s)
+			continue
+		}
+		parent, ok := byName[normalize(s.Parent.Text)]
+		if !ok {
+			return fmt.Errorf("%v extends unknown script %q", s, s.Parent.Text)
+		}
+		children[parent] = append(children[parent], s)
+	}
+	for len(queue) > 0 {
+		s := queue[0]
+		queue = queue[1:]
+		sorted, seen[s] = append(sorted, s), struct{}{}
+		for _, child := range children[s] {
+			if _, ok := seen[child]; ok {
+				return fmt.Errorf("%v extends a script that forms a cycle", child)
+			}
+			sorted, seen[child] = append(sorted, child), struct{}{}
+		}
+	}
+	copy(scripts, sorted)
 	return nil
 }
 

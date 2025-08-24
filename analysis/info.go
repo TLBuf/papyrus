@@ -15,9 +15,6 @@ type Info struct {
 	// Values maps literals to their values.
 	Values map[ast.Literal]literal.Value
 
-	// Entities maps identifiers to the entity they identify.
-	Symbols map[*ast.Identifier]*symbol.Symbol
-
 	// Scopes maps AST nodes to the scopes they define
 	//
 	// Scopes nest, with the Global scope being the outermost scope, enclosing
