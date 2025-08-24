@@ -70,7 +70,7 @@ func WithTabWidth(w int) SnippetOption {
 //
 // An error is returns if `width` is less than [MinimumSnippetWidth] or `height`
 // is less than [MinimumSnippetHeight].
-func (r Location) Snippet(file File, width, height int, opts ...SnippetOption) (Snippet, error) {
+func (r Location) Snippet(file *File, width, height int, opts ...SnippetOption) (Snippet, error) {
 	options := snippetOptions{
 		tabWidth: DefaultTabWidth,
 	}
@@ -94,7 +94,7 @@ func (r Location) Snippet(file File, width, height int, opts ...SnippetOption) (
 	return snippet, nil
 }
 
-func formatSingleLineSnippet(file File, r Location, width, tabWidth int) Snippet {
+func formatSingleLineSnippet(file *File, r Location, width, tabWidth int) Snippet {
 	runes := textForSnippet(file, r)
 	chunks, start, end := fitLine(runes, int(r.StartColumn), int(r.EndColumn), width, tabWidth)
 	return Snippet{
@@ -104,7 +104,7 @@ func formatSingleLineSnippet(file File, r Location, width, tabWidth int) Snippet
 	}
 }
 
-func formatMultiLineSnippet(file File, r Location, width, height, tabWidth int) Snippet {
+func formatMultiLineSnippet(file *File, r Location, width, height, tabWidth int) Snippet {
 	text := splitLines(textForSnippet(file, r))
 	first, start, _ := fitLine(text[0], int(r.StartColumn), 0, width, tabWidth)
 	last, end, _ := fitLine(text[len(text)-1], int(r.EndColumn), 0, width, tabWidth)
@@ -143,7 +143,7 @@ func formatMultiLineSnippet(file File, r Location, width, height, tabWidth int) 
 	}
 }
 
-func textForSnippet(f File, r Location) []rune {
+func textForSnippet(f *File, r Location) []rune {
 	return []rune(string(f.Text[r.ByteOffset-r.PreambleLength : r.ByteOffset+r.Length+r.PostambleLength]))
 }
 

@@ -6,7 +6,7 @@ import "github.com/TLBuf/papyrus/source"
 // Script represents a single Papyrus script file.
 type Script struct {
 	// File is the source file for this script.
-	File source.File
+	File *source.File
 	// Name is the name of script.
 	Name *Identifier
 	// Parent is the name of the script this one extends from or nil if this

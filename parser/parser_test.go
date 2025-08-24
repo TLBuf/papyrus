@@ -25,7 +25,7 @@ func TestHeader(t *testing.T) {
 					Length:     10,
 				},
 				Name: &ast.Identifier{
-					Normalized: "foo",
+					Text: "Foo",
 					NodeLocation: source.Location{
 						ByteOffset: 11,
 						Length:     3,
@@ -46,7 +46,7 @@ func TestHeader(t *testing.T) {
 					Length:     10,
 				},
 				Name: &ast.Identifier{
-					Normalized: "foo",
+					Text: "Foo",
 					NodeLocation: source.Location{
 						ByteOffset: 11,
 						Length:     3,
@@ -57,7 +57,7 @@ func TestHeader(t *testing.T) {
 					Length:     7,
 				},
 				Parent: &ast.Identifier{
-					Normalized: "bar",
+					Text: "Bar",
 					NodeLocation: source.Location{
 						ByteOffset: 23,
 						Length:     3,
@@ -78,7 +78,7 @@ func TestHeader(t *testing.T) {
 					Length:     10,
 				},
 				Name: &ast.Identifier{
-					Normalized: "foo",
+					Text: "Foo",
 					NodeLocation: source.Location{
 						ByteOffset: 11,
 						Length:     3,
@@ -103,7 +103,7 @@ func TestHeader(t *testing.T) {
 					Length:     10,
 				},
 				Name: &ast.Identifier{
-					Normalized: "foo",
+					Text: "Foo",
 					NodeLocation: source.Location{
 						ByteOffset: 11,
 						Length:     3,
@@ -128,7 +128,7 @@ func TestHeader(t *testing.T) {
 					Length:     10,
 				},
 				Name: &ast.Identifier{
-					Normalized: "foo",
+					Text: "Foo",
 					NodeLocation: source.Location{
 						ByteOffset: 11,
 						Length:     3,
@@ -157,7 +157,7 @@ func TestHeader(t *testing.T) {
 					Length:     10,
 				},
 				Name: &ast.Identifier{
-					Normalized: "foo",
+					Text: "Foo",
 					NodeLocation: source.Location{
 						ByteOffset: 11,
 						Length:     3,
@@ -186,7 +186,7 @@ func TestHeader(t *testing.T) {
 					Length:     10,
 				},
 				Name: &ast.Identifier{
-					Normalized: "foo",
+					Text: "Foo",
 					NodeLocation: source.Location{
 						ByteOffset: 11,
 						Length:     3,
@@ -225,7 +225,7 @@ func TestHeader(t *testing.T) {
 					Length:     10,
 				},
 				Name: &ast.Identifier{
-					Normalized: "foo",
+					Text: "Foo",
 					NodeLocation: source.Location{
 						ByteOffset: 11,
 						Length:     3,
@@ -236,7 +236,7 @@ func TestHeader(t *testing.T) {
 					Length:     7,
 				},
 				Parent: &ast.Identifier{
-					Normalized: "bar",
+					Text: "Bar",
 					NodeLocation: source.Location{
 						ByteOffset: 23,
 						Length:     3,
@@ -276,7 +276,7 @@ func TestHeader(t *testing.T) {
 					Length:     10,
 				},
 				Name: &ast.Identifier{
-					Normalized: "foo",
+					Text: "Foo",
 					NodeLocation: source.Location{
 						ByteOffset: 11,
 						Length:     3,
@@ -289,7 +289,7 @@ func TestHeader(t *testing.T) {
 							Length:     6,
 						},
 						Name: &ast.Identifier{
-							Normalized: "bar",
+							Text: "Bar",
 							NodeLocation: source.Location{
 								ByteOffset: 25,
 								Length:     3,
@@ -314,7 +314,7 @@ func TestHeader(t *testing.T) {
 					Length:     10,
 				},
 				Name: &ast.Identifier{
-					Normalized: "foo",
+					Text: "Foo",
 					NodeLocation: source.Location{
 						ByteOffset: 11,
 						Length:     3,
@@ -327,7 +327,7 @@ func TestHeader(t *testing.T) {
 							Length:     5,
 						},
 						Name: &ast.Identifier{
-							Normalized: "bar",
+							Text: "Bar",
 							NodeLocation: source.Location{
 								ByteOffset: 24,
 								Length:     3,
@@ -356,7 +356,7 @@ func TestHeader(t *testing.T) {
 					Length:     10,
 				},
 				Name: &ast.Identifier{
-					Normalized: "foo",
+					Text: "Foo",
 					NodeLocation: source.Location{
 						ByteOffset: 11,
 						Length:     3,
@@ -370,7 +370,7 @@ func TestHeader(t *testing.T) {
 							Length:     5,
 						},
 						Name: &ast.Identifier{
-							Normalized: "bar",
+							Text: "Bar",
 							NodeLocation: source.Location{
 								ByteOffset: 29,
 								Length:     3,
@@ -396,7 +396,7 @@ func TestHeader(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			got, err := parser.Parse(source.File{Text: []byte(test.input)})
+			got, err := parser.Parse(&source.File{Text: []byte(test.input)})
 			if err != nil {
 				t.Errorf("ParseScript() returned an unexpected error: %v", err)
 			}

@@ -2,7 +2,6 @@
 package parser
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"slices"
@@ -53,7 +52,7 @@ func WithRecovery(enabled bool) Option {
 
 // Parse returns the file parsed as an [*ast.Script] or
 // an [Error] if parsing encountered one or more issues.
-func Parse(file source.File, opts ...Option) (*ast.Script, error) {
+func Parse(file *source.File, opts ...Option) (*ast.Script, error) {
 	lex, err := lexer.New(file)
 	if err != nil {
 		var lerr lexer.Error
@@ -137,7 +136,7 @@ func Parse(file source.File, opts ...Option) (*ast.Script, error) {
 }
 
 type parser struct {
-	file source.File
+	file *source.File
 	lex  *lexer.Lexer
 
 	token     token.Token
@@ -1248,8 +1247,7 @@ func (p *parser) ParseProperty(typeLiteral *ast.TypeLiteral) (*ast.Property, err
 			return nil, err
 		}
 	}
-	switch first.Name.Normalized {
-	case "get":
+	if strings.EqualFold(first.Name.Text, "get") {
 		if first.ReturnType == nil {
 			return nil, newError(
 				first.Name.Location(),
@@ -1268,7 +1266,7 @@ func (p *parser) ParseProperty(typeLiteral *ast.TypeLiteral) (*ast.Property, err
 			)
 		}
 		node.Get = first
-	case "set":
+	} else if strings.EqualFold(first.Name.Text, "set") {
 		if first.ReturnType != nil {
 			return nil, newError(
 				first.ReturnType.Location(),
@@ -1294,79 +1292,78 @@ func (p *parser) ParseProperty(typeLiteral *ast.TypeLiteral) (*ast.Property, err
 			)
 		}
 		node.Set = first
-	default:
+	} else {
 		return nil, newError(
 			first.Location(),
 			"expected 'Get' or 'Set' function for property, but found '%s'",
 			first.Name.Location().Text(p.file),
 		)
 	}
-	if second != nil {
-		switch second.Name.Normalized {
-		case "get":
-			if node.Get != nil {
-				return nil, newError(second.Location(), "expected exactly one 'Get' function, but found two")
-			}
-			if second.ReturnType == nil {
-				return nil, newError(
-					second.Name.Location(),
-					"expected '%s' to have a return type of %s, but found none",
-					second.Name.Location().Text(p.file),
-					node.Type.Location().Text(p.file),
-				)
-			}
-			if len(second.ParameterList) != 0 {
-				loc := source.Span(
-					second.ParameterList[0].Location(),
-					second.ParameterList[len(second.ParameterList)-1].Location(),
-				)
-				return nil, newError(
-					loc,
-					"expected '%s' to have no parameters, but found %d",
-					second.Name.Location().Text(p.file),
-					len(second.ParameterList),
-				)
-			}
-			node.Get = second
-		case "set":
-			if node.Set != nil {
-				return nil, newError(second.Location(), "expected exactly one 'Set' function, but found two")
-			}
-			if second.ReturnType != nil {
-				return nil, newError(
-					second.ReturnType.Location(),
-					"expected '%s' to have no return type, but found %s",
-					second.Name.Location().Text(p.file),
-					second.ReturnType.Location().Text(p.file),
-				)
-			}
-			if len(second.ParameterList) == 0 {
-				return nil, newError(
-					second.Name.Location(),
-					"expected '%s' to have one parameter, but found none",
-					second.Name.Location().Text(p.file),
-				)
-			}
-			if len(second.ParameterList) > 1 {
-				loc := source.Span(
-					second.ParameterList[0].Location(),
-					second.ParameterList[len(second.ParameterList)-1].Location(),
-				)
-				return nil, newError(
-					loc,
-					"expected '%s' to have one parameter, but found %d",
-					second.Name.Location().Text(p.file),
-					len(second.ParameterList),
-				)
-			}
-			node.Set = second
-		default:
+	if second == nil {
+		// Do nothing
+	} else if strings.EqualFold(second.Name.Text, "get") {
+		if node.Get != nil {
+			return nil, newError(second.Location(), "expected exactly one 'Get' function, but found two")
+		}
+		if second.ReturnType == nil {
 			return nil, newError(
-				second.Location(),
-				"expected 'Get' or 'Set' function for property, but found '%s'",
+				second.Name.Location(),
+				"expected '%s' to have a return type of %s, but found none",
+				second.Name.Location().Text(p.file),
+				node.Type.Location().Text(p.file),
+			)
+		}
+		if len(second.ParameterList) != 0 {
+			loc := source.Span(
+				second.ParameterList[0].Location(),
+				second.ParameterList[len(second.ParameterList)-1].Location(),
+			)
+			return nil, newError(
+				loc,
+				"expected '%s' to have no parameters, but found %d",
+				second.Name.Location().Text(p.file),
+				len(second.ParameterList),
+			)
+		}
+		node.Get = second
+	} else if strings.EqualFold(second.Name.Text, "set") {
+		if node.Set != nil {
+			return nil, newError(second.Location(), "expected exactly one 'Set' function, but found two")
+		}
+		if second.ReturnType != nil {
+			return nil, newError(
+				second.ReturnType.Location(),
+				"expected '%s' to have no return type, but found %s",
+				second.Name.Location().Text(p.file),
+				second.ReturnType.Location().Text(p.file),
+			)
+		}
+		if len(second.ParameterList) == 0 {
+			return nil, newError(
+				second.Name.Location(),
+				"expected '%s' to have one parameter, but found none",
 				second.Name.Location().Text(p.file),
 			)
 		}
+		if len(second.ParameterList) > 1 {
+			loc := source.Span(
+				second.ParameterList[0].Location(),
+				second.ParameterList[len(second.ParameterList)-1].Location(),
+			)
+			return nil, newError(
+				loc,
+				"expected '%s' to have one parameter, but found %d",
+				second.Name.Location().Text(p.file),
+				len(second.ParameterList),
+			)
+		}
+		node.Set = second
+	} else {
+		return nil, newError(
+			second.Location(),
+			"expected 'Get' or 'Set' function for property, but found '%s'",
+			second.Name.Location().Text(p.file),
+		)
 	}
 	node.EndKeywordLocation = p.token.Location
 	if err := p.tryConsume(token.EndProperty); err != nil {
@@ -1407,7 +1404,7 @@ func (p *parser) ParseScriptVariable(typeLiteral *ast.TypeLiteral) (*ast.Variabl
 
 func (p *parser) ParseIdentifier() (*ast.Identifier, error) {
 	node := &ast.Identifier{
-		Normalized:   string(bytes.ToLower(p.token.Text)),
+		Text:         string(p.token.Text),
 		NodeLocation: p.token.Location,
 	}
 	if err := p.tryConsume(token.Identifier, token.Self, token.Parent, token.Length); err != nil {
@@ -1419,7 +1416,7 @@ func (p *parser) ParseIdentifier() (*ast.Identifier, error) {
 func (p *parser) ParseTypeLiteral() (node *ast.TypeLiteral, err error) {
 	node = &ast.TypeLiteral{
 		Name: &ast.Identifier{
-			Normalized:   string(bytes.ToLower(p.token.Text)),
+			Text:         string(p.token.Text),
 			NodeLocation: p.token.Location,
 		},
 	}

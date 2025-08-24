@@ -35,19 +35,19 @@ type Location struct {
 }
 
 // Text returns the text this range represents.
-func (l Location) Text(file File) []byte {
+func (l Location) Text(file *File) []byte {
 	ln := len(file.Text)
 	return file.Text[min(int(l.ByteOffset), ln):min(int(l.ByteOffset+l.Length), ln)]
 }
 
 // Preamble returns the text on the same line before this range.
-func (l Location) Preamble(file File) []byte {
+func (l Location) Preamble(file *File) []byte {
 	ln := len(file.Text)
 	return file.Text[min(int(l.ByteOffset-l.PreambleLength), ln):min(int(l.ByteOffset), ln)]
 }
 
 // Postamble returns the text on the same line after this range.
-func (l Location) Postamble(file File) []byte {
+func (l Location) Postamble(file *File) []byte {
 	ln := len(file.Text)
 	return file.Text[min(int(l.ByteOffset+l.Length), ln):min(int(l.ByteOffset+l.Length+l.PostambleLength), ln)]
 }

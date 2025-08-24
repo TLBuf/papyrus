@@ -74,7 +74,7 @@ func formatFile(path string) error {
 	if err != nil {
 		return fmt.Errorf("failed to read %q: %w", path, err)
 	}
-	file := source.File{
+	file := &source.File{
 		Path: path,
 		Text: text,
 	}

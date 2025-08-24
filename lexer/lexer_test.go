@@ -101,7 +101,7 @@ EndState ; Comment
 	}
 	// Papyrus uses Windows line endings.
 	text = strings.ReplaceAll(text, "\n", "\r\n")
-	file := source.File{
+	file := &source.File{
 		Text: []byte(text),
 	}
 	lex, err := lexer.New(file)

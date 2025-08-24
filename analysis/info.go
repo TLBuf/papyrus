@@ -1,20 +1,22 @@
-package types
+package analysis
 
 import (
+	"github.com/TLBuf/papyrus/analysis/symbol"
 	"github.com/TLBuf/papyrus/ast"
 	"github.com/TLBuf/papyrus/literal"
+	"github.com/TLBuf/papyrus/types"
 )
 
 // Info holds type information for a type-checked set of scripts.
 type Info struct {
 	// Types maps expressions to their types.
-	Types map[ast.Expression]Type
+	Types map[ast.Expression]types.Type
 
 	// Values maps literals to their values.
 	Values map[ast.Literal]literal.Value
 
 	// Entities maps identifiers to the entity they identify.
-	Entities map[*ast.Identifier]Entity
+	Symbols map[*ast.Identifier]*symbol.Symbol
 
 	// Scopes maps AST nodes to the scopes they define
 	//
@@ -33,8 +35,8 @@ type Info struct {
 	//    - [*ast.ElseIf]
 	//    - [*ast.While]
 	//
-	Scopes map[ast.Node]*Scope
+	Scopes map[ast.Node]*symbol.Scope
 
 	// Global is the outermost scope for all checked scripts.
-	Global *Scope
+	Global *symbol.Scope
 }

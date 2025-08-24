@@ -8,20 +8,20 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-var file = source.File{
+var file = &source.File{
 	Text: []byte(strings.Repeat("12345678901234567890123456789012345678\r\n", 6)),
 }
 
 func TestSnippet(t *testing.T) {
 	tests := []struct {
 		name     string
-		file     source.File
+		file     *source.File
 		location source.Location
 		want     source.Snippet
 	}{
 		{
 			"point_single_line_fits",
-			source.File{Text: []byte("1234567890\r\n")},
+			&source.File{Text: []byte("1234567890\r\n")},
 			source.Location{
 				ByteOffset:      2,
 				Length:          1,
@@ -44,7 +44,7 @@ func TestSnippet(t *testing.T) {
 		},
 		{
 			"point_single_line_tabs",
-			source.File{Text: []byte("123\t4567890\r\n")},
+			&source.File{Text: []byte("123\t4567890\r\n")},
 			source.Location{
 				ByteOffset:      2,
 				Length:          3,
@@ -140,7 +140,7 @@ func TestSnippet(t *testing.T) {
 		},
 		{
 			"range_single_line_fits",
-			source.File{Text: []byte("1234567890\r\n")},
+			&source.File{Text: []byte("1234567890\r\n")},
 			source.Location{
 				ByteOffset:      2,
 				Length:          5,

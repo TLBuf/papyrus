@@ -91,7 +91,7 @@ func Format(w io.Writer, script *ast.Script, opts ...Option) error {
 }
 
 type formatter struct {
-	file            source.File
+	file            *source.File
 	out             io.Writer
 	indentWidth     int
 	useTabs         bool
@@ -1128,7 +1128,7 @@ func (f *formatter) VisitTypeLiteral(node *ast.TypeLiteral) error {
 		return err
 	}
 	text := ""
-	switch kind := token.LookupIdentifier(node.Name.Normalized); kind {
+	switch kind := token.LookupIdentifier(node.Name.Text); kind {
 	case token.Bool:
 		text = f.keywords.Bool
 	case token.Int:

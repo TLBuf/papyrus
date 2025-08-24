@@ -28,7 +28,7 @@ const (
 
 // Lexer provides the ability to lex a Papyrus script.
 type Lexer struct {
-	file            source.File
+	file            *source.File
 	position        uint32
 	next            uint32
 	column          uint32
@@ -42,7 +42,7 @@ type Lexer struct {
 }
 
 // New returns a new [Lexer] ready to read tokens from a sorce file.
-func New(file source.File) (*Lexer, error) {
+func New(file *source.File) (*Lexer, error) {
 	if len(file.Text) > math.MaxUint32 {
 		return nil, Error{
 			Err: fmt.Errorf("input exceeds the maximum number of bytes (%d, 4GB)", math.MaxUint32),

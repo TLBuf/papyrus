@@ -4,8 +4,8 @@ import "github.com/TLBuf/papyrus/source"
 
 // Identifier represents an arbitrary identifier.
 type Identifier struct {
-	// Normalized is the normalized text of the identifier.
-	Normalized string
+	// Text is the text of the identifier.
+	Text string
 	// NodeLocation is the source location of the node.
 	NodeLocation source.Location
 	// NodeComments are the comments on before and/or after a node on the

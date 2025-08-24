@@ -73,7 +73,7 @@ func NewValue(node ast.Literal) (val Value) {
 func parseBool(text string) (bool, error) {
 	v, err := strconv.ParseBool(strings.ToLower(text))
 	if err != nil {
-		return false, fmt.Errorf("failed to parse %q as a boolean value: %w", text, err)
+		return false, fmt.Errorf("parse %q as a boolean value: %w", text, err)
 	}
 	return v, nil
 }
@@ -81,7 +81,7 @@ func parseBool(text string) (bool, error) {
 func parseInt(text string) (int32, error) {
 	v, err := strconv.ParseInt(strings.ToLower(text), 0, 32)
 	if err != nil {
-		return 0, fmt.Errorf("failed to parse %q as a 32-bit integer value: %w", text, err)
+		return 0, fmt.Errorf("parse %q as a 32-bit integer value: %w", text, err)
 	}
 	return int32(v), nil
 }
@@ -89,7 +89,7 @@ func parseInt(text string) (int32, error) {
 func parseFloat(text string) (float32, error) {
 	v, err := strconv.ParseFloat(text, 32)
 	if err != nil {
-		return 0.0, fmt.Errorf("failed to parse %q as a 32-bit floating-point value: %w", text, err)
+		return 0.0, fmt.Errorf("parse %q as a 32-bit floating-point value: %w", text, err)
 	}
 	return float32(v), nil
 }
@@ -97,7 +97,7 @@ func parseFloat(text string) (float32, error) {
 func parseString(text string) (string, error) {
 	v, err := strconv.Unquote(text)
 	if err != nil {
-		return "", fmt.Errorf("failed to parse %q as a string value: %w", text, err)
+		return "", fmt.Errorf("parse %q as a string value: %w", text, err)
 	}
 	return v, nil
 }
