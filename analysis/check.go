@@ -59,7 +59,12 @@ func Check(scripts ...*ast.Script) (*Info, error) {
 		return nil, fmt.Errorf("check script inheritance: %w", err)
 	}
 	for _, script := range scripts {
-		global.Symbol(script)
+		symbol, err := global.Symbol(script)
+		if err != nil {
+			return nil, fmt.Errorf("%v symbol: %w", script, err)
+		}
+		checker.info.Scopes[script] = symbol.Scope()
+		checker.typeNames[symbol.Normalized()] = symbol.Type()
 	}
 	if err := checker.check(scripts); err != nil {
 		return nil, err
