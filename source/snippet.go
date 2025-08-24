@@ -144,7 +144,7 @@ func formatMultiLineSnippet(file *File, r Location, width, height, tabWidth int)
 }
 
 func textForSnippet(f *File, r Location) []rune {
-	return []rune(string(f.Text[r.ByteOffset-r.PreambleLength : r.ByteOffset+r.Length+r.PostambleLength]))
+	return []rune(string(f.content[r.ByteOffset-r.PreambleLength : r.ByteOffset+r.Length+r.PostambleLength]))
 }
 
 func splitLines(text []rune) [][]rune {

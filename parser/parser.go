@@ -417,7 +417,7 @@ func (p *parser) ParseScript() (*ast.Script, error) {
 	node := &ast.Script{
 		File: p.file,
 		NodeLocation: source.Location{
-			Length:      uint32(len(p.file.Text)), // #nosec G115 -- Checked at start of parser.Parse via lexer.New.
+			Length:      p.file.Len(),
 			StartLine:   1,
 			StartColumn: 1,
 		},

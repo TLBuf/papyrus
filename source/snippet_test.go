@@ -1,16 +1,14 @@
 package source_test
 
 import (
-	"strings"
+	"bytes"
 	"testing"
 
 	"github.com/TLBuf/papyrus/source"
 	"github.com/google/go-cmp/cmp"
 )
 
-var file = &source.File{
-	Text: []byte(strings.Repeat("12345678901234567890123456789012345678\r\n", 6)),
-}
+var file = newFile(bytes.Repeat([]byte("12345678901234567890123456789012345678\r\n"), 6))
 
 func TestSnippet(t *testing.T) {
 	tests := []struct {
@@ -21,7 +19,7 @@ func TestSnippet(t *testing.T) {
 	}{
 		{
 			"point_single_line_fits",
-			&source.File{Text: []byte("1234567890\r\n")},
+			newFile([]byte("1234567890\r\n")),
 			source.Location{
 				ByteOffset:      2,
 				Length:          1,
@@ -44,7 +42,7 @@ func TestSnippet(t *testing.T) {
 		},
 		{
 			"point_single_line_tabs",
-			&source.File{Text: []byte("123\t4567890\r\n")},
+			newFile([]byte("123\t4567890\r\n")),
 			source.Location{
 				ByteOffset:      2,
 				Length:          3,
@@ -140,7 +138,7 @@ func TestSnippet(t *testing.T) {
 		},
 		{
 			"range_single_line_fits",
-			&source.File{Text: []byte("1234567890\r\n")},
+			newFile([]byte("1234567890\r\n")),
 			source.Location{
 				ByteOffset:      2,
 				Length:          5,
@@ -377,4 +375,9 @@ func TestSnippet(t *testing.T) {
 			}
 		})
 	}
+}
+
+func newFile(content []byte) *source.File {
+	f, _ := source.NewFile("test.psc", content)
+	return f
 }

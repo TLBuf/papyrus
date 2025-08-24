@@ -70,36 +70,36 @@ func formatFiles(paths ...string) error {
 }
 
 func formatFile(path string) error {
-	text, err := os.ReadFile(filepath.Clean(path))
+	content, err := os.ReadFile(filepath.Clean(path))
 	if err != nil {
-		return fmt.Errorf("failed to read %q: %w", path, err)
+		return fmt.Errorf("read %q: %w", path, err)
 	}
-	file := &source.File{
-		Path: path,
-		Text: text,
+	file, err := source.NewFile(path, content)
+	if err != nil {
+		return fmt.Errorf("create file %q: %w", path, err)
 	}
 	script, err := parser.Parse(file, parser.WithComments(true))
 	if err != nil {
 		var perr parser.Error
 		if !errors.As(err, &perr) {
-			return fmt.Errorf("failed to extract a parser.Error from: %w", err)
+			return fmt.Errorf("extract a parser.Error from: %w", err)
 		}
 		snip, serr := perr.Location.Snippet(file, 80, 9)
 		if serr != nil {
-			return fmt.Errorf("failed to create snippet for parser error: %w: %w", serr, err)
+			return fmt.Errorf("create snippet for parser error: %w: %w", serr, err)
 		}
 		var sb strings.Builder
 		if err := source.Format(&sb, snip); err != nil {
-			return fmt.Errorf("failed to format snippet: %w", err)
+			return fmt.Errorf("format snippet: %w", err)
 		}
-		return fmt.Errorf("failed to parse: %w\n\n%s %s\n%s", perr.Err, file.Path, perr.Location, sb.String())
+		return fmt.Errorf("parse: %w\n\n%s %s\n%s", perr.Err, path, perr.Location, sb.String())
 	}
 	var formatted bytes.Buffer
 	if err := format.Format(&formatted, script, format.WithTabs(formatTabs), format.WithUnixLineEndings(formatUnix), format.WithIndentWidth(formatIndent)); err != nil {
-		return fmt.Errorf("failed to format %q: %w", path, err)
+		return fmt.Errorf("format %q: %w", path, err)
 	}
 	if err := os.WriteFile(path, formatted.Bytes(), 0o600); err != nil {
-		return fmt.Errorf("failed to write %q: %w", path, err)
+		return fmt.Errorf("write %q: %w", path, err)
 	}
 	return nil
 }

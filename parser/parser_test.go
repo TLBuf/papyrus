@@ -396,7 +396,11 @@ func TestHeader(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			got, err := parser.Parse(&source.File{Text: []byte(test.input)})
+			f, err := source.NewFile("test.psc", []byte(test.input))
+			if err != nil {
+				t.Fatalf("NewFile() returned an unexpected error: %v", err)
+			}
+			got, err := parser.Parse(f)
 			if err != nil {
 				t.Errorf("ParseScript() returned an unexpected error: %v", err)
 			}

@@ -101,9 +101,7 @@ EndState ; Comment
 	}
 	// Papyrus uses Windows line endings.
 	text = strings.ReplaceAll(text, "\n", "\r\n")
-	file := &source.File{
-		Text: []byte(text),
-	}
+	file, _ := source.NewFile("test.psc", []byte(text))
 	lex, err := lexer.New(file)
 	if err != nil {
 		t.Fatalf("New() returned an unexpected error: %v", err)

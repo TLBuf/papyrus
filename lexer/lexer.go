@@ -4,7 +4,6 @@ package lexer
 import (
 	"bytes"
 	"fmt"
-	"math"
 	"unicode/utf8"
 
 	"github.com/TLBuf/papyrus/source"
@@ -43,25 +42,12 @@ type Lexer struct {
 
 // New returns a new [Lexer] ready to read tokens from a sorce file.
 func New(file *source.File) (*Lexer, error) {
-	if len(file.Text) > math.MaxUint32 {
-		return nil, Error{
-			Err: fmt.Errorf("input exceeds the maximum number of bytes (%d, 4GB)", math.MaxUint32),
-			Location: source.Location{
-				ByteOffset:  0,
-				Length:      1,
-				StartLine:   1,
-				StartColumn: 1,
-				EndLine:     1,
-				EndColumn:   1,
-			},
-		}
-	}
 	l := &Lexer{
 		file:            file,
 		line:            1,
 		column:          0,
 		lineStartOffset: 0,
-		length:          uint32(len(file.Text)), // #nosec G115 -- Checked at start of lexer.New.
+		length:          file.Len(),
 	}
 	l.lineEndOffset = l.findNextNewlineOffset()
 	if err := l.readChar(); err != nil {
@@ -187,7 +173,7 @@ func (l *Lexer) nextToken() (token.Token, error) {
 		if err := l.readChar(); err != nil {
 			return l.newToken(token.Illegal), err
 		}
-		if bytes.EqualFold(l.file.Text[l.position:l.position+3], []byte{'-', '0', 'x'}) {
+		if bytes.EqualFold(l.file.Content()[l.position:l.position+3], []byte{'-', '0', 'x'}) {
 			// Papyrus doesn't allow hex integers to be negative directly, emit Minus.
 			return l.newTokenAt(token.Minus, start), nil
 		}
@@ -314,7 +300,7 @@ func (l *Lexer) nextToken() (token.Token, error) {
 func (l *Lexer) newToken(t token.Kind) token.Token {
 	return token.Token{
 		Kind:     t,
-		Text:     l.file.Text[l.position : l.position+1],
+		Text:     l.file.Content()[l.position : l.position+1],
 		Location: l.here(),
 	}
 }
@@ -322,7 +308,7 @@ func (l *Lexer) newToken(t token.Kind) token.Token {
 func (l *Lexer) newTokenAt(t token.Kind, at source.Location) token.Token {
 	return token.Token{
 		Kind:     t,
-		Text:     l.file.Text[at.ByteOffset : at.ByteOffset+at.Length],
+		Text:     l.file.Content()[at.ByteOffset : at.ByteOffset+at.Length],
 		Location: at,
 	}
 }
@@ -330,7 +316,7 @@ func (l *Lexer) newTokenAt(t token.Kind, at source.Location) token.Token {
 func (l *Lexer) newTokenFrom(t token.Kind, from source.Location) token.Token {
 	return token.Token{
 		Kind:     t,
-		Text:     l.file.Text[from.ByteOffset : from.ByteOffset+from.Length],
+		Text:     l.file.Content()[from.ByteOffset : from.ByteOffset+from.Length],
 		Location: source.Span(from, l.here()),
 	}
 }
@@ -393,12 +379,12 @@ func (l *Lexer) readNumber(start source.Location) (token.Token, error) {
 			}
 		}
 		tok := l.newTokenAt(token.IntLiteral, source.Span(start, end))
-		if l.file.Text[l.position-1] == 'x' || l.file.Text[l.position-1] == 'X' {
+		if l.file.Content()[l.position-1] == 'x' || l.file.Content()[l.position-1] == 'X' {
 			tok.Kind = token.Illegal
 			return tok, newError(
 				tok.Location,
 				"expected a digit to follow the %s in a hex int literal",
-				string(l.file.Text[l.position-1]),
+				string(l.file.Content()[l.position-1]),
 			)
 		}
 		return tok, nil
@@ -414,7 +400,7 @@ func (l *Lexer) readNumber(start source.Location) (token.Token, error) {
 		}
 	}
 	tok := l.newTokenAt(token.IntLiteral, source.Span(start, end))
-	if l.file.Text[l.position-1] == '.' {
+	if l.file.Content()[l.position-1] == '.' {
 		// Number ends with a dot?
 		tok.Kind = token.Illegal
 		return tok, newError(tok.Location, "expected a digit to follow the dot in a float literal")
@@ -600,7 +586,7 @@ func (l *Lexer) readChar() error {
 		l.character = 0
 		l.column = 1
 	} else {
-		r, w := utf8.DecodeRune(l.file.Text[l.next:])
+		r, w := utf8.DecodeRune(l.file.Content()[l.next:])
 		if r == utf8.RuneError {
 			return newError(l.nextByteLocation(), "encountered invalid UTF-8 at byte %d", l.next)
 		}
@@ -618,7 +604,7 @@ func (l *Lexer) readChar() error {
 
 func (l *Lexer) findNextNewlineOffset() uint32 {
 	for i := l.next; i < l.length; i++ {
-		b := l.file.Text[i]
+		b := l.file.Content()[i]
 		if b == '\n' || b == '\r' || b == 0 {
 			return i
 		}
