@@ -366,6 +366,75 @@ func TestPostamble(t *testing.T) {
 	}
 }
 
+func TestContext(t *testing.T) {
+	tests := []struct {
+		name     string
+		file     *source.File
+		location source.Location
+		want     []byte
+	}{
+		{
+			name:     "EmptyFile",
+			file:     file(""),
+			location: location(0, 1),
+			want:     nil,
+		}, {
+			name:     "FirstByte",
+			file:     file("01\n34\n67\n"),
+			location: location(0, 1),
+			want:     []byte("01"),
+		}, {
+			name:     "LastByte",
+			file:     file("01\n34\n67\n"),
+			location: location(8, 1),
+			want:     []byte("67"),
+		}, {
+			name:     "LineStart",
+			file:     file("01\n34\n67\n"),
+			location: location(3, 1),
+			want:     []byte("34"),
+		}, {
+			name:     "LineEnd",
+			file:     file("01\n34\n67\n"),
+			location: location(4, 1),
+			want:     []byte("34"),
+		}, {
+			name:     "PastEnd",
+			file:     file("01\n34\n67\n"),
+			location: location(10, 1),
+			want:     nil,
+		}, {
+			name:     "LastByteNoTrailingNewline",
+			file:     file("01\n34\n67"),
+			location: location(7, 1),
+			want:     []byte("67"),
+		}, {
+			name:     "PastEndNoTrailingNewline",
+			file:     file("01\n34\n67"),
+			location: location(10, 1),
+			want:     nil,
+		}, {
+			name:     "CarriageReturn",
+			file:     file("01\r\n45\r\n89"),
+			location: location(4, 1),
+			want:     []byte("45"),
+		}, {
+			name:     "CrossLine",
+			file:     file("01\r\n45\r\n89"),
+			location: location(1, 4),
+			want:     []byte("01\r\n45"),
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got := test.file.Context(test.location)
+			if diff := cmp.Diff(test.want, got); diff != "" {
+				t.Errorf("Context(%v) mismatch (-want +got):\n%s", test.location, diff)
+			}
+		})
+	}
+}
+
 func file(content string) *source.File {
 	f, _ := source.NewFile("test.psc", []byte(content))
 	return f

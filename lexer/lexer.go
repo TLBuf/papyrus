@@ -54,12 +54,8 @@ func New(file *source.File) (*Lexer, error) {
 		return nil, Error{
 			Err: fmt.Errorf("failed to read input: %w", err),
 			Location: source.Location{
-				ByteOffset:  0,
-				Length:      1,
-				StartLine:   1,
-				StartColumn: 1,
-				EndLine:     1,
-				EndColumn:   1,
+				ByteOffset: 0,
+				Length:     1,
 			},
 		}
 	}
@@ -86,9 +82,6 @@ func (l *Lexer) Next() (token.Token, error) {
 	}
 	if err != nil || tok.Kind == token.Newline || tok.Kind == token.EOF {
 		return tok, err
-	}
-	if l.terminal.Kind != token.Newline {
-		tok.Location.PostambleLength = l.lineEndOffset - tok.Location.ByteOffset - tok.Location.Length
 	}
 	return tok, err
 }
@@ -323,25 +316,15 @@ func (l *Lexer) newTokenFrom(t token.Kind, from source.Location) token.Token {
 
 func (l *Lexer) here() source.Location {
 	return source.Location{
-		ByteOffset:     l.position,
-		Length:         l.next - l.position,
-		StartLine:      l.line,
-		StartColumn:    l.column,
-		EndLine:        l.line,
-		EndColumn:      l.column,
-		PreambleLength: l.position - l.lineStartOffset,
+		ByteOffset: l.position,
+		Length:     l.next - l.position,
 	}
 }
 
 func (l *Lexer) nextByteLocation() source.Location {
 	return source.Location{
-		ByteOffset:     l.position,
-		Length:         1,
-		StartLine:      l.line,
-		StartColumn:    l.column + 1,
-		EndLine:        l.line,
-		EndColumn:      l.column + 1,
-		PreambleLength: l.position - l.lineStartOffset + 1,
+		ByteOffset: l.position,
+		Length:     1,
 	}
 }
 

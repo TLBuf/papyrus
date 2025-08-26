@@ -19,14 +19,8 @@ func TestSnippet(t *testing.T) {
 			"point_single_line_fits",
 			file("1234567890\r\n"),
 			source.Location{
-				ByteOffset:      2,
-				Length:          1,
-				StartLine:       1,
-				StartColumn:     3,
-				EndLine:         1,
-				EndColumn:       3,
-				PreambleLength:  2,
-				PostambleLength: 7,
+				ByteOffset: 2,
+				Length:     1,
 			},
 			source.Snippet{
 				Start: source.Indicator{Column: 3},
@@ -42,14 +36,8 @@ func TestSnippet(t *testing.T) {
 			"point_single_line_tabs",
 			file("123\t4567890\r\n"),
 			source.Location{
-				ByteOffset:      2,
-				Length:          3,
-				StartLine:       1,
-				StartColumn:     3,
-				EndLine:         1,
-				EndColumn:       5,
-				PreambleLength:  2,
-				PostambleLength: 6,
+				ByteOffset: 2,
+				Length:     3,
 			},
 			source.Snippet{
 				Start: source.Indicator{Column: 3},
@@ -65,19 +53,13 @@ func TestSnippet(t *testing.T) {
 			"point_single_line_first_half",
 			file(strings.Repeat("12345678901234567890123456789012345678\r\n", 6)),
 			source.Location{
-				ByteOffset:      42,
-				Length:          1,
-				StartLine:       1,
-				StartColumn:     3,
-				EndLine:         1,
-				EndColumn:       3,
-				PreambleLength:  2,
-				PostambleLength: 35,
+				ByteOffset: 42,
+				Length:     1,
 			},
 			source.Snippet{
 				Start: source.Indicator{Column: 3},
 				End:   source.Indicator{Column: 3},
-				Lines: []source.Line{{Number: 1, Chunks: []source.Chunk{
+				Lines: []source.Line{{Number: 2, Chunks: []source.Chunk{
 					{Text: "12345678901234567", IsSource: true},
 					{Text: "..."},
 				}}},
@@ -89,19 +71,13 @@ func TestSnippet(t *testing.T) {
 			"point_single_line_second_half",
 			file(strings.Repeat("12345678901234567890123456789012345678\r\n", 6)),
 			source.Location{
-				ByteOffset:      75,
-				Length:          1,
-				StartLine:       1,
-				StartColumn:     36,
-				EndLine:         1,
-				EndColumn:       36,
-				PreambleLength:  35,
-				PostambleLength: 2,
+				ByteOffset: 75,
+				Length:     1,
 			},
 			source.Snippet{
 				Start: source.Indicator{Column: 18},
 				End:   source.Indicator{Column: 18},
-				Lines: []source.Line{{Number: 1, Chunks: []source.Chunk{
+				Lines: []source.Line{{Number: 2, Chunks: []source.Chunk{
 					{Text: "..."},
 					{Text: "23456789012345678", IsSource: true},
 				}}},
@@ -113,19 +89,13 @@ func TestSnippet(t *testing.T) {
 			"point_single_line_middle",
 			file(strings.Repeat("12345678901234567890123456789012345678\r\n", 6)),
 			source.Location{
-				ByteOffset:      60,
-				Length:          1,
-				StartLine:       1,
-				StartColumn:     21,
-				EndLine:         1,
-				EndColumn:       21,
-				PreambleLength:  20,
-				PostambleLength: 17,
+				ByteOffset: 60,
+				Length:     1,
 			},
 			source.Snippet{
 				Start: source.Indicator{Column: 10},
 				End:   source.Indicator{Column: 10},
-				Lines: []source.Line{{Number: 1, Chunks: []source.Chunk{
+				Lines: []source.Line{{Number: 2, Chunks: []source.Chunk{
 					{Text: "..."},
 					{Text: "56789012345678", IsSource: true},
 					{Text: "..."},
@@ -138,14 +108,8 @@ func TestSnippet(t *testing.T) {
 			"range_single_line_fits",
 			file("1234567890\r\n"),
 			source.Location{
-				ByteOffset:      2,
-				Length:          5,
-				StartLine:       1,
-				StartColumn:     3,
-				EndLine:         1,
-				EndColumn:       7,
-				PreambleLength:  2,
-				PostambleLength: 3,
+				ByteOffset: 2,
+				Length:     5,
 			},
 			source.Snippet{
 				Start: source.Indicator{Column: 3},
@@ -161,19 +125,13 @@ func TestSnippet(t *testing.T) {
 			"range_single_line_first_half",
 			file(strings.Repeat("12345678901234567890123456789012345678\r\n", 6)),
 			source.Location{
-				ByteOffset:      42,
-				Length:          5,
-				StartLine:       1,
-				StartColumn:     3,
-				EndLine:         1,
-				EndColumn:       7,
-				PreambleLength:  2,
-				PostambleLength: 31,
+				ByteOffset: 42,
+				Length:     5,
 			},
 			source.Snippet{
 				Start: source.Indicator{Column: 3},
 				End:   source.Indicator{Column: 7},
-				Lines: []source.Line{{Number: 1, Chunks: []source.Chunk{
+				Lines: []source.Line{{Number: 2, Chunks: []source.Chunk{
 					{Text: "12345678901234567", IsSource: true},
 					{Text: "..."},
 				}}},
@@ -185,19 +143,13 @@ func TestSnippet(t *testing.T) {
 			"range_single_line_second_half",
 			file(strings.Repeat("12345678901234567890123456789012345678\r\n", 6)),
 			source.Location{
-				ByteOffset:      71,
-				Length:          5,
-				StartLine:       1,
-				StartColumn:     32,
-				EndLine:         1,
-				EndColumn:       36,
-				PreambleLength:  32,
-				PostambleLength: 2,
+				ByteOffset: 71,
+				Length:     5,
 			},
 			source.Snippet{
 				Start: source.Indicator{Column: 11},
 				End:   source.Indicator{Column: 15},
-				Lines: []source.Line{{Number: 1, Chunks: []source.Chunk{
+				Lines: []source.Line{{Number: 2, Chunks: []source.Chunk{
 					{Text: "..."},
 					{Text: "23456789012345678", IsSource: true},
 				}}},
@@ -209,19 +161,13 @@ func TestSnippet(t *testing.T) {
 			"range_single_line_middle",
 			file(strings.Repeat("12345678901234567890123456789012345678\r\n", 6)),
 			source.Location{
-				ByteOffset:      59,
-				Length:          3,
-				StartLine:       1,
-				StartColumn:     20,
-				EndLine:         1,
-				EndColumn:       22,
-				PreambleLength:  19,
-				PostambleLength: 16,
+				ByteOffset: 59,
+				Length:     3,
 			},
 			source.Snippet{
 				Start: source.Indicator{Column: 9},
 				End:   source.Indicator{Column: 11},
-				Lines: []source.Line{{Number: 1, Chunks: []source.Chunk{
+				Lines: []source.Line{{Number: 2, Chunks: []source.Chunk{
 					{Text: "..."},
 					{Text: "56789012345678", IsSource: true},
 					{Text: "..."},
@@ -234,19 +180,13 @@ func TestSnippet(t *testing.T) {
 			"range_single_line_middle_and_end",
 			file(strings.Repeat("12345678901234567890123456789012345678\r\n", 6)),
 			source.Location{
-				ByteOffset:      44,
-				Length:          18,
-				StartLine:       1,
-				StartColumn:     5,
-				EndLine:         1,
-				EndColumn:       22,
-				PreambleLength:  4,
-				PostambleLength: 16,
+				ByteOffset: 44,
+				Length:     18,
 			},
 			source.Snippet{
 				Start: source.Indicator{Column: 5},
 				End:   source.Indicator{Column: 14},
-				Lines: []source.Line{{Number: 1, Chunks: []source.Chunk{
+				Lines: []source.Line{{Number: 2, Chunks: []source.Chunk{
 					{Text: "123456789", IsSource: true},
 					{Text: "..."},
 					{Text: "01234", IsSource: true},
@@ -260,19 +200,13 @@ func TestSnippet(t *testing.T) {
 			"range_single_line_middle_and_start",
 			file(strings.Repeat("12345678901234567890123456789012345678\r\n", 6)),
 			source.Location{
-				ByteOffset:      56,
-				Length:          18,
-				StartLine:       1,
-				StartColumn:     17,
-				EndLine:         1,
-				EndColumn:       34,
-				PreambleLength:  16,
-				PostambleLength: 4,
+				ByteOffset: 56,
+				Length:     18,
 			},
 			source.Snippet{
 				Start: source.Indicator{Column: 6},
 				End:   source.Indicator{Column: 16},
-				Lines: []source.Line{{Number: 1, Chunks: []source.Chunk{
+				Lines: []source.Line{{Number: 2, Chunks: []source.Chunk{
 					{Text: "..."},
 					{Text: "567890", IsSource: true},
 					{Text: "..."},
@@ -286,19 +220,13 @@ func TestSnippet(t *testing.T) {
 			"range_single_line_start_middle_end",
 			file(strings.Repeat("12345678901234567890123456789012345678\r\n", 6)),
 			source.Location{
-				ByteOffset:      50,
-				Length:          18,
-				StartLine:       1,
-				StartColumn:     11,
-				EndLine:         1,
-				EndColumn:       28,
-				PreambleLength:  10,
-				PostambleLength: 10,
+				ByteOffset: 50,
+				Length:     18,
 			},
 			source.Snippet{
 				Start: source.Indicator{Column: 6},
 				End:   source.Indicator{Column: 14},
-				Lines: []source.Line{{Number: 1, Chunks: []source.Chunk{
+				Lines: []source.Line{{Number: 2, Chunks: []source.Chunk{
 					{Text: "..."},
 					{Text: "901234", IsSource: true},
 					{Text: "..."},
@@ -313,19 +241,13 @@ func TestSnippet(t *testing.T) {
 			"range_single_line_start_middle_end",
 			file(strings.Repeat("12345678901234567890123456789012345678\r\n", 6)),
 			source.Location{
-				ByteOffset:      56,
-				Length:          7,
-				StartLine:       1,
-				StartColumn:     17,
-				EndLine:         1,
-				EndColumn:       23,
-				PreambleLength:  16,
-				PostambleLength: 15,
+				ByteOffset: 56,
+				Length:     7,
 			},
 			source.Snippet{
 				Start: source.Indicator{Column: 7},
 				End:   source.Indicator{Column: 13},
-				Lines: []source.Line{{Number: 1, Chunks: []source.Chunk{
+				Lines: []source.Line{{Number: 2, Chunks: []source.Chunk{
 					{Text: "..."},
 					{Text: "45678901234567", IsSource: true},
 					{Text: "..."},
@@ -338,14 +260,8 @@ func TestSnippet(t *testing.T) {
 			"range_multi_line",
 			file(strings.Repeat("12345678901234567890123456789012345678\r\n", 6)),
 			source.Location{
-				ByteOffset:      2,
-				Length:          201,
-				StartLine:       1,
-				StartColumn:     3,
-				EndLine:         6,
-				EndColumn:       3,
-				PreambleLength:  2,
-				PostambleLength: 35,
+				ByteOffset: 2,
+				Length:     201,
 			},
 			source.Snippet{
 				Start: source.Indicator{Column: 3},

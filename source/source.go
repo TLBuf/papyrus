@@ -27,7 +27,7 @@ func NewFile(path string, content []byte) (*File, error) {
 		content:     content,
 		lineOffsets: append([]uint32(nil), 0),
 	}
-	for i := uint32(0); i < file.len; i++ {
+	for i := range file.len {
 		if file.content[i] == '\n' {
 			file.lineOffsets = append(file.lineOffsets, i+1)
 		}
@@ -68,9 +68,9 @@ func (f *File) StartLine(location Location) uint32 {
 	}
 	line, exact := slices.BinarySearch(f.lineOffsets, location.ByteOffset)
 	if exact {
-		return uint32(line + 1) // First byte in line
+		return uint32(line + 1) // #nosec G115 -- Checked in NewFile.
 	}
-	return uint32(line)
+	return uint32(line) // #nosec G115 -- Checked in NewFile.
 }
 
 // StartColumn returns the 1-indexed column of the inclusive start of the
@@ -79,7 +79,7 @@ func (f *File) StartColumn(location Location) uint32 {
 	if location.ByteOffset >= f.len {
 		return 0
 	}
-	return uint32(utf8.RuneCount(f.Preamble(location))) + 1
+	return uint32(utf8.RuneCount(f.Preamble(location))) + 1 // #nosec G115 -- Checked in NewFile.
 }
 
 // EndLine returns the 1-indexed line of the inclusive end of the
@@ -91,12 +91,12 @@ func (f *File) EndLine(location Location) uint32 {
 	}
 	line, exact := slices.BinarySearch(f.lineOffsets, end)
 	if exact {
-		return uint32(line + 1)
+		return uint32(line + 1) // #nosec G115 -- Checked in NewFile.
 	}
 	if line == len(f.lineOffsets) {
-		return uint32(len(f.lineOffsets))
+		return uint32(len(f.lineOffsets)) // #nosec G115 -- Checked in NewFile.
 	}
-	return uint32(line)
+	return uint32(line) // #nosec G115 -- Checked in NewFile.
 }
 
 // EndColumn returns the 1-indexed column of the inclusive end of the
@@ -106,7 +106,7 @@ func (f *File) EndColumn(location Location) uint32 {
 	if end >= f.len {
 		return 0
 	}
-	return uint32(utf8.RuneCount(f.content[f.lineStart(end) : end+1]))
+	return uint32(utf8.RuneCount(f.content[f.lineStart(end) : end+1])) // #nosec G115 -- Checked in NewFile.
 }
 
 // Preamble returns the content before a location
@@ -129,11 +129,37 @@ func (f *File) Postamble(location Location) []byte {
 	if offset > f.len {
 		return nil
 	}
-	postamble := f.content[offset : f.lineEnd(offset)-1]
-	if len(postamble) > 0 && postamble[len(postamble)-1] == '\r' {
-		return postamble[:len(postamble)-1]
+	postamble := f.content[offset:f.lineEnd(offset)]
+	last := len(postamble) - 1
+	if last >= 0 && postamble[last] == '\n' {
+		postamble = postamble[:last]
+		last--
+	}
+	if last >= 0 && postamble[last] == '\r' {
+		postamble = postamble[:last]
 	}
 	return postamble
+}
+
+// Context returns the content from the start of the line that contains the
+// start of the location to the end of the line that contains the end of the
+// location up to, but not including the trailing newline (and carriage return
+// if present).
+func (f *File) Context(location Location) []byte {
+	end := location.ByteOffset + location.Length
+	if end > f.len || location.ByteOffset >= f.len {
+		return nil
+	}
+	context := f.content[f.lineStart(location.ByteOffset):f.lineEnd(min(end, f.len-1))]
+	last := len(context) - 1
+	if last >= 0 && context[last] == '\n' {
+		context = context[:last]
+		last--
+	}
+	if last >= 0 && context[last] == '\r' {
+		context = context[:last]
+	}
+	return context
 }
 
 func (f *File) lineStart(offset uint32) uint32 {
@@ -162,25 +188,11 @@ type Location struct {
 	ByteOffset uint32
 	// Length is the number of bytes in this range.
 	Length uint32
-	// StartLine is the 1-indexed line of the inclusive start of the range.
-	StartLine uint32
-	// StartColumn is the 1-indexed column of the inclusive start of the range.
-	StartColumn uint32
-	// EndLine is the 1-indexed line of the inclusive end of the range.
-	EndLine uint32
-	// EndColumn is the 1-indexed column of the inclusive end of the range.
-	EndColumn uint32
-	// PreambleLength is the number of bytes before the start of the range on the
-	// same line as StartLine.
-	PreambleLength uint32
-	// PostambleLength is the number of bytes after the end of the range on the
-	// same line as EndLine.
-	PostambleLength uint32
 }
 
 // String implements [fmt.Stringer].
 func (l Location) String() string {
-	return fmt.Sprintf("[%d:%d]", l.StartLine, l.StartColumn)
+	return fmt.Sprintf("[%d:%d]", l.ByteOffset, l.Length)
 }
 
 // Compare returns 0 if this location has the same byte offset as the given
@@ -196,13 +208,7 @@ func Span(start, end Location) Location {
 		panic(fmt.Sprintf("end before start: %d < %d", end.ByteOffset, start.ByteOffset))
 	}
 	return Location{
-		ByteOffset:      start.ByteOffset,
-		Length:          end.ByteOffset - start.ByteOffset + end.Length,
-		StartLine:       start.StartLine,
-		StartColumn:     start.StartColumn,
-		EndLine:         end.EndLine,
-		EndColumn:       end.EndColumn,
-		PreambleLength:  start.PreambleLength,
-		PostambleLength: end.PostambleLength,
+		ByteOffset: start.ByteOffset,
+		Length:     end.ByteOffset - start.ByteOffset + end.Length,
 	}
 }

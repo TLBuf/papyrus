@@ -359,7 +359,10 @@ func (s *Scope) insertVariable(node *ast.Variable) (*Symbol, error) {
 	}
 	switch s.kind {
 	case scriptScope, functionScope, eventScope, ifScope, elseIfScope, elseScope, whileScope:
-		return nil, fmt.Errorf("insert to scope defined by %v, variables can only belong to a script, function, event, if, else if, else, or while scope", s.node)
+		return nil, fmt.Errorf(
+			"insert to scope defined by %v, variables can only belong to a script, function, event, if, else if, else, or while scope",
+			s.node,
+		)
 	}
 	typ, err := s.resolver.Resolve(node)
 	if err != nil {
@@ -382,7 +385,10 @@ func (s *Scope) insertParameter(node *ast.Parameter) (*Symbol, error) {
 	}
 	switch s.kind {
 	case functionScope, eventScope:
-		return nil, fmt.Errorf("insert to scope defined by %v, parameters can only belong to a function or event scope", s.node)
+		return nil, fmt.Errorf(
+			"insert to scope defined by %v, parameters can only belong to a function or event scope",
+			s.node,
+		)
 	}
 	typ, err := s.resolver.Resolve(node)
 	if err != nil {

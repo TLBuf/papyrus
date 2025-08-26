@@ -60,12 +60,8 @@ func Parse(file *source.File, opts ...Option) (*ast.Script, error) {
 			return nil, Error{
 				Err: fmt.Errorf("failed to initialize lexer: failed to extract a lexer.Error from: %w", err),
 				Location: source.Location{
-					ByteOffset:  0,
-					Length:      1,
-					StartLine:   1,
-					StartColumn: 1,
-					EndLine:     1,
-					EndColumn:   1,
+					ByteOffset: 0,
+					Length:     1,
 				},
 			}
 		}
@@ -417,9 +413,8 @@ func (p *parser) ParseScript() (*ast.Script, error) {
 	node := &ast.Script{
 		File: p.file,
 		NodeLocation: source.Location{
-			Length:      p.file.Len(),
-			StartLine:   1,
-			StartColumn: 1,
+			ByteOffset: 0,
+			Length:     p.file.Len(),
 		},
 	}
 	for p.token.Kind != token.ScriptName {
@@ -1247,7 +1242,8 @@ func (p *parser) ParseProperty(typeLiteral *ast.TypeLiteral) (*ast.Property, err
 			return nil, err
 		}
 	}
-	if strings.EqualFold(first.Name.Text, "get") {
+	switch {
+	case strings.EqualFold(first.Name.Text, "get"):
 		if first.ReturnType == nil {
 			return nil, newError(
 				first.Name.Location(),
@@ -1266,7 +1262,7 @@ func (p *parser) ParseProperty(typeLiteral *ast.TypeLiteral) (*ast.Property, err
 			)
 		}
 		node.Get = first
-	} else if strings.EqualFold(first.Name.Text, "set") {
+	case strings.EqualFold(first.Name.Text, "set"):
 		if first.ReturnType != nil {
 			return nil, newError(
 				first.ReturnType.Location(),
@@ -1292,16 +1288,17 @@ func (p *parser) ParseProperty(typeLiteral *ast.TypeLiteral) (*ast.Property, err
 			)
 		}
 		node.Set = first
-	} else {
+	default:
 		return nil, newError(
 			first.Location(),
 			"expected 'Get' or 'Set' function for property, but found '%s'",
 			p.file.Bytes(first.Name.Location()),
 		)
 	}
-	if second == nil {
-		// Do nothing
-	} else if strings.EqualFold(second.Name.Text, "get") {
+	switch {
+	case second == nil:
+		// Do nothing, property is either read only or write only.
+	case strings.EqualFold(second.Name.Text, "get"):
 		if node.Get != nil {
 			return nil, newError(second.Location(), "expected exactly one 'Get' function, but found two")
 		}
@@ -1326,7 +1323,7 @@ func (p *parser) ParseProperty(typeLiteral *ast.TypeLiteral) (*ast.Property, err
 			)
 		}
 		node.Get = second
-	} else if strings.EqualFold(second.Name.Text, "set") {
+	case strings.EqualFold(second.Name.Text, "set"):
 		if node.Set != nil {
 			return nil, newError(second.Location(), "expected exactly one 'Set' function, but found two")
 		}
@@ -1358,7 +1355,7 @@ func (p *parser) ParseProperty(typeLiteral *ast.TypeLiteral) (*ast.Property, err
 			)
 		}
 		node.Set = second
-	} else {
+	default:
 		return nil, newError(
 			second.Location(),
 			"expected 'Get' or 'Set' function for property, but found '%s'",

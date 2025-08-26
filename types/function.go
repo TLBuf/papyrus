@@ -54,7 +54,9 @@ func (f *Function) Normalized() string {
 //	b.IsIdentical(a)
 func (f *Function) IsIdentical(other Type) bool {
 	o, ok := other.(*Function)
-	return ok && f.normalized == o.normalized && f.returnType.IsIdentical(o.returnType) && len(f.params) == len(o.params) && slices.EqualFunc(f.params, o.params, func(a, b Value) bool { return a.IsIdentical(b) })
+	return ok && f.normalized == o.normalized && f.returnType.IsIdentical(o.returnType) &&
+		len(f.params) == len(o.params) &&
+		slices.EqualFunc(f.params, o.params, func(a, b Value) bool { return a.IsIdentical(b) })
 }
 
 // IsAssignable returns true if a value of another type can be assigned to a

@@ -89,5 +89,7 @@ func (u URI) String() string {
 	return string(u)
 }
 
-var elementRegexp = regexp.MustCompile(`[a-z](?:_?[a-z0-9])+`)
-var uriRegexp = regexp.MustCompile(`issue://[a-z](?:_?[a-z0-9])+(?:/[a-z](?:_?[a-z0-9])+)+(?:#[a-z](?:_?[a-z0-9])+)`)
+var (
+	elementRegexp = regexp.MustCompile(`[a-z](?:_?[a-z0-9])+`)
+	uriRegexp     = regexp.MustCompile(`issue://[a-z](?:_?[a-z0-9])+(?:/[a-z](?:_?[a-z0-9])+)+(?:#[a-z](?:_?[a-z0-9])+)`)
+)

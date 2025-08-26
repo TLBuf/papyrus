@@ -84,7 +84,7 @@ func (r Location) Snippet(file *File, width, height int, opts ...SnippetOption) 
 		return Snippet{}, fmt.Errorf("%d is less than minimum snippet height, %d", height, MinimumSnippetHeight)
 	}
 	var snippet Snippet
-	if r.StartLine == r.EndLine {
+	if file.StartLine(r) == file.EndLine(r) {
 		snippet = formatSingleLineSnippet(file, r, width, options.tabWidth)
 	} else {
 		snippet = formatMultiLineSnippet(file, r, width, height, options.tabWidth)
@@ -96,27 +96,27 @@ func (r Location) Snippet(file *File, width, height int, opts ...SnippetOption) 
 
 func formatSingleLineSnippet(file *File, r Location, width, tabWidth int) Snippet {
 	runes := textForSnippet(file, r)
-	chunks, start, end := fitLine(runes, int(r.StartColumn), int(r.EndColumn), width, tabWidth)
+	chunks, start, end := fitLine(runes, int(file.StartColumn(r)), int(file.EndColumn(r)), width, tabWidth)
 	return Snippet{
 		Start: Indicator{Column: start},
 		End:   Indicator{Column: end},
-		Lines: []Line{{Number: int(r.StartLine), Chunks: chunks}},
+		Lines: []Line{{Number: int(file.StartLine(r)), Chunks: chunks}},
 	}
 }
 
 func formatMultiLineSnippet(file *File, r Location, width, height, tabWidth int) Snippet {
 	text := splitLines(textForSnippet(file, r))
-	first, start, _ := fitLine(text[0], int(r.StartColumn), 0, width, tabWidth)
-	last, end, _ := fitLine(text[len(text)-1], int(r.EndColumn), 0, width, tabWidth)
-	remaining := int(r.EndLine) - int(r.StartLine) - 1
+	first, start, _ := fitLine(text[0], int(file.StartColumn(r)), 0, width, tabWidth)
+	last, end, _ := fitLine(text[len(text)-1], int(file.EndColumn(r)), 0, width, tabWidth)
+	remaining := int(file.EndLine(r)) - int(file.StartLine(r)) - 1
 	available := max(0, height-3)
-	lines := []Line{{Number: int(r.StartLine), Chunks: first}}
+	lines := []Line{{Number: int(file.StartLine(r)), Chunks: first}}
 	if remaining <= available+1 {
 		for i := range remaining {
 			chunks, _, _ := fitLine(text[i+1], 0, 0, width, tabWidth)
-			lines = append(lines, Line{Number: int(r.StartLine) + i + 1, Chunks: chunks})
+			lines = append(lines, Line{Number: int(file.StartLine(r)) + i + 1, Chunks: chunks})
 		}
-		lines = append(lines, Line{Number: int(r.EndLine), Chunks: last})
+		lines = append(lines, Line{Number: int(file.EndLine(r)), Chunks: last})
 		return Snippet{
 			Start: Indicator{Column: start},
 			End:   Indicator{Column: end},
@@ -127,15 +127,15 @@ func formatMultiLineSnippet(file *File, r Location, width, height, tabWidth int)
 	heightB := available / 2
 	for i := range heightA {
 		chunks, _, _ := fitLine(text[i+1], 0, 0, width, tabWidth)
-		lines = append(lines, Line{Number: int(r.StartLine) + i + 1, Chunks: chunks})
+		lines = append(lines, Line{Number: int(file.StartLine(r)) + i + 1, Chunks: chunks})
 	}
 	omitted := remaining - available
 	lines = append(lines, Line{Chunks: []Chunk{{Text: fmt.Sprintf("... %d lines ...", omitted)}}})
 	for i := range heightB {
 		chunks, _, _ := fitLine(text[i+omitted+1], 0, 0, width, tabWidth)
-		lines = append(lines, Line{Number: int(r.StartLine) + i + omitted + 1, Chunks: chunks})
+		lines = append(lines, Line{Number: int(file.StartLine(r)) + i + omitted + 1, Chunks: chunks})
 	}
-	lines = append(lines, Line{Number: int(r.EndLine), Chunks: last})
+	lines = append(lines, Line{Number: int(file.EndLine(r)), Chunks: last})
 	return Snippet{
 		Start: Indicator{Column: start},
 		End:   Indicator{Column: end},
@@ -144,7 +144,7 @@ func formatMultiLineSnippet(file *File, r Location, width, height, tabWidth int)
 }
 
 func textForSnippet(f *File, r Location) []rune {
-	return []rune(string(f.content[r.ByteOffset-r.PreambleLength : r.ByteOffset+r.Length+r.PostambleLength]))
+	return []rune(string(f.Context(r)))
 }
 
 func splitLines(text []rune) [][]rune {
@@ -233,7 +233,7 @@ func fitLineTwoPoints(text []rune, start, end, width int) (chunks []Chunk, newSt
 		return []Chunk{
 			{Text: "..."},
 			{Text: string(text[length-available:]), IsSource: true},
-		}, start - length + available + 1, end - length + available + 1
+		}, start - length + available, end - length + available
 	}
 	contentWidth := end - start + 1
 	available -= 3
