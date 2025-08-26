@@ -50,6 +50,16 @@ func (f *File) Len() uint32 {
 	return f.len
 }
 
+// Bytes returns the bytes of content at the given location in this
+// file or nil if the location is outside the range of this file.
+func (f *File) Bytes(location Location) []byte {
+	end := location.ByteOffset + location.Length
+	if end >= f.len {
+		return nil
+	}
+	return f.content[location.ByteOffset:end]
+}
+
 // StartLine returns the 1-indexed line of the inclusive start of the
 // location or zero if the location is outside the range of this file.
 func (f *File) StartLine(location Location) uint32 {
