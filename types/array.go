@@ -55,7 +55,7 @@ func (a *Array) IsAssignable(other Type) bool {
 //
 //	a.IsComparable(b)
 //	b.IsComparable(a)
-func (a *Array) IsComparable(other Type) bool {
+func (*Array) IsComparable(Type) bool {
 	return false
 }
 
@@ -68,7 +68,7 @@ func (a *Array) IsComparable(other Type) bool {
 //
 //	a.IsEquatable(b)
 //	b.IsEquatable(a)
-func (a *Array) IsEquatable(other Type) bool {
+func (*Array) IsEquatable(Type) bool {
 	return false
 }
 
@@ -80,7 +80,7 @@ func (a *Array) IsEquatable(other Type) bool {
 //
 //	a.IsConvertible(b)
 //	b.IsConvertible(a)
-func (a *Array) IsConvertible(other Type) bool {
+func (*Array) IsConvertible(Type) bool {
 	return false
 }
 

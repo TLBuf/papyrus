@@ -18,7 +18,7 @@ const scheme = "issue"
 // Where a <path element> and <specifier> are strings starting with a lower
 // (latin) alphabet character, followed by one or more strings of lower
 // alphanumeric strings with an optional leading underscore, e.g. "a", "a_b",
-// "a_b_c". Every URI must have at least two path elements, each seperated by a
+// "a_b_c". Every URI must have at least two path elements, each separated by a
 // '/' character and optionally a trailing specifier seprated by a '#'
 // character.
 type URI string

@@ -8,7 +8,7 @@ import (
 
 // Resolver creates types for [ast.Node] instances.
 //
-// Note: Resolver is stateful! In order to resovle script (object) types
+// Note: Resolver is stateful! In order to resolve script (object) types
 // correctly, the script they extend must have been resolved first.
 type Resolver struct {
 	objects map[string]*Object
@@ -39,13 +39,13 @@ func (r *Resolver) Resolve(node ast.Node) (Type, error) {
 		}
 		return r.record(obj), nil
 	case *ast.Function:
-		rt, err := r.resolve(node.ReturnType)
+		rt, err := r.resolveTypeLiteral(node.ReturnType)
 		if err != nil {
 			return nil, fmt.Errorf("%v return type: %w", node, err)
 		}
 		pts := make([]Value, 0, len(node.ParameterList))
 		for _, p := range node.ParameterList {
-			pt, err := r.resolve(p.Type)
+			pt, err := r.resolveTypeLiteral(p.Type)
 			if err != nil {
 				return nil, fmt.Errorf("%v parameter: %w", node, err)
 			}
@@ -55,7 +55,7 @@ func (r *Resolver) Resolve(node ast.Node) (Type, error) {
 	case *ast.Event:
 		pts := make([]Value, 0, len(node.ParameterList))
 		for _, p := range node.ParameterList {
-			pt, err := r.resolve(p.Type)
+			pt, err := r.resolveTypeLiteral(p.Type)
 			if err != nil {
 				return nil, fmt.Errorf("%v parameter: %w", node, err)
 			}
@@ -63,19 +63,19 @@ func (r *Resolver) Resolve(node ast.Node) (Type, error) {
 		}
 		return NewFunction(node.Name.Text, nil, pts...), nil
 	case *ast.Property:
-		typ, err := r.resolve(node.Type)
+		typ, err := r.resolveTypeLiteral(node.Type)
 		if err != nil {
 			return nil, fmt.Errorf("%v type: %w", node, err)
 		}
 		return typ, nil
 	case *ast.Variable:
-		typ, err := r.resolve(node.Type)
+		typ, err := r.resolveTypeLiteral(node.Type)
 		if err != nil {
 			return nil, fmt.Errorf("%v type: %w", node, err)
 		}
 		return typ, nil
 	case *ast.Parameter:
-		typ, err := r.resolve(node.Type)
+		typ, err := r.resolveTypeLiteral(node.Type)
 		if err != nil {
 			return nil, fmt.Errorf("%v type: %w", node, err)
 		}
@@ -93,7 +93,7 @@ func (r *Resolver) record(obj *Object) *Object {
 	return obj
 }
 
-func (r *Resolver) resolve(literal *ast.TypeLiteral) (Value, error) {
+func (r *Resolver) resolveTypeLiteral(literal *ast.TypeLiteral) (Value, error) {
 	if literal == nil {
 		return nil, nil
 	}

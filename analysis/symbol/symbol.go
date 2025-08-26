@@ -105,6 +105,6 @@ func (s *Symbol) Node() ast.Node {
 	return s.node
 }
 
-func (s Symbol) String() string {
+func (s *Symbol) String() string {
 	return fmt.Sprintf("%v: %q", s.kind, s.name)
 }

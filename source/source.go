@@ -202,7 +202,7 @@ func (l Location) Start() uint32 {
 	return uint32(l >> 32) // #nosec G115 -- Shift leaves 32 bits.
 }
 
-// Start returns the offset into the file of
+// End returns the offset into the file of
 // the first byte after the end of the location.
 func (l Location) End() uint32 {
 	return uint32(l>>32 + l&0xFFFFFFFF) // #nosec G115 -- Checked in NewLocation.

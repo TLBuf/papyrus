@@ -45,6 +45,7 @@ func (o *Object) IsIdentical(other Type) bool {
 //	b.IsAssignable(a)
 func (o *Object) IsAssignable(other Type) bool {
 	t, ok := other.(*Object)
+	//revive:disable-next-line:unconditional-recursion t =/= t.parent
 	return ok && o.IsIdentical(t) || o.IsAssignable(t.parent)
 }
 
@@ -56,7 +57,7 @@ func (o *Object) IsAssignable(other Type) bool {
 //
 //	a.IsComparable(b)
 //	b.IsComparable(a)
-func (o *Object) IsComparable(other Type) bool {
+func (*Object) IsComparable(Type) bool {
 	return false
 }
 
@@ -84,6 +85,7 @@ func (o *Object) IsEquatable(other Type) bool {
 //	b.IsConvertible(a)
 func (o *Object) IsConvertible(other Type) bool {
 	t, ok := other.(*Object)
+	//revive:disable-next-line:unconditional-recursion t =/= t.parent
 	return ok && (o.IsIdentical(t) || o.IsConvertible(t.parent) || o.parent.IsConvertible(t))
 }
 

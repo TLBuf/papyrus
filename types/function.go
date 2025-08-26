@@ -68,7 +68,7 @@ func (f *Function) IsIdentical(other Type) bool {
 //
 //	a.IsAssignable(b)
 //	b.IsAssignable(a)
-func (f *Function) IsAssignable(other Type) bool {
+func (*Function) IsAssignable(Type) bool {
 	return false
 }
 
@@ -80,7 +80,7 @@ func (f *Function) IsAssignable(other Type) bool {
 //
 //	a.IsComparable(b)
 //	b.IsComparable(a)
-func (f *Function) IsComparable(other Type) bool {
+func (*Function) IsComparable(Type) bool {
 	return false
 }
 
@@ -93,7 +93,7 @@ func (f *Function) IsComparable(other Type) bool {
 //
 //	a.IsEquatable(b)
 //	b.IsEquatable(a)
-func (f *Function) IsEquatable(other Type) bool {
+func (*Function) IsEquatable(Type) bool {
 	return false
 }
 
@@ -105,7 +105,7 @@ func (f *Function) IsEquatable(other Type) bool {
 //
 //	a.IsConvertible(b)
 //	b.IsConvertible(a)
-func (f *Function) IsConvertible(other Type) bool {
+func (*Function) IsConvertible(Type) bool {
 	return false
 }
 

@@ -118,8 +118,8 @@ func (p *Primitive) IsConvertible(other Type) bool {
 	return false
 }
 
-func (b *Primitive) String() string {
-	return b.Name()
+func (p *Primitive) String() string {
+	return p.Name()
 }
 
 func (*Primitive) types() {}

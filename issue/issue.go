@@ -30,7 +30,7 @@ const (
 
 // Issue describes an issue found while processing input.
 //
-// Issues never represent internal errors encountered in proccessing, those are
+// Issues never represent internal errors encountered in processing, those are
 // conveyed via normal [error] returns.
 type Issue struct {
 	// URI is the URI for this issue.
@@ -47,7 +47,7 @@ type Issue struct {
 	Related []Related
 }
 
-// Related is a seperate piece of source code that relates to some issue.
+// Related is a separate piece of source code that relates to some issue.
 type Related struct {
 	// Location is the source location of a related piece of information.
 	Location source.Location

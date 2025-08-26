@@ -1,6 +1,8 @@
+// Package symbol provides the API for tracking and looking up symbols.
 package symbol
 
 import (
+	"errors"
 	"fmt"
 	"iter"
 	"slices"
@@ -242,7 +244,7 @@ func (s *Scope) insertScript(node *ast.Script) (*Symbol, error) {
 
 func (s *Scope) insertState(node *ast.State) (*Symbol, error) {
 	if s.kind == globalScope {
-		return nil, fmt.Errorf("insert to global scope, states can only belong to a script scope")
+		return nil, errors.New("insert to global scope, states can only belong to a script scope")
 	}
 	if s.kind != scriptScope {
 		return nil, fmt.Errorf("insert to scope defined by %v, states can only belong to a script scope", s.node)
@@ -265,7 +267,7 @@ func (s *Scope) insertState(node *ast.State) (*Symbol, error) {
 
 func (s *Scope) insertFunction(node *ast.Function) (*Symbol, error) {
 	if s.kind == globalScope {
-		return nil, fmt.Errorf("insert to global scope, functions can only belong to a state scope")
+		return nil, errors.New("insert to global scope, functions can only belong to a state scope")
 	}
 	if s.kind != stateScope {
 		return nil, fmt.Errorf("insert to scope defined by %v, functions can only belong to a state scope", s.node)
@@ -295,7 +297,7 @@ func (s *Scope) insertFunction(node *ast.Function) (*Symbol, error) {
 
 func (s *Scope) insertEvent(node *ast.Event) (*Symbol, error) {
 	if s.kind == globalScope {
-		return nil, fmt.Errorf("insert to global scope, events can only belong to a state scope")
+		return nil, errors.New("insert to global scope, events can only belong to a state scope")
 	}
 	if s.kind != stateScope {
 		return nil, fmt.Errorf("insert to scope defined by %v, events can only belong to a state scope", s.node)
@@ -325,7 +327,7 @@ func (s *Scope) insertEvent(node *ast.Event) (*Symbol, error) {
 
 func (s *Scope) insertProperty(node *ast.Property) (*Symbol, error) {
 	if s.kind == globalScope {
-		return nil, fmt.Errorf("insert to global scope, properties can only belong to a script scope")
+		return nil, errors.New("insert to global scope, properties can only belong to a script scope")
 	}
 	if s.kind != scriptScope {
 		return nil, fmt.Errorf("insert to scope defined by %v, properties can only belong to a script scope", s.node)
@@ -355,7 +357,7 @@ func (s *Scope) insertProperty(node *ast.Property) (*Symbol, error) {
 
 func (s *Scope) insertVariable(node *ast.Variable) (*Symbol, error) {
 	if s.kind == globalScope {
-		return nil, fmt.Errorf("insert to global scope, variables can only belong to a script, function, or event scope")
+		return nil, errors.New("insert to global scope, variables can only belong to a script, function, or event scope")
 	}
 	switch s.kind {
 	case scriptScope, functionScope, eventScope, ifScope, elseIfScope, elseScope, whileScope:
@@ -381,7 +383,7 @@ func (s *Scope) insertVariable(node *ast.Variable) (*Symbol, error) {
 
 func (s *Scope) insertParameter(node *ast.Parameter) (*Symbol, error) {
 	if s.kind == globalScope {
-		return nil, fmt.Errorf("insert to global scope, parameters can only belong to a function or event scope")
+		return nil, errors.New("insert to global scope, parameters can only belong to a function or event scope")
 	}
 	switch s.kind {
 	case functionScope, eventScope:
