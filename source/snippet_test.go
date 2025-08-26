@@ -18,10 +18,7 @@ func TestSnippet(t *testing.T) {
 		{
 			"point_single_line_fits",
 			file("1234567890\r\n"),
-			source.Location{
-				ByteOffset: 2,
-				Length:     1,
-			},
+			source.NewLocation(2, 1),
 			source.Snippet{
 				Start: source.Indicator{Column: 3},
 				End:   source.Indicator{Column: 3},
@@ -35,10 +32,7 @@ func TestSnippet(t *testing.T) {
 		{
 			"point_single_line_tabs",
 			file("123\t4567890\r\n"),
-			source.Location{
-				ByteOffset: 2,
-				Length:     3,
-			},
+			source.NewLocation(2, 3),
 			source.Snippet{
 				Start: source.Indicator{Column: 3},
 				End:   source.Indicator{Column: 6},
@@ -52,10 +46,7 @@ func TestSnippet(t *testing.T) {
 		{
 			"point_single_line_first_half",
 			file(strings.Repeat("12345678901234567890123456789012345678\r\n", 6)),
-			source.Location{
-				ByteOffset: 42,
-				Length:     1,
-			},
+			source.NewLocation(42, 1),
 			source.Snippet{
 				Start: source.Indicator{Column: 3},
 				End:   source.Indicator{Column: 3},
@@ -70,10 +61,7 @@ func TestSnippet(t *testing.T) {
 		{
 			"point_single_line_second_half",
 			file(strings.Repeat("12345678901234567890123456789012345678\r\n", 6)),
-			source.Location{
-				ByteOffset: 75,
-				Length:     1,
-			},
+			source.NewLocation(75, 1),
 			source.Snippet{
 				Start: source.Indicator{Column: 18},
 				End:   source.Indicator{Column: 18},
@@ -88,10 +76,7 @@ func TestSnippet(t *testing.T) {
 		{
 			"point_single_line_middle",
 			file(strings.Repeat("12345678901234567890123456789012345678\r\n", 6)),
-			source.Location{
-				ByteOffset: 60,
-				Length:     1,
-			},
+			source.NewLocation(60, 1),
 			source.Snippet{
 				Start: source.Indicator{Column: 10},
 				End:   source.Indicator{Column: 10},
@@ -107,10 +92,7 @@ func TestSnippet(t *testing.T) {
 		{
 			"range_single_line_fits",
 			file("1234567890\r\n"),
-			source.Location{
-				ByteOffset: 2,
-				Length:     5,
-			},
+			source.NewLocation(2, 5),
 			source.Snippet{
 				Start: source.Indicator{Column: 3},
 				End:   source.Indicator{Column: 7},
@@ -124,10 +106,7 @@ func TestSnippet(t *testing.T) {
 		{
 			"range_single_line_first_half",
 			file(strings.Repeat("12345678901234567890123456789012345678\r\n", 6)),
-			source.Location{
-				ByteOffset: 42,
-				Length:     5,
-			},
+			source.NewLocation(42, 5),
 			source.Snippet{
 				Start: source.Indicator{Column: 3},
 				End:   source.Indicator{Column: 7},
@@ -142,10 +121,7 @@ func TestSnippet(t *testing.T) {
 		{
 			"range_single_line_second_half",
 			file(strings.Repeat("12345678901234567890123456789012345678\r\n", 6)),
-			source.Location{
-				ByteOffset: 71,
-				Length:     5,
-			},
+			source.NewLocation(71, 5),
 			source.Snippet{
 				Start: source.Indicator{Column: 11},
 				End:   source.Indicator{Column: 15},
@@ -160,10 +136,7 @@ func TestSnippet(t *testing.T) {
 		{
 			"range_single_line_middle",
 			file(strings.Repeat("12345678901234567890123456789012345678\r\n", 6)),
-			source.Location{
-				ByteOffset: 59,
-				Length:     3,
-			},
+			source.NewLocation(59, 3),
 			source.Snippet{
 				Start: source.Indicator{Column: 9},
 				End:   source.Indicator{Column: 11},
@@ -179,10 +152,7 @@ func TestSnippet(t *testing.T) {
 		{
 			"range_single_line_middle_and_end",
 			file(strings.Repeat("12345678901234567890123456789012345678\r\n", 6)),
-			source.Location{
-				ByteOffset: 44,
-				Length:     18,
-			},
+			source.NewLocation(44, 18),
 			source.Snippet{
 				Start: source.Indicator{Column: 5},
 				End:   source.Indicator{Column: 14},
@@ -199,10 +169,7 @@ func TestSnippet(t *testing.T) {
 		{
 			"range_single_line_middle_and_start",
 			file(strings.Repeat("12345678901234567890123456789012345678\r\n", 6)),
-			source.Location{
-				ByteOffset: 56,
-				Length:     18,
-			},
+			source.NewLocation(56, 18),
 			source.Snippet{
 				Start: source.Indicator{Column: 6},
 				End:   source.Indicator{Column: 16},
@@ -219,10 +186,7 @@ func TestSnippet(t *testing.T) {
 		{
 			"range_single_line_start_middle_end",
 			file(strings.Repeat("12345678901234567890123456789012345678\r\n", 6)),
-			source.Location{
-				ByteOffset: 50,
-				Length:     18,
-			},
+			source.NewLocation(50, 18),
 			source.Snippet{
 				Start: source.Indicator{Column: 6},
 				End:   source.Indicator{Column: 14},
@@ -240,10 +204,7 @@ func TestSnippet(t *testing.T) {
 		{
 			"range_single_line_start_middle_end",
 			file(strings.Repeat("12345678901234567890123456789012345678\r\n", 6)),
-			source.Location{
-				ByteOffset: 56,
-				Length:     7,
-			},
+			source.NewLocation(56, 7),
 			source.Snippet{
 				Start: source.Indicator{Column: 7},
 				End:   source.Indicator{Column: 13},
@@ -259,10 +220,7 @@ func TestSnippet(t *testing.T) {
 		{
 			"range_multi_line",
 			file(strings.Repeat("12345678901234567890123456789012345678\r\n", 6)),
-			source.Location{
-				ByteOffset: 2,
-				Length:     201,
-			},
+			source.NewLocation(2, 201),
 			source.Snippet{
 				Start: source.Indicator{Column: 3},
 				End:   source.Indicator{Column: 3},

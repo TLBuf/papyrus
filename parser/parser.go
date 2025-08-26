@@ -58,11 +58,8 @@ func Parse(file *source.File, opts ...Option) (*ast.Script, error) {
 		var lerr lexer.Error
 		if !errors.As(err, &lerr) {
 			return nil, Error{
-				Err: fmt.Errorf("failed to initialize lexer: failed to extract a lexer.Error from: %w", err),
-				Location: source.Location{
-					ByteOffset: 0,
-					Length:     1,
-				},
+				Err:      fmt.Errorf("failed to initialize lexer: failed to extract a lexer.Error from: %w", err),
+				Location: source.NewLocation(0, 0),
 			}
 		}
 		return nil, Error{
@@ -411,11 +408,8 @@ func (p *parser) ParseLineComment(suffix bool) (*ast.LineComment, error) {
 func (p *parser) ParseScript() (*ast.Script, error) {
 	var err error
 	node := &ast.Script{
-		File: p.file,
-		NodeLocation: source.Location{
-			ByteOffset: 0,
-			Length:     p.file.Len(),
-		},
+		File:         p.file,
+		NodeLocation: source.NewLocation(0, p.file.Len()),
 	}
 	for p.token.Kind != token.ScriptName {
 		if err := p.consumeNewlines(); err != nil {

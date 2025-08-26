@@ -31,7 +31,7 @@ func attachLooseComments(script *ast.Script, comments []ast.Comment) error {
 		case comment.Prefix():
 			last := postorder[len(postorder)-1]
 			ll := last.Location()
-			if ll.ByteOffset+ll.Length < cl.ByteOffset {
+			if ll.End() < cl.Start() {
 				if err := attachSuffixComments(last, comment); err != nil {
 					return err
 				}
@@ -39,7 +39,7 @@ func attachLooseComments(script *ast.Script, comments []ast.Comment) error {
 			}
 			node := preorder[prefixCursor]
 			for prefixCursor < len(preorder) {
-				if node.Location().ByteOffset > cl.ByteOffset || prefixCursor == len(preorder)-1 {
+				if node.Location().Start() > cl.Start() || prefixCursor == len(preorder)-1 {
 					break
 				}
 				prefixCursor++
@@ -56,7 +56,7 @@ func attachLooseComments(script *ast.Script, comments []ast.Comment) error {
 				}
 				curr := postorder[suffixCursor+1]
 				nl := curr.Location()
-				if nl.ByteOffset+nl.Length > cl.ByteOffset {
+				if nl.End() > cl.Start() {
 					break
 				}
 				node = curr

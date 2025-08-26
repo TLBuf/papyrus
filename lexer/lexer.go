@@ -52,11 +52,8 @@ func New(file *source.File) (*Lexer, error) {
 	l.lineEndOffset = l.findNextNewlineOffset()
 	if err := l.readChar(); err != nil {
 		return nil, Error{
-			Err: fmt.Errorf("failed to read input: %w", err),
-			Location: source.Location{
-				ByteOffset: 0,
-				Length:     1,
-			},
+			Err:      fmt.Errorf("failed to read input: %w", err),
+			Location: source.NewLocation(0, 0),
 		}
 	}
 	return l, nil
@@ -95,9 +92,8 @@ func (l *Lexer) nextToken() (token.Token, error) {
 	case 0:
 		tok = token.Token{
 			Kind:     token.EOF,
-			Location: l.here(),
+			Location: source.NewLocation(l.here().Start(), 0),
 		}
-		tok.Location.Length = 0
 	case '(':
 		tok = l.newToken(token.ParenthesisOpen)
 	case ')':
@@ -301,7 +297,7 @@ func (l *Lexer) newToken(t token.Kind) token.Token {
 func (l *Lexer) newTokenAt(t token.Kind, at source.Location) token.Token {
 	return token.Token{
 		Kind:     t,
-		Text:     l.file.Content()[at.ByteOffset : at.ByteOffset+at.Length],
+		Text:     l.file.Bytes(at),
 		Location: at,
 	}
 }
@@ -309,23 +305,17 @@ func (l *Lexer) newTokenAt(t token.Kind, at source.Location) token.Token {
 func (l *Lexer) newTokenFrom(t token.Kind, from source.Location) token.Token {
 	return token.Token{
 		Kind:     t,
-		Text:     l.file.Content()[from.ByteOffset : from.ByteOffset+from.Length],
+		Text:     l.file.Bytes(from),
 		Location: source.Span(from, l.here()),
 	}
 }
 
 func (l *Lexer) here() source.Location {
-	return source.Location{
-		ByteOffset: l.position,
-		Length:     l.next - l.position,
-	}
+	return source.NewLocation(l.position, l.next-l.position)
 }
 
 func (l *Lexer) nextByteLocation() source.Location {
-	return source.Location{
-		ByteOffset: l.position,
-		Length:     1,
-	}
+	return source.NewLocation(l.position, 1)
 }
 
 func (l *Lexer) readIdentifier() (token.Token, error) {

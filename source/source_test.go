@@ -17,42 +17,42 @@ func TestStartLine(t *testing.T) {
 		{
 			name:     "EmptyFile",
 			file:     file(""),
-			location: location(0, 1),
+			location: source.NewLocation(0, 1),
 			want:     0,
 		}, {
 			name:     "FirstByte",
 			file:     file("01\n34\n67\n"),
-			location: location(0, 1),
+			location: source.NewLocation(0, 1),
 			want:     1,
 		}, {
 			name:     "LastByte",
 			file:     file("01\n34\n67\n"),
-			location: location(8, 1),
+			location: source.NewLocation(8, 1),
 			want:     3,
 		}, {
 			name:     "LineStart",
 			file:     file("01\n34\n67\n"),
-			location: location(3, 1),
+			location: source.NewLocation(3, 1),
 			want:     2,
 		}, {
 			name:     "LineEnd",
 			file:     file("01\n34\n67\n"),
-			location: location(5, 1),
+			location: source.NewLocation(5, 1),
 			want:     2,
 		}, {
 			name:     "PastEnd",
 			file:     file("01\n34\n67\n"),
-			location: location(10, 1),
+			location: source.NewLocation(10, 1),
 			want:     0,
 		}, {
 			name:     "LastByteNoTrailingNewline",
 			file:     file("01\n34\n67"),
-			location: location(7, 1),
+			location: source.NewLocation(7, 1),
 			want:     3,
 		}, {
 			name:     "PastEndNoTrailingNewline",
 			file:     file("01\n34\n67"),
-			location: location(10, 1),
+			location: source.NewLocation(10, 1),
 			want:     0,
 		},
 	}
@@ -76,42 +76,42 @@ func TestEndLine(t *testing.T) {
 		{
 			name:     "EmptyFile",
 			file:     file(""),
-			location: location(0, 1),
+			location: source.NewLocation(0, 1),
 			want:     0,
 		}, {
 			name:     "FirstByte",
 			file:     file("01\n34\n67\n"),
-			location: location(0, 1),
+			location: source.NewLocation(0, 1),
 			want:     1,
 		}, {
 			name:     "LastByte",
 			file:     file("01\n34\n67\n"),
-			location: location(8, 1),
+			location: source.NewLocation(8, 1),
 			want:     3,
 		}, {
 			name:     "LineStart",
 			file:     file("01\n34\n67\n"),
-			location: location(3, 1),
+			location: source.NewLocation(3, 1),
 			want:     2,
 		}, {
 			name:     "LineEnd",
 			file:     file("01\n34\n67\n"),
-			location: location(5, 1),
+			location: source.NewLocation(5, 1),
 			want:     2,
 		}, {
 			name:     "PastEnd",
 			file:     file("01\n34\n67\n"),
-			location: location(10, 1),
+			location: source.NewLocation(10, 1),
 			want:     0,
 		}, {
 			name:     "LastByteNoTrailingNewline",
 			file:     file("01\n34\n67"),
-			location: location(7, 1),
+			location: source.NewLocation(7, 1),
 			want:     3,
 		}, {
 			name:     "PastEndNoTrailingNewline",
 			file:     file("01\n34\n67"),
-			location: location(10, 1),
+			location: source.NewLocation(10, 1),
 			want:     0,
 		},
 	}
@@ -135,42 +135,42 @@ func TestStartColumn(t *testing.T) {
 		{
 			name:     "EmptyFile",
 			file:     file(""),
-			location: location(0, 1),
+			location: source.NewLocation(0, 1),
 			want:     0,
 		}, {
 			name:     "FirstByte",
 			file:     file("01\n34\n67\n"),
-			location: location(0, 1),
+			location: source.NewLocation(0, 1),
 			want:     1,
 		}, {
 			name:     "LastByte",
 			file:     file("01\n34\n67\n"),
-			location: location(8, 1),
+			location: source.NewLocation(8, 1),
 			want:     3,
 		}, {
 			name:     "LineStart",
 			file:     file("01\n34\n67\n"),
-			location: location(3, 1),
+			location: source.NewLocation(3, 1),
 			want:     1,
 		}, {
 			name:     "LineEnd",
 			file:     file("01\n34\n67\n"),
-			location: location(4, 1),
+			location: source.NewLocation(4, 1),
 			want:     2,
 		}, {
 			name:     "PastEnd",
 			file:     file("01\n34\n67\n"),
-			location: location(10, 1),
+			location: source.NewLocation(10, 1),
 			want:     0,
 		}, {
 			name:     "LastByteNoTrailingNewline",
 			file:     file("01\n34\n67"),
-			location: location(7, 1),
+			location: source.NewLocation(7, 1),
 			want:     2,
 		}, {
 			name:     "PastEndNoTrailingNewline",
 			file:     file("01\n34\n67"),
-			location: location(10, 1),
+			location: source.NewLocation(10, 1),
 			want:     0,
 		},
 	}
@@ -194,42 +194,42 @@ func TestEndColumn(t *testing.T) {
 		{
 			name:     "EmptyFile",
 			file:     file(""),
-			location: location(0, 1),
+			location: source.NewLocation(0, 1),
 			want:     0,
 		}, {
 			name:     "FirstByte",
 			file:     file("01\n34\n67\n"),
-			location: location(0, 1),
+			location: source.NewLocation(0, 1),
 			want:     1,
 		}, {
 			name:     "LastByte",
 			file:     file("01\n34\n67\n"),
-			location: location(8, 1),
+			location: source.NewLocation(8, 1),
 			want:     3,
 		}, {
 			name:     "LineStart",
 			file:     file("01\n34\n67\n"),
-			location: location(3, 1),
+			location: source.NewLocation(3, 1),
 			want:     1,
 		}, {
 			name:     "LineEnd",
 			file:     file("01\n34\n67\n"),
-			location: location(4, 1),
+			location: source.NewLocation(4, 1),
 			want:     2,
 		}, {
 			name:     "PastEnd",
 			file:     file("01\n34\n67\n"),
-			location: location(10, 1),
+			location: source.NewLocation(10, 1),
 			want:     0,
 		}, {
 			name:     "LastByteNoTrailingNewline",
 			file:     file("01\n34\n67"),
-			location: location(7, 1),
+			location: source.NewLocation(7, 1),
 			want:     2,
 		}, {
 			name:     "PastEndNoTrailingNewline",
 			file:     file("01\n34\n67"),
-			location: location(10, 1),
+			location: source.NewLocation(10, 1),
 			want:     0,
 		},
 	}
@@ -253,42 +253,42 @@ func TestPremable(t *testing.T) {
 		{
 			name:     "EmptyFile",
 			file:     file(""),
-			location: location(0, 1),
+			location: source.NewLocation(0, 1),
 			want:     nil,
 		}, {
 			name:     "FirstByte",
 			file:     file("01\n34\n67\n"),
-			location: location(0, 1),
+			location: source.NewLocation(0, 1),
 			want:     []byte(""),
 		}, {
 			name:     "LastByte",
 			file:     file("01\n34\n67\n"),
-			location: location(8, 1),
+			location: source.NewLocation(8, 1),
 			want:     []byte("67"),
 		}, {
 			name:     "LineStart",
 			file:     file("01\n34\n67\n"),
-			location: location(3, 1),
+			location: source.NewLocation(3, 1),
 			want:     []byte(""),
 		}, {
 			name:     "LineEnd",
 			file:     file("01\n34\n67\n"),
-			location: location(4, 1),
+			location: source.NewLocation(4, 1),
 			want:     []byte("3"),
 		}, {
 			name:     "PastEnd",
 			file:     file("01\n34\n67\n"),
-			location: location(10, 1),
+			location: source.NewLocation(10, 1),
 			want:     nil,
 		}, {
 			name:     "LastByteNoTrailingNewline",
 			file:     file("01\n34\n67"),
-			location: location(7, 1),
+			location: source.NewLocation(7, 1),
 			want:     []byte("6"),
 		}, {
 			name:     "PastEndNoTrailingNewline",
 			file:     file("01\n34\n67"),
-			location: location(10, 1),
+			location: source.NewLocation(10, 1),
 			want:     nil,
 		},
 	}
@@ -312,47 +312,47 @@ func TestPostamble(t *testing.T) {
 		{
 			name:     "EmptyFile",
 			file:     file(""),
-			location: location(0, 1),
+			location: source.NewLocation(0, 1),
 			want:     nil,
 		}, {
 			name:     "FirstByte",
 			file:     file("01\n34\n67\n"),
-			location: location(0, 1),
+			location: source.NewLocation(0, 1),
 			want:     []byte("1"),
 		}, {
 			name:     "LastByte",
 			file:     file("01\n34\n67\n"),
-			location: location(8, 1),
+			location: source.NewLocation(8, 1),
 			want:     []byte(""),
 		}, {
 			name:     "LineStart",
 			file:     file("01\n34\n67\n"),
-			location: location(3, 1),
+			location: source.NewLocation(3, 1),
 			want:     []byte("4"),
 		}, {
 			name:     "LineEnd",
 			file:     file("01\n34\n67\n"),
-			location: location(4, 1),
+			location: source.NewLocation(4, 1),
 			want:     []byte(""),
 		}, {
 			name:     "PastEnd",
 			file:     file("01\n34\n67\n"),
-			location: location(10, 1),
+			location: source.NewLocation(10, 1),
 			want:     nil,
 		}, {
 			name:     "LastByteNoTrailingNewline",
 			file:     file("01\n34\n67"),
-			location: location(7, 1),
+			location: source.NewLocation(7, 1),
 			want:     []byte(""),
 		}, {
 			name:     "PastEndNoTrailingNewline",
 			file:     file("01\n34\n67"),
-			location: location(10, 1),
+			location: source.NewLocation(10, 1),
 			want:     nil,
 		}, {
 			name:     "CarriageReturn",
 			file:     file("01\r\n45\r\n89"),
-			location: location(4, 1),
+			location: source.NewLocation(4, 1),
 			want:     []byte("5"),
 		},
 	}
@@ -376,52 +376,52 @@ func TestContext(t *testing.T) {
 		{
 			name:     "EmptyFile",
 			file:     file(""),
-			location: location(0, 1),
+			location: source.NewLocation(0, 1),
 			want:     nil,
 		}, {
 			name:     "FirstByte",
 			file:     file("01\n34\n67\n"),
-			location: location(0, 1),
+			location: source.NewLocation(0, 1),
 			want:     []byte("01"),
 		}, {
 			name:     "LastByte",
 			file:     file("01\n34\n67\n"),
-			location: location(8, 1),
+			location: source.NewLocation(8, 1),
 			want:     []byte("67"),
 		}, {
 			name:     "LineStart",
 			file:     file("01\n34\n67\n"),
-			location: location(3, 1),
+			location: source.NewLocation(3, 1),
 			want:     []byte("34"),
 		}, {
 			name:     "LineEnd",
 			file:     file("01\n34\n67\n"),
-			location: location(4, 1),
+			location: source.NewLocation(4, 1),
 			want:     []byte("34"),
 		}, {
 			name:     "PastEnd",
 			file:     file("01\n34\n67\n"),
-			location: location(10, 1),
+			location: source.NewLocation(10, 1),
 			want:     nil,
 		}, {
 			name:     "LastByteNoTrailingNewline",
 			file:     file("01\n34\n67"),
-			location: location(7, 1),
+			location: source.NewLocation(7, 1),
 			want:     []byte("67"),
 		}, {
 			name:     "PastEndNoTrailingNewline",
 			file:     file("01\n34\n67"),
-			location: location(10, 1),
+			location: source.NewLocation(10, 1),
 			want:     nil,
 		}, {
 			name:     "CarriageReturn",
 			file:     file("01\r\n45\r\n89"),
-			location: location(4, 1),
+			location: source.NewLocation(4, 1),
 			want:     []byte("45"),
 		}, {
 			name:     "CrossLine",
 			file:     file("01\r\n45\r\n89"),
-			location: location(1, 4),
+			location: source.NewLocation(1, 4),
 			want:     []byte("01\r\n45"),
 		},
 	}
@@ -438,11 +438,4 @@ func TestContext(t *testing.T) {
 func file(content string) *source.File {
 	f, _ := source.NewFile("test.psc", []byte(content))
 	return f
-}
-
-func location(offset, length uint32) source.Location {
-	return source.Location{
-		ByteOffset: offset,
-		Length:     length,
-	}
 }

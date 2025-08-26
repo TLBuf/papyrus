@@ -90,7 +90,7 @@ func (f *Function) Location() source.Location {
 	end := f.NativeLocations[len(f.NativeLocations)-1]
 	if len(f.GlobalLocations) > 0 {
 		last := f.GlobalLocations[len(f.GlobalLocations)-1]
-		if last.ByteOffset > end.ByteOffset {
+		if last.Start() > end.Start() {
 			end = last
 		}
 	}

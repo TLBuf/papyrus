@@ -120,7 +120,7 @@ func (p *Property) Location() source.Location {
 	}
 	if len(p.ConditionalLocations) > 0 {
 		last := p.ConditionalLocations[len(p.ConditionalLocations)-1]
-		if last.ByteOffset > end.ByteOffset {
+		if last.Start() > end.Start() {
 			end = last
 		}
 	}

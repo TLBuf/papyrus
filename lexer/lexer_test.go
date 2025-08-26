@@ -33,7 +33,7 @@ EndState ; Comment
 	tests := []struct {
 		wantType   token.Kind
 		wantText   string
-		wantOffset uint32
+		wantStart  uint32
 		wantLength uint32
 	}{
 		{token.ScriptName, "ScriptName", 0, 10},
@@ -112,17 +112,17 @@ EndState ; Comment
 		if gotText != tt.wantText {
 			t.Errorf("token text mismatch at token %d %q, want: %q, got: %q", i, tok, tt.wantText, gotText)
 		}
-		if tok.Location.ByteOffset != tt.wantOffset {
+		if tok.Location.Start() != tt.wantStart {
 			t.Errorf(
 				"token byte offset mismatch at token %d %q, want: %d, got: %d",
 				i,
 				tok,
-				tt.wantOffset,
-				tok.Location.ByteOffset,
+				tt.wantStart,
+				tok.Location.Start(),
 			)
 		}
-		if tok.Location.Length != tt.wantLength {
-			t.Errorf("token length mismatch at token %d %q, want: %d, got: %d", i, tok, tt.wantLength, tok.Location.Length)
+		if tok.Location.Len() != tt.wantLength {
+			t.Errorf("token length mismatch at token %d %q, want: %d, got: %d", i, tok, tt.wantLength, tok.Location.Len())
 		}
 	}
 }

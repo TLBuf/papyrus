@@ -20,250 +20,124 @@ func TestHeader(t *testing.T) {
 			name:  "basic",
 			input: "ScriptName Foo",
 			want: &ast.Script{
-				KeywordLocation: source.Location{
-					ByteOffset: 0,
-					Length:     10,
-				},
+				KeywordLocation: source.NewLocation(0, 10),
 				Name: &ast.Identifier{
-					Text: "Foo",
-					NodeLocation: source.Location{
-						ByteOffset: 11,
-						Length:     3,
-					},
+					Text:         "Foo",
+					NodeLocation: source.NewLocation(11, 3),
 				},
-				NodeLocation: source.Location{
-					ByteOffset: 0,
-					Length:     14,
-				},
+				NodeLocation: source.NewLocation(0, 14),
 			},
 		},
 		{
 			name:  "extends",
 			input: "ScriptName Foo Extends Bar",
 			want: &ast.Script{
-				KeywordLocation: source.Location{
-					ByteOffset: 0,
-					Length:     10,
-				},
+				KeywordLocation: source.NewLocation(0, 10),
 				Name: &ast.Identifier{
-					Text: "Foo",
-					NodeLocation: source.Location{
-						ByteOffset: 11,
-						Length:     3,
-					},
+					Text:         "Foo",
+					NodeLocation: source.NewLocation(11, 3),
 				},
-				ExtendsLocation: source.Location{
-					ByteOffset: 15,
-					Length:     7,
-				},
+				ExtendsLocation: source.NewLocation(15, 7),
 				Parent: &ast.Identifier{
-					Text: "Bar",
-					NodeLocation: source.Location{
-						ByteOffset: 23,
-						Length:     3,
-					},
+					Text:         "Bar",
+					NodeLocation: source.NewLocation(23, 3),
 				},
-				NodeLocation: source.Location{
-					ByteOffset: 0,
-					Length:     26,
-				},
+				NodeLocation: source.NewLocation(0, 26),
 			},
 		},
 		{
 			name:  "hidden",
 			input: "ScriptName Foo Hidden",
 			want: &ast.Script{
-				KeywordLocation: source.Location{
-					ByteOffset: 0,
-					Length:     10,
-				},
+				KeywordLocation: source.NewLocation(0, 10),
 				Name: &ast.Identifier{
-					Text: "Foo",
-					NodeLocation: source.Location{
-						ByteOffset: 11,
-						Length:     3,
-					},
+					Text:         "Foo",
+					NodeLocation: source.NewLocation(11, 3),
 				},
-				HiddenLocations: []source.Location{{
-					ByteOffset: 15,
-					Length:     6,
-				}},
-				NodeLocation: source.Location{
-					ByteOffset: 0,
-					Length:     21,
-				},
+				HiddenLocations: []source.Location{source.NewLocation(15, 6)},
+				NodeLocation:    source.NewLocation(0, 21),
 			},
 		},
 		{
 			name:  "conditional",
 			input: "ScriptName Foo Conditional",
 			want: &ast.Script{
-				KeywordLocation: source.Location{
-					ByteOffset: 0,
-					Length:     10,
-				},
+				KeywordLocation: source.NewLocation(0, 10),
 				Name: &ast.Identifier{
-					Text: "Foo",
-					NodeLocation: source.Location{
-						ByteOffset: 11,
-						Length:     3,
-					},
+					Text:         "Foo",
+					NodeLocation: source.NewLocation(11, 3),
 				},
-				ConditionalLocations: []source.Location{{
-					ByteOffset: 15,
-					Length:     11,
-				}},
-				NodeLocation: source.Location{
-					ByteOffset: 0,
-					Length:     26,
-				},
+				ConditionalLocations: []source.Location{source.NewLocation(15, 11)},
+				NodeLocation:         source.NewLocation(0, 26),
 			},
 		},
 		{
 			name:  "hidden_conditional",
 			input: "ScriptName Foo Hidden Conditional",
 			want: &ast.Script{
-				KeywordLocation: source.Location{
-					ByteOffset: 0,
-					Length:     10,
-				},
+				KeywordLocation: source.NewLocation(0, 10),
 				Name: &ast.Identifier{
-					Text: "Foo",
-					NodeLocation: source.Location{
-						ByteOffset: 11,
-						Length:     3,
-					},
+					Text:         "Foo",
+					NodeLocation: source.NewLocation(11, 3),
 				},
-				HiddenLocations: []source.Location{{
-					ByteOffset: 15,
-					Length:     6,
-				}},
-				ConditionalLocations: []source.Location{{
-					ByteOffset: 22,
-					Length:     11,
-				}},
-				NodeLocation: source.Location{
-					ByteOffset: 0,
-					Length:     33,
-				},
+				HiddenLocations:      []source.Location{source.NewLocation(15, 6)},
+				ConditionalLocations: []source.Location{source.NewLocation(22, 11)},
+				NodeLocation:         source.NewLocation(0, 33),
 			},
 		},
 		{
 			name:  "conditional_hidden",
 			input: "ScriptName Foo Conditional Hidden",
 			want: &ast.Script{
-				KeywordLocation: source.Location{
-					ByteOffset: 0,
-					Length:     10,
-				},
+				KeywordLocation: source.NewLocation(0, 10),
 				Name: &ast.Identifier{
-					Text: "Foo",
-					NodeLocation: source.Location{
-						ByteOffset: 11,
-						Length:     3,
-					},
+					Text:         "Foo",
+					NodeLocation: source.NewLocation(11, 3),
 				},
-				HiddenLocations: []source.Location{{
-					ByteOffset: 27,
-					Length:     6,
-				}},
-				ConditionalLocations: []source.Location{{
-					ByteOffset: 15,
-					Length:     11,
-				}},
-				NodeLocation: source.Location{
-					ByteOffset: 0,
-					Length:     33,
-				},
+				HiddenLocations:      []source.Location{source.NewLocation(27, 6)},
+				ConditionalLocations: []source.Location{source.NewLocation(15, 11)},
+				NodeLocation:         source.NewLocation(0, 33),
 			},
 		},
 		{
 			name:  "many_flags",
 			input: "ScriptName Foo Conditional Hidden Conditional Hidden",
 			want: &ast.Script{
-				KeywordLocation: source.Location{
-					ByteOffset: 0,
-					Length:     10,
-				},
+				KeywordLocation: source.NewLocation(0, 10),
 				Name: &ast.Identifier{
-					Text: "Foo",
-					NodeLocation: source.Location{
-						ByteOffset: 11,
-						Length:     3,
-					},
+					Text:         "Foo",
+					NodeLocation: source.NewLocation(11, 3),
 				},
 				HiddenLocations: []source.Location{
-					{
-						ByteOffset: 27,
-						Length:     6,
-					}, {
-						ByteOffset: 46,
-						Length:     6,
-					},
+					source.NewLocation(27, 6), source.NewLocation(46, 6),
 				},
 				ConditionalLocations: []source.Location{
-					{
-						ByteOffset: 15,
-						Length:     11,
-					}, {
-						ByteOffset: 34,
-						Length:     11,
-					},
+					source.NewLocation(15, 11), source.NewLocation(34, 11),
 				},
-				NodeLocation: source.Location{
-					ByteOffset: 0,
-					Length:     52,
-				},
+				NodeLocation: source.NewLocation(0, 52),
 			},
 		},
 		{
 			name:  "extends_many_flags",
 			input: "ScriptName Foo Extends Bar Hidden Conditional Hidden Conditional",
 			want: &ast.Script{
-				KeywordLocation: source.Location{
-					ByteOffset: 0,
-					Length:     10,
-				},
+				KeywordLocation: source.NewLocation(0, 10),
 				Name: &ast.Identifier{
-					Text: "Foo",
-					NodeLocation: source.Location{
-						ByteOffset: 11,
-						Length:     3,
-					},
+					Text:         "Foo",
+					NodeLocation: source.NewLocation(11, 3),
 				},
-				ExtendsLocation: source.Location{
-					ByteOffset: 15,
-					Length:     7,
-				},
+				ExtendsLocation: source.NewLocation(15, 7),
 				Parent: &ast.Identifier{
-					Text: "Bar",
-					NodeLocation: source.Location{
-						ByteOffset: 23,
-						Length:     3,
-					},
+					Text:         "Bar",
+					NodeLocation: source.NewLocation(23, 3),
 				},
 				HiddenLocations: []source.Location{
-					{
-						ByteOffset: 27,
-						Length:     6,
-					}, {
-						ByteOffset: 46,
-						Length:     6,
-					},
+					source.NewLocation(27, 6), source.NewLocation(46, 6),
 				},
 				ConditionalLocations: []source.Location{
-					{
-						ByteOffset: 34,
-						Length:     11,
-					}, {
-						ByteOffset: 53,
-						Length:     11,
-					},
+					source.NewLocation(34, 11), source.NewLocation(53, 11),
 				},
-				NodeLocation: source.Location{
-					ByteOffset: 0,
-					Length:     64,
-				},
+				NodeLocation: source.NewLocation(0, 64),
 			},
 		},
 		{
@@ -271,36 +145,21 @@ func TestHeader(t *testing.T) {
 			input: `ScriptName Foo
 			Import Bar`,
 			want: &ast.Script{
-				KeywordLocation: source.Location{
-					ByteOffset: 0,
-					Length:     10,
-				},
+				KeywordLocation: source.NewLocation(0, 10),
 				Name: &ast.Identifier{
-					Text: "Foo",
-					NodeLocation: source.Location{
-						ByteOffset: 11,
-						Length:     3,
-					},
+					Text:         "Foo",
+					NodeLocation: source.NewLocation(11, 3),
 				},
 				Statements: []ast.ScriptStatement{
 					&ast.Import{
-						KeywordLocation: source.Location{
-							ByteOffset: 18,
-							Length:     6,
-						},
+						KeywordLocation: source.NewLocation(18, 6),
 						Name: &ast.Identifier{
-							Text: "Bar",
-							NodeLocation: source.Location{
-								ByteOffset: 25,
-								Length:     3,
-							},
+							Text:         "Bar",
+							NodeLocation: source.NewLocation(25, 3),
 						},
 					},
 				},
-				NodeLocation: source.Location{
-					ByteOffset: 0,
-					Length:     28,
-				},
+				NodeLocation: source.NewLocation(0, 28),
 			},
 		},
 		{
@@ -309,40 +168,22 @@ func TestHeader(t *testing.T) {
 			State Bar
 			EndState`,
 			want: &ast.Script{
-				KeywordLocation: source.Location{
-					ByteOffset: 0,
-					Length:     10,
-				},
+				KeywordLocation: source.NewLocation(0, 10),
 				Name: &ast.Identifier{
-					Text: "Foo",
-					NodeLocation: source.Location{
-						ByteOffset: 11,
-						Length:     3,
-					},
+					Text:         "Foo",
+					NodeLocation: source.NewLocation(11, 3),
 				},
 				Statements: []ast.ScriptStatement{
 					&ast.State{
-						StartKeywordLocation: source.Location{
-							ByteOffset: 18,
-							Length:     5,
-						},
+						StartKeywordLocation: source.NewLocation(18, 5),
 						Name: &ast.Identifier{
-							Text: "Bar",
-							NodeLocation: source.Location{
-								ByteOffset: 24,
-								Length:     3,
-							},
+							Text:         "Bar",
+							NodeLocation: source.NewLocation(24, 3),
 						},
-						EndKeywordLocation: source.Location{
-							ByteOffset: 31,
-							Length:     8,
-						},
+						EndKeywordLocation: source.NewLocation(31, 8),
 					},
 				},
-				NodeLocation: source.Location{
-					ByteOffset: 0,
-					Length:     39,
-				},
+				NodeLocation: source.NewLocation(0, 39),
 			},
 		},
 		{
@@ -351,45 +192,24 @@ func TestHeader(t *testing.T) {
 			Auto State Bar
 			EndState`,
 			want: &ast.Script{
-				KeywordLocation: source.Location{
-					ByteOffset: 0,
-					Length:     10,
-				},
+				KeywordLocation: source.NewLocation(0, 10),
 				Name: &ast.Identifier{
-					Text: "Foo",
-					NodeLocation: source.Location{
-						ByteOffset: 11,
-						Length:     3,
-					},
+					Text:         "Foo",
+					NodeLocation: source.NewLocation(11, 3),
 				},
 				Statements: []ast.ScriptStatement{
 					&ast.State{
-						IsAuto: true,
-						StartKeywordLocation: source.Location{
-							ByteOffset: 23,
-							Length:     5,
-						},
+						IsAuto:               true,
+						StartKeywordLocation: source.NewLocation(23, 5),
 						Name: &ast.Identifier{
-							Text: "Bar",
-							NodeLocation: source.Location{
-								ByteOffset: 29,
-								Length:     3,
-							},
+							Text:         "Bar",
+							NodeLocation: source.NewLocation(29, 3),
 						},
-						AutoLocation: source.Location{
-							ByteOffset: 18,
-							Length:     4,
-						},
-						EndKeywordLocation: source.Location{
-							ByteOffset: 36,
-							Length:     8,
-						},
+						AutoLocation:       source.NewLocation(18, 4),
+						EndKeywordLocation: source.NewLocation(36, 8),
 					},
 				},
-				NodeLocation: source.Location{
-					ByteOffset: 0,
-					Length:     44,
-				},
+				NodeLocation: source.NewLocation(0, 44),
 			},
 		},
 	}

@@ -53,20 +53,20 @@ func (f *File) Len() uint32 {
 // Bytes returns the bytes of content at the given location in this
 // file or nil if the location is outside the range of this file.
 func (f *File) Bytes(location Location) []byte {
-	end := location.ByteOffset + location.Length
+	end := location.Start() + location.Len()
 	if end > f.len {
 		return nil
 	}
-	return f.content[location.ByteOffset:end]
+	return f.content[location.Start():end]
 }
 
 // StartLine returns the 1-indexed line of the inclusive start of the
 // location or zero if the location is outside the range of this file.
 func (f *File) StartLine(location Location) uint32 {
-	if location.ByteOffset >= f.len {
+	if location.Start() >= f.len {
 		return 0
 	}
-	line, exact := slices.BinarySearch(f.lineOffsets, location.ByteOffset)
+	line, exact := slices.BinarySearch(f.lineOffsets, location.Start())
 	if exact {
 		return uint32(line + 1) // #nosec G115 -- Checked in NewFile.
 	}
@@ -76,7 +76,7 @@ func (f *File) StartLine(location Location) uint32 {
 // StartColumn returns the 1-indexed column of the inclusive start of the
 // location or zero if the location is outside the range of this file.
 func (f *File) StartColumn(location Location) uint32 {
-	if location.ByteOffset >= f.len {
+	if location.Start() >= f.len {
 		return 0
 	}
 	return uint32(utf8.RuneCount(f.Preamble(location))) + 1 // #nosec G115 -- Checked in NewFile.
@@ -85,7 +85,7 @@ func (f *File) StartColumn(location Location) uint32 {
 // EndLine returns the 1-indexed line of the inclusive end of the
 // location or zero if the location is outside the range of this file.
 func (f *File) EndLine(location Location) uint32 {
-	end := max(location.ByteOffset+location.Length-1, 0)
+	end := max(location.End()-1, 0)
 	if end >= f.len {
 		return 0
 	}
@@ -102,7 +102,7 @@ func (f *File) EndLine(location Location) uint32 {
 // EndColumn returns the 1-indexed column of the inclusive end of the
 // location or zero if the location is outside the range of this file.
 func (f *File) EndColumn(location Location) uint32 {
-	end := max(location.ByteOffset+location.Length-1, 0)
+	end := max(location.End()-1, 0)
 	if end >= f.len {
 		return 0
 	}
@@ -112,17 +112,17 @@ func (f *File) EndColumn(location Location) uint32 {
 // Preamble returns the content before a location
 // on the same line as the start of the location.
 func (f *File) Preamble(location Location) []byte {
-	if location.ByteOffset >= f.len {
+	if location.Start() >= f.len {
 		return nil
 	}
-	return f.content[f.lineStart(location.ByteOffset):location.ByteOffset]
+	return f.content[f.lineStart(location.Start()):location.Start()]
 }
 
 // Postamble returns the content after a location on the same line as the end of
 // the location up to, but not including the trailing newline (and carriage
 // return if present).
 func (f *File) Postamble(location Location) []byte {
-	offset := location.ByteOffset + location.Length
+	offset := location.Start() + location.Len()
 	if offset == f.len {
 		return []byte{} // Location is valid, there's just no content left.
 	}
@@ -146,11 +146,11 @@ func (f *File) Postamble(location Location) []byte {
 // location up to, but not including the trailing newline (and carriage return
 // if present).
 func (f *File) Context(location Location) []byte {
-	end := location.ByteOffset + location.Length
-	if end > f.len || location.ByteOffset >= f.len {
+	end := location.Start() + location.Len()
+	if end > f.len || location.Start() >= f.len {
 		return nil
 	}
-	context := f.content[f.lineStart(location.ByteOffset):f.lineEnd(min(end, f.len-1))]
+	context := f.content[f.lineStart(location.Start()):f.lineEnd(min(end, f.len-1))]
 	last := len(context) - 1
 	if last >= 0 && context[last] == '\n' {
 		context = context[:last]
@@ -182,33 +182,53 @@ func (f *File) lineEnd(offset uint32) uint32 {
 }
 
 // Location points to a range of bytes in a source code file.
-type Location struct {
-	// ByteOffset is the number of bytes from the start of the file for this
-	// position.
-	ByteOffset uint32
-	// Length is the number of bytes in this range.
-	Length uint32
+type Location uint64
+
+// NewLocation returns a new location with a given offset and length.
+//
+// If the offset and length together (i.e. the end of the location) exceed the
+// 4 GiB limit, length with be clamped to fit this limit.
+func NewLocation(offset, length uint32) Location {
+	o := Location(offset)
+	l := Location(length)
+	if o+l > math.MaxUint32 {
+		l = math.MaxInt32 - o
+	}
+	return o<<32 | l
+}
+
+// Start returns the offset into the file of the first byte in the location.
+func (l Location) Start() uint32 {
+	return uint32(l >> 32) // #nosec G115 -- Shift leaves 32 bits.
+}
+
+// Start returns the offset into the file of
+// the first byte after the end of the location.
+func (l Location) End() uint32 {
+	return uint32(l>>32 + l&0xFFFFFFFF) // #nosec G115 -- Checked in NewLocation.
+}
+
+// Len returns the number of bytes in the location.
+func (l Location) Len() uint32 {
+	return uint32(l & 0xFFFFFFFF) // #nosec G115 -- Mask is 32 bits.
 }
 
 // String implements [fmt.Stringer].
 func (l Location) String() string {
-	return fmt.Sprintf("[%d:%d]", l.ByteOffset, l.Length)
+	return fmt.Sprintf("[%d:%d)", l.Start(), l.End())
 }
 
 // Compare returns 0 if this location has the same byte offset as the given
 // location, a negative number if this location has a smaller byte offset, or a
 // positive number of this location has a larger byte offset.
 func (l Location) Compare(o Location) int {
-	return int(l.ByteOffset) - int(o.ByteOffset)
+	return int(l>>32 - o>>32) // #nosec G115 -- Shift leaves 32 bits.
 }
 
 // Span returns a Range that spans two given Ranges.
 func Span(start, end Location) Location {
-	if end.ByteOffset < start.ByteOffset {
-		panic(fmt.Sprintf("end before start: %d < %d", end.ByteOffset, start.ByteOffset))
+	if end.Start() < start.Start() {
+		panic(fmt.Sprintf("end before start: %d < %d", end.Start(), start.Start()))
 	}
-	return Location{
-		ByteOffset: start.ByteOffset,
-		Length:     end.ByteOffset - start.ByteOffset + end.Length,
-	}
+	return start&0xFFFFFFFF_00000000 | (end>>32 + end&0xFFFFFFFF - start>>32)
 }
