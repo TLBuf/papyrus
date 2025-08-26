@@ -294,7 +294,7 @@ func (f *formatter) VisitDocumentation(node *ast.Documentation) error {
 	if err := f.str(token.BraceOpen.Symbol()); err != nil {
 		return fmt.Errorf("failed for format open brace: %w", err)
 	}
-	text := bytes.TrimSpace(node.TextLocation.Text(f.file))
+	text := bytes.TrimSpace(f.file.Bytes(node.TextLocation))
 	if bytes.ContainsRune(text, '\n') {
 		f.level++
 		if err := f.newline(); err != nil {
@@ -334,7 +334,7 @@ func (f *formatter) VisitBlockComment(node *ast.BlockComment) error {
 	if err := f.str(token.BlockCommentOpen.Symbol()); err != nil {
 		return fmt.Errorf("failed for format block comment open: %w", err)
 	}
-	text := trimRight(node.TextLocation.Text(f.file))
+	text := trimRight(f.file.Bytes(node.TextLocation))
 	if bytes.ContainsRune(text, '\n') {
 		f.level++
 		if err := f.newline(); err != nil {
@@ -395,7 +395,7 @@ func (f *formatter) VisitLineComment(node *ast.LineComment) error {
 	if err := f.str(token.Semicolon.Symbol()); err != nil {
 		return fmt.Errorf("failed for format semicolon: %w", err)
 	}
-	text := trimRight(node.TextLocation.Text(f.file))
+	text := trimRight(f.file.Bytes(node.TextLocation))
 	if bytes.HasPrefix(text, fragmentHeader) {
 		f.level--
 	}
@@ -589,7 +589,7 @@ func (f *formatter) VisitIdentifier(node *ast.Identifier) error {
 	if err := f.visitPrefixComments(node); err != nil {
 		return err
 	}
-	return f.bytes(node.Location().Text(f.file))
+	return f.bytes(f.file.Bytes(node.Location()))
 }
 
 func (f *formatter) VisitIf(node *ast.If) error {
@@ -785,7 +785,7 @@ func (f *formatter) VisitIntLiteral(node *ast.IntLiteral) error {
 	if err := f.visitPrefixComments(node); err != nil {
 		return err
 	}
-	if err := f.bytes(node.Location().Text(f.file)); err != nil {
+	if err := f.bytes(f.file.Bytes(node.Location())); err != nil {
 		return fmt.Errorf("failed to format text: %w", err)
 	}
 	return f.visitSuffixComments(node)
@@ -795,7 +795,7 @@ func (f *formatter) VisitFloatLiteral(node *ast.FloatLiteral) error {
 	if err := f.visitPrefixComments(node); err != nil {
 		return err
 	}
-	if err := f.bytes(node.Location().Text(f.file)); err != nil {
+	if err := f.bytes(f.file.Bytes(node.Location())); err != nil {
 		return fmt.Errorf("failed to format text: %w", err)
 	}
 	return f.visitSuffixComments(node)
@@ -805,7 +805,7 @@ func (f *formatter) VisitStringLiteral(node *ast.StringLiteral) error {
 	if err := f.visitPrefixComments(node); err != nil {
 		return err
 	}
-	if err := f.bytes(node.Location().Text(f.file)); err != nil {
+	if err := f.bytes(f.file.Bytes(node.Location())); err != nil {
 		return fmt.Errorf("failed to format text: %w", err)
 	}
 	return f.visitSuffixComments(node)
@@ -1138,7 +1138,7 @@ func (f *formatter) VisitTypeLiteral(node *ast.TypeLiteral) error {
 	case token.String:
 		text = f.keywords.String
 	case token.Identifier:
-		text = string(node.Name.Location().Text(f.file))
+		text = string(f.file.Bytes(node.Name.Location()))
 	default:
 		return fmt.Errorf("unexpected type identifier: %q", kind)
 	}

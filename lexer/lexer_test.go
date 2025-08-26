@@ -114,7 +114,7 @@ EndState ; Comment
 		if tok.Kind != tt.wantType {
 			t.Errorf("token type mismatch at token %d %q, want: %v, got: %v", i, tok, tt.wantType, tok.Kind)
 		}
-		gotText := string(tok.Location.Text(file))
+		gotText := string(file.Bytes(tok.Location))
 		if gotText != tt.wantText {
 			t.Errorf("token text mismatch at token %d %q, want: %q, got: %q", i, tok, tt.wantText, gotText)
 		}

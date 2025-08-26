@@ -634,7 +634,7 @@ func (p *parser) ParseState() (ast.ScriptStatement, error) {
 			errStmt := &ast.ErrorStatement{
 				ErrorMessage: fmt.Sprintf(
 					"hit end of file while parsing state %q, did you forget %s?",
-					node.Name.NodeLocation.Text(p.file),
+					p.file.Bytes(node.Name.NodeLocation),
 					token.EndState,
 				),
 				NodeLocation: source.Span(start, p.token.Location),
@@ -1252,8 +1252,8 @@ func (p *parser) ParseProperty(typeLiteral *ast.TypeLiteral) (*ast.Property, err
 			return nil, newError(
 				first.Name.Location(),
 				"expected '%s' to have a return type of %s, but found none",
-				first.Name.Location().Text(p.file),
-				node.Type.Location().Text(p.file),
+				p.file.Bytes(first.Name.Location()),
+				p.file.Bytes(node.Type.Location()),
 			)
 		}
 		if len(first.ParameterList) != 0 {
@@ -1261,7 +1261,7 @@ func (p *parser) ParseProperty(typeLiteral *ast.TypeLiteral) (*ast.Property, err
 			return nil, newError(
 				loc,
 				"expected '%s' to have no parameters, but found %d",
-				first.Name.Location().Text(p.file),
+				p.file.Bytes(first.Name.Location()),
 				len(first.ParameterList),
 			)
 		}
@@ -1271,15 +1271,15 @@ func (p *parser) ParseProperty(typeLiteral *ast.TypeLiteral) (*ast.Property, err
 			return nil, newError(
 				first.ReturnType.Location(),
 				"expected '%s' to have no return type, but found %s",
-				first.Name.Location().Text(p.file),
-				first.ReturnType.Location().Text(p.file),
+				p.file.Bytes(first.Name.Location()),
+				p.file.Bytes(first.ReturnType.Location()),
 			)
 		}
 		if len(first.ParameterList) == 0 {
 			return nil, newError(
 				first.Name.Location(),
 				"expected '%s' to have one parameter, but found none",
-				first.Name.Location().Text(p.file),
+				p.file.Bytes(first.Name.Location()),
 			)
 		}
 		if len(first.ParameterList) > 1 {
@@ -1287,7 +1287,7 @@ func (p *parser) ParseProperty(typeLiteral *ast.TypeLiteral) (*ast.Property, err
 			return nil, newError(
 				loc,
 				"expected '%s' to have one parameter, but found %d",
-				first.Name.Location().Text(p.file),
+				p.file.Bytes(first.Name.Location()),
 				len(first.ParameterList),
 			)
 		}
@@ -1296,7 +1296,7 @@ func (p *parser) ParseProperty(typeLiteral *ast.TypeLiteral) (*ast.Property, err
 		return nil, newError(
 			first.Location(),
 			"expected 'Get' or 'Set' function for property, but found '%s'",
-			first.Name.Location().Text(p.file),
+			p.file.Bytes(first.Name.Location()),
 		)
 	}
 	if second == nil {
@@ -1309,8 +1309,8 @@ func (p *parser) ParseProperty(typeLiteral *ast.TypeLiteral) (*ast.Property, err
 			return nil, newError(
 				second.Name.Location(),
 				"expected '%s' to have a return type of %s, but found none",
-				second.Name.Location().Text(p.file),
-				node.Type.Location().Text(p.file),
+				p.file.Bytes(second.Name.Location()),
+				p.file.Bytes(node.Type.Location()),
 			)
 		}
 		if len(second.ParameterList) != 0 {
@@ -1321,7 +1321,7 @@ func (p *parser) ParseProperty(typeLiteral *ast.TypeLiteral) (*ast.Property, err
 			return nil, newError(
 				loc,
 				"expected '%s' to have no parameters, but found %d",
-				second.Name.Location().Text(p.file),
+				p.file.Bytes(second.Name.Location()),
 				len(second.ParameterList),
 			)
 		}
@@ -1334,15 +1334,15 @@ func (p *parser) ParseProperty(typeLiteral *ast.TypeLiteral) (*ast.Property, err
 			return nil, newError(
 				second.ReturnType.Location(),
 				"expected '%s' to have no return type, but found %s",
-				second.Name.Location().Text(p.file),
-				second.ReturnType.Location().Text(p.file),
+				p.file.Bytes(second.Name.Location()),
+				p.file.Bytes(second.ReturnType.Location()),
 			)
 		}
 		if len(second.ParameterList) == 0 {
 			return nil, newError(
 				second.Name.Location(),
 				"expected '%s' to have one parameter, but found none",
-				second.Name.Location().Text(p.file),
+				p.file.Bytes(second.Name.Location()),
 			)
 		}
 		if len(second.ParameterList) > 1 {
@@ -1353,7 +1353,7 @@ func (p *parser) ParseProperty(typeLiteral *ast.TypeLiteral) (*ast.Property, err
 			return nil, newError(
 				loc,
 				"expected '%s' to have one parameter, but found %d",
-				second.Name.Location().Text(p.file),
+				p.file.Bytes(second.Name.Location()),
 				len(second.ParameterList),
 			)
 		}
@@ -1362,7 +1362,7 @@ func (p *parser) ParseProperty(typeLiteral *ast.TypeLiteral) (*ast.Property, err
 		return nil, newError(
 			second.Location(),
 			"expected 'Get' or 'Set' function for property, but found '%s'",
-			second.Name.Location().Text(p.file),
+			p.file.Bytes(second.Name.Location()),
 		)
 	}
 	node.EndKeywordLocation = p.token.Location
@@ -1676,7 +1676,7 @@ func (p *parser) ParseLiteral() (ast.Literal, error) {
 
 func (p *parser) ParseIntLiteral() (*ast.IntLiteral, error) {
 	node := &ast.IntLiteral{
-		RawText:      p.token.Location.Text(p.file),
+		RawText:      p.file.Bytes(p.token.Location),
 		NodeLocation: p.token.Location,
 	}
 	if err := p.tryConsume(token.IntLiteral); err != nil {
@@ -1687,7 +1687,7 @@ func (p *parser) ParseIntLiteral() (*ast.IntLiteral, error) {
 
 func (p *parser) ParseFloatLiteral() (*ast.FloatLiteral, error) {
 	node := &ast.FloatLiteral{
-		RawText:      p.token.Location.Text(p.file),
+		RawText:      p.file.Bytes(p.token.Location),
 		NodeLocation: p.token.Location,
 	}
 	if err := p.tryConsume(token.FloatLiteral); err != nil {
@@ -1698,7 +1698,7 @@ func (p *parser) ParseFloatLiteral() (*ast.FloatLiteral, error) {
 
 func (p *parser) ParseBoolLiteral() (*ast.BoolLiteral, error) {
 	node := &ast.BoolLiteral{
-		RawText:      p.token.Location.Text(p.file),
+		RawText:      p.file.Bytes(p.token.Location),
 		NodeLocation: p.token.Location,
 	}
 	if err := p.tryConsume(token.True, token.False); err != nil {
@@ -1709,7 +1709,7 @@ func (p *parser) ParseBoolLiteral() (*ast.BoolLiteral, error) {
 
 func (p *parser) ParseStringLiteral() (*ast.StringLiteral, error) {
 	node := &ast.StringLiteral{
-		RawText:      p.token.Location.Text(p.file),
+		RawText:      p.file.Bytes(p.token.Location),
 		NodeLocation: p.token.Location,
 	}
 	if err := p.tryConsume(token.StringLiteral); err != nil {
@@ -1720,7 +1720,7 @@ func (p *parser) ParseStringLiteral() (*ast.StringLiteral, error) {
 
 func (p *parser) ParseNoneLiteral() (*ast.NoneLiteral, error) {
 	node := &ast.NoneLiteral{
-		RawText:      p.token.Location.Text(p.file),
+		RawText:      p.file.Bytes(p.token.Location),
 		NodeLocation: p.token.Location,
 	}
 	if err := p.tryConsume(token.None); err != nil {

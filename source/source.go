@@ -54,7 +54,7 @@ func (f *File) Len() uint32 {
 // file or nil if the location is outside the range of this file.
 func (f *File) Bytes(location Location) []byte {
 	end := location.ByteOffset + location.Length
-	if end >= f.len {
+	if end > f.len {
 		return nil
 	}
 	return f.content[location.ByteOffset:end]
@@ -176,24 +176,6 @@ type Location struct {
 	// PostambleLength is the number of bytes after the end of the range on the
 	// same line as EndLine.
 	PostambleLength uint32
-}
-
-// Text returns the text this range represents.
-func (l Location) Text(file *File) []byte {
-	ln := len(file.content)
-	return file.content[min(int(l.ByteOffset), ln):min(int(l.ByteOffset+l.Length), ln)]
-}
-
-// Preamble returns the text on the same line before this range.
-func (l Location) Preamble(file *File) []byte {
-	ln := len(file.content)
-	return file.content[min(int(l.ByteOffset-l.PreambleLength), ln):min(int(l.ByteOffset), ln)]
-}
-
-// Postamble returns the text on the same line after this range.
-func (l Location) Postamble(file *File) []byte {
-	ln := len(file.content)
-	return file.content[min(int(l.ByteOffset+l.Length), ln):min(int(l.ByteOffset+l.Length+l.PostambleLength), ln)]
 }
 
 // String implements [fmt.Stringer].

@@ -358,7 +358,7 @@ func (l *Lexer) readIdentifier() (token.Token, error) {
 		}
 	}
 	loc := source.Span(start, end)
-	return l.newTokenAt(token.LookupIdentifier(string(loc.Text(l.file))), loc), nil
+	return l.newTokenAt(token.LookupIdentifier(string(l.file.Bytes(loc))), loc), nil
 }
 
 func (l *Lexer) readNumber(start source.Location) (token.Token, error) {
