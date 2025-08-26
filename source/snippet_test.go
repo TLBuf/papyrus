@@ -1,14 +1,12 @@
 package source_test
 
 import (
-	"bytes"
+	"strings"
 	"testing"
 
 	"github.com/TLBuf/papyrus/source"
 	"github.com/google/go-cmp/cmp"
 )
-
-var file = newFile(bytes.Repeat([]byte("12345678901234567890123456789012345678\r\n"), 6))
 
 func TestSnippet(t *testing.T) {
 	tests := []struct {
@@ -19,7 +17,7 @@ func TestSnippet(t *testing.T) {
 	}{
 		{
 			"point_single_line_fits",
-			newFile([]byte("1234567890\r\n")),
+			file("1234567890\r\n"),
 			source.Location{
 				ByteOffset:      2,
 				Length:          1,
@@ -42,7 +40,7 @@ func TestSnippet(t *testing.T) {
 		},
 		{
 			"point_single_line_tabs",
-			newFile([]byte("123\t4567890\r\n")),
+			file("123\t4567890\r\n"),
 			source.Location{
 				ByteOffset:      2,
 				Length:          3,
@@ -65,7 +63,7 @@ func TestSnippet(t *testing.T) {
 		},
 		{
 			"point_single_line_first_half",
-			file,
+			file(strings.Repeat("12345678901234567890123456789012345678\r\n", 6)),
 			source.Location{
 				ByteOffset:      42,
 				Length:          1,
@@ -89,7 +87,7 @@ func TestSnippet(t *testing.T) {
 		},
 		{
 			"point_single_line_second_half",
-			file,
+			file(strings.Repeat("12345678901234567890123456789012345678\r\n", 6)),
 			source.Location{
 				ByteOffset:      75,
 				Length:          1,
@@ -113,7 +111,7 @@ func TestSnippet(t *testing.T) {
 		},
 		{
 			"point_single_line_middle",
-			file,
+			file(strings.Repeat("12345678901234567890123456789012345678\r\n", 6)),
 			source.Location{
 				ByteOffset:      60,
 				Length:          1,
@@ -138,7 +136,7 @@ func TestSnippet(t *testing.T) {
 		},
 		{
 			"range_single_line_fits",
-			newFile([]byte("1234567890\r\n")),
+			file("1234567890\r\n"),
 			source.Location{
 				ByteOffset:      2,
 				Length:          5,
@@ -161,7 +159,7 @@ func TestSnippet(t *testing.T) {
 		},
 		{
 			"range_single_line_first_half",
-			file,
+			file(strings.Repeat("12345678901234567890123456789012345678\r\n", 6)),
 			source.Location{
 				ByteOffset:      42,
 				Length:          5,
@@ -185,7 +183,7 @@ func TestSnippet(t *testing.T) {
 		},
 		{
 			"range_single_line_second_half",
-			file,
+			file(strings.Repeat("12345678901234567890123456789012345678\r\n", 6)),
 			source.Location{
 				ByteOffset:      71,
 				Length:          5,
@@ -209,7 +207,7 @@ func TestSnippet(t *testing.T) {
 		},
 		{
 			"range_single_line_middle",
-			file,
+			file(strings.Repeat("12345678901234567890123456789012345678\r\n", 6)),
 			source.Location{
 				ByteOffset:      59,
 				Length:          3,
@@ -234,7 +232,7 @@ func TestSnippet(t *testing.T) {
 		},
 		{
 			"range_single_line_middle_and_end",
-			file,
+			file(strings.Repeat("12345678901234567890123456789012345678\r\n", 6)),
 			source.Location{
 				ByteOffset:      44,
 				Length:          18,
@@ -260,7 +258,7 @@ func TestSnippet(t *testing.T) {
 		},
 		{
 			"range_single_line_middle_and_start",
-			file,
+			file(strings.Repeat("12345678901234567890123456789012345678\r\n", 6)),
 			source.Location{
 				ByteOffset:      56,
 				Length:          18,
@@ -286,7 +284,7 @@ func TestSnippet(t *testing.T) {
 		},
 		{
 			"range_single_line_start_middle_end",
-			file,
+			file(strings.Repeat("12345678901234567890123456789012345678\r\n", 6)),
 			source.Location{
 				ByteOffset:      50,
 				Length:          18,
@@ -313,7 +311,7 @@ func TestSnippet(t *testing.T) {
 		},
 		{
 			"range_single_line_start_middle_end",
-			file,
+			file(strings.Repeat("12345678901234567890123456789012345678\r\n", 6)),
 			source.Location{
 				ByteOffset:      56,
 				Length:          7,
@@ -338,7 +336,7 @@ func TestSnippet(t *testing.T) {
 		},
 		{
 			"range_multi_line",
-			file,
+			file(strings.Repeat("12345678901234567890123456789012345678\r\n", 6)),
 			source.Location{
 				ByteOffset:      2,
 				Length:          201,
@@ -375,9 +373,4 @@ func TestSnippet(t *testing.T) {
 			}
 		})
 	}
-}
-
-func newFile(content []byte) *source.File {
-	f, _ := source.NewFile("test.psc", content)
-	return f
 }
