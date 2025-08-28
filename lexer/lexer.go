@@ -394,7 +394,7 @@ func (l *Lexer) readString() (token.Token, error) {
 		if l.character == 0 {
 			break
 		}
-		if l.character == '\\' {
+		if !escaping && l.character == '\\' {
 			escaping = true
 			continue
 		}

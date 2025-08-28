@@ -126,3 +126,60 @@ EndState ; Comment
 		}
 	}
 }
+
+func Benchmark(b *testing.B) {
+	text := `ScriptName Foo Extends Bar
+{A muliline
+
+Doc Comment}
+
+Int z = 0x123456 ; Comment
+Float y = 0.234183 ; Comment
+String x = "A String!\n\t\"\\" ; Comment
+Int z2 = 0x123456 ; Comment
+Float y2 = 0.234183 ; Comment
+String x2 = "A String!\n\t\"\\" ; Comment
+
+String FullProperty Property
+	String Function Get()
+		Return "\"Foo\""
+	EndFunction
+EndProperty
+
+Int AutoProperty Property = 5 Auto
+
+Auto State Waiting
+	Event OnThing(Baz arg)
+		;/
+			A
+			Block
+			Comment
+		/;
+		Int a = 1 + 2
+	EndEvent
+
+	Int[] Function Foo()
+		Return New Int[2]
+	EndFunction
+
+	Int[] Function Bar()
+		Return New Int[2]
+	EndFunction
+EndState ; Comment
+`
+	text = strings.ReplaceAll(text, "\n", "\r\n")
+	file, _ := source.NewFile("test.psc", []byte(text))
+	b.ReportAllocs()
+	for b.Loop() {
+		lex, err := lexer.New(file)
+		if err != nil {
+			b.Fatalf("New() returned an unexpected error: %v", err)
+		}
+		var tok token.Token
+		for tok.Kind != token.EOF {
+			if tok, err = lex.Next(); err != nil {
+				b.Fatalf("Next() returned an unexpected error: %v", err)
+			}
+		}
+	}
+}
