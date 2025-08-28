@@ -21,11 +21,11 @@ const (
 	//
 	// Warning issues should never prevent further processing.
 	Warning
-	// Informational indicates an issue that the user may address. This may be
-	// suggestions to improve style, efficiency, etc.
+	// Info indicates an issue that the user may address. This may be suggestions
+	// to improve style, efficiency, etc.
 	//
-	// Informational issues should never prevent further processing.
-	Informational
+	// Info issues should never prevent further processing.
+	Info
 )
 
 // Issue describes an issue found while processing input.

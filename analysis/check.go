@@ -56,17 +56,6 @@ func Check(scripts ...*ast.Script) (*Info, error) {
 	for _, t := range []types.Type{types.Bool, types.BoolArray, types.Int, types.IntArray, types.Float, types.FloatArray, types.String, types.StringArray} {
 		checker.typeNames[normalize(t.Name())] = t
 	}
-	if err := sortScripts(scripts); err != nil {
-		return nil, fmt.Errorf("check script inheritance: %w", err)
-	}
-	for _, script := range scripts {
-		sym, err := global.Symbol(script)
-		if err != nil {
-			return nil, fmt.Errorf("%v symbol: %w", script, err)
-		}
-		checker.info.Scopes[script] = sym.Scope()
-		checker.typeNames[sym.Normalized()] = sym.Type()
-	}
 	if err := checker.check(scripts); err != nil {
 		return nil, err
 	}
@@ -80,6 +69,27 @@ type checker struct {
 	script    *symbol.Symbol
 	state     *symbol.Symbol
 	scope     *symbol.Scope
+}
+
+func (c *checker) check(scripts []*ast.Script) error {
+	// Build script types.
+	if err := sortScripts(scripts); err != nil {
+		return fmt.Errorf("check script inheritance: %w", err)
+	}
+	for _, script := range scripts {
+		sym, err := c.global.Symbol(script)
+		if err != nil {
+			return fmt.Errorf("%v symbol: %w", script, err)
+		}
+		c.info.Scopes[script] = sym.Scope()
+		c.typeNames[sym.Normalized()] = sym.Type()
+	}
+
+	// Build all other types, except imports.
+
+	// Handle imported types.
+
+	return nil
 }
 
 // file returns the current source file being checked.
@@ -98,11 +108,6 @@ func (c *checker) enterScope(s *symbol.Scope) {
 
 func (c *checker) leaveScope() {
 	c.scope = c.scope.Parent()
-}
-
-func (c *checker) check(scripts []*ast.Script) error {
-	// TODO: Implement.
-	return nil
 }
 
 func sortScripts(scripts []*ast.Script) error {
