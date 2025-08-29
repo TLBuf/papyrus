@@ -1,6 +1,7 @@
 package parser_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/TLBuf/papyrus/ast"
@@ -241,4 +242,54 @@ var ignoreFields = []cmp.Option{
 		ast.Script{},
 		"File",
 	),
+}
+
+func Benchmark(b *testing.B) {
+	text := `ScriptName Foo Extends Bar
+{A muliline
+
+Doc Comment}
+
+Int z = 0x123456 ; Comment
+Float y = 0.234183 ; Comment
+String x = "A String!\n\t\"\\" ; Comment
+Int z2 = 0x123456 ; Comment
+Float y2 = 0.234183 ; Comment
+String x2 = "A String!\n\t\"\\" ; Comment
+
+String Property FullProperty
+	String Function Get()
+		Return "\"Foo\""
+	EndFunction
+EndProperty
+
+Int Property AutoProperty = 5 Auto
+
+Auto State Waiting
+	Event OnThing(Baz arg)
+		;/
+			A
+			Block
+			Comment
+		/;
+		Int a = 1 + 2
+	EndEvent
+
+	Int[] Function Foo()
+		Return New Int[2]
+	EndFunction
+
+	Int[] Function Bar()
+		Return New Int[2]
+	EndFunction
+EndState ; Comment
+`
+	text = strings.ReplaceAll(text, "\n", "\r\n")
+	file, _ := source.NewFile("test.psc", []byte(text))
+	b.ReportAllocs()
+	for b.Loop() {
+		if _, err := parser.Parse(file); err != nil {
+			b.Fatalf("New() returned an unexpected error: %v", err)
+		}
+	}
 }

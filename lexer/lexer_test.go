@@ -140,13 +140,13 @@ Int z2 = 0x123456 ; Comment
 Float y2 = 0.234183 ; Comment
 String x2 = "A String!\n\t\"\\" ; Comment
 
-String FullProperty Property
+String Property FullProperty
 	String Function Get()
 		Return "\"Foo\""
 	EndFunction
 EndProperty
 
-Int AutoProperty Property = 5 Auto
+Int Property AutoProperty = 5 Auto
 
 Auto State Waiting
 	Event OnThing(Baz arg)
