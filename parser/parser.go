@@ -2,12 +2,11 @@
 package parser
 
 import (
-	"errors"
-	"fmt"
 	"slices"
 	"strings"
 
 	"github.com/TLBuf/papyrus/ast"
+	"github.com/TLBuf/papyrus/issue"
 	"github.com/TLBuf/papyrus/lexer"
 	"github.com/TLBuf/papyrus/source"
 	"github.com/TLBuf/papyrus/token"
@@ -50,23 +49,10 @@ func WithRecovery(enabled bool) Option {
 	})
 }
 
-// Parse returns the file parsed as an [*ast.Script] or
-// an [Error] if parsing encountered one or more issues.
-func Parse(file *source.File, opts ...Option) (*ast.Script, error) {
-	lex, err := lexer.New(file)
-	if err != nil {
-		var lerr lexer.Error
-		if !errors.As(err, &lerr) {
-			return nil, Error{
-				Err:      fmt.Errorf("failed to initialize lexer: failed to extract a lexer.Error from: %w", err),
-				Location: source.NewLocation(0, 0),
-			}
-		}
-		return nil, Error{
-			Err:      fmt.Errorf("failed to initialize lexer: %w", err),
-			Location: lerr.Location,
-		}
-	}
+// Parse returns the file parsed as an [*ast.Script] or false if parsing failed.
+// If this returns false, the log is guarnteed to contain at least one issue.
+func Parse(file *source.File, log *issue.Log, opts ...Option) (script *ast.Script, ok bool) {
+	lex := lexer.New(file, log)
 	p := &parser{
 		file:            file,
 		lex:             lex,
@@ -79,19 +65,22 @@ func Parse(file *source.File, opts ...Option) (*ast.Script, error) {
 		opt.apply(p)
 	}
 
-	registerPrefix(p, p.ParseArrayCreation, token.New)
-	registerPrefix(p, p.ParseBoolLiteral, token.True, token.False)
-	registerPrefix(p, p.ParseFloatLiteral, token.FloatLiteral)
-	registerPrefix(p, p.ParseIdentifier, token.Identifier, token.Self, token.Parent, token.Length)
-	registerPrefix(p, p.ParseIntLiteral, token.IntLiteral)
-	registerPrefix(p, p.ParseNoneLiteral, token.None)
-	registerPrefix(p, p.ParseParenthetical, token.ParenthesisOpen)
-	registerPrefix(p, p.ParseStringLiteral, token.StringLiteral)
-	registerPrefix(p, p.ParseUnary, token.Minus, token.LogicalNot)
+	registerPrefix(p, p.ParseExpressionArrayCreation, token.New)
+	registerPrefix(p, p.ParseExpressionBoolLiteral, token.True, token.False)
+	registerPrefix(p, p.ParseExpressionFloatLiteral, token.FloatLiteral)
+	registerPrefix(p, p.ParseExpressionIdentifier, token.Identifier, token.Self, token.Parent, token.Length)
+	registerPrefix(p, p.ParseExpressionIntLiteral, token.IntLiteral)
+	registerPrefix(p, p.ParseExpressionNoneLiteral, token.None)
+	registerPrefix(p, p.ParseExpressionParenthetical, token.ParenthesisOpen)
+	registerPrefix(p, p.ParseExpressionStringLiteral, token.StringLiteral)
+	registerPrefix(p, p.ParseExpressionUnary, token.Minus, token.LogicalNot)
 
-	registerInfix(p, p.ParseAccess, token.Dot)
+	registerInfix(p, p.ParseExpressionAccess, token.Dot)
+	registerInfix(p, p.ParseExpressionCall, token.ParenthesisOpen)
+	registerInfix(p, p.ParseExpressionCast, token.As)
+	registerInfix(p, p.ParseExpressionIndex, token.BracketOpen)
 	registerInfix(p,
-		p.ParseBinary,
+		p.ParseExpressionBinary,
 		token.LogicalOr,
 		token.LogicalAnd,
 		token.Equal,
@@ -105,30 +94,32 @@ func Parse(file *source.File, opts ...Option) (*ast.Script, error) {
 		token.Divide,
 		token.Multiply,
 		token.Modulo)
-	registerInfix(p, p.ParseCall, token.ParenthesisOpen)
-	registerInfix(p, p.ParseCast, token.As)
-	registerInfix(p, p.ParseIndex, token.BracketOpen)
 
-	if err := p.advance(); err != nil {
-		return nil, err
-	}
-	if err := p.advance(); err != nil {
-		return nil, err
-	}
-	script, err := p.ParseScript()
-	if err != nil {
-		return nil, err
+	defer func() {
+		if r := recover(); r != nil {
+			// If we failed at this level, recovery
+			// failed, so don't return a broken Script.
+			log.Append(r.(*issue.Issue))
+			script = nil
+			ok = false
+		}
+	}()
+
+	p.advance()
+	p.advance()
+
+	script = p.ParseScript()
+	if log.HasInternal() || log.HasError() {
+		return script, false
 	}
 	if p.keepComments {
-		if err := attachLooseComments(script, p.inlineComments); err != nil {
-			return nil, err
-		}
+		p.attachLooseComments(script, p.inlineComments)
 	}
-
-	return script, nil
+	return script, true
 }
 
 type parser struct {
+	log  *issue.Log
 	file *source.File
 	lex  *lexer.Lexer
 
@@ -140,9 +131,9 @@ type parser struct {
 	inlineComments     []ast.Comment
 	standaloneComments []ast.Comment
 
+	fatal           bool
 	attemptRecovery bool
 	recovery        bool
-	errors          []*ast.ErrorStatement
 
 	prefix map[token.Kind]prefixParser
 	infix  map[token.Kind]infixParser
@@ -192,82 +183,89 @@ func precedenceOf(t token.Kind) int {
 }
 
 type (
-	prefixParser func() (ast.Expression, error)
-	infixParser  func(ast.Expression) (ast.Expression, error)
+	prefixParser func() ast.Expression
+	infixParser  func(ast.Expression) ast.Expression
 )
 
 // tryConsume advances the token position if the current token matches the given
 // token type or returns an error, consuming any comments along the way.
-func (p *parser) tryConsume(t token.Kind, alts ...token.Kind) error {
-	if p.token.Kind == t {
-		return p.consume()
+func (p *parser) tryConsume(def *issue.Definition, t token.Kind, alts ...token.Kind) {
+	if p.token.Kind == t || slices.Contains(alts, p.token.Kind) {
+		p.consume()
+		return
 	}
-	if slices.Contains(alts, p.token.Kind) {
-		return p.consume()
+	p.failWithDetail(def, p.token.Location, "Encountered %s %s token.", p.token.Kind.Article(), p.token.Kind)
+}
+
+// consumeExpected advances the token position if the current token matches the
+// given token type while skipping loose comment tokens or raises an internal
+// issue. This is used for cases where the parser should be guarnteed to always
+// find a match even if the input is malformed.
+func (p *parser) consumeExpected(t token.Kind, alts ...token.Kind) {
+	if p.token.Kind == t || slices.Contains(alts, p.token.Kind) {
+		p.consume()
+		return
 	}
-	return unexpectedTokenError(p.token, t, alts...)
+	p.fatal = true // Force unexpected parser state to skip recovery.
+	p.unexpectedToken(intenalInvalidState, p.token, t, alts...)
 }
 
 // consume advances token and lookahead by one
 // token while skipping loose comment tokens.
-func (p *parser) consume() (err error) {
+func (p *parser) consume() {
 	suffix := p.token.Kind != token.Newline
-	if err := p.advance(); err != nil {
-		return err
-	}
+	p.advance()
 	if p.token.Kind == token.Illegal {
-		return nil
+		return
 	}
 	// Consume loose comments immediately so the rest of the
 	// parser never has to deal with them directly.
-	return p.consumeComments(suffix)
+	p.consumeComments(suffix)
 }
 
-// tryAdvance advances the token position if the current token matches the given
-// token type or returns an error, but does not consume comments.
-func (p *parser) tryAdvance(t token.Kind) error {
+// advanceExpected advances the token position if the current token matches the
+// given token type or raises an internal issue. This is used for cases where
+// the parser should be guarnteed to always find a match even if the input is
+// malformed.
+func (p *parser) advanceExpected(t token.Kind, alts ...token.Kind) {
 	if p.token.Kind == t {
-		return p.advance()
+		p.advance()
+		return
 	}
-	return unexpectedTokenError(p.token, t)
+	for _, alt := range alts {
+		if p.token.Kind == alt {
+			p.advance()
+			return
+		}
+	}
+	p.fatal = true // Force unexpected parser state to skip recovery.
+	p.unexpectedToken(intenalInvalidState, p.token, t, alts...)
 }
 
 // advance advances token and lookahead by one.
-func (p *parser) advance() (err error) {
+func (p *parser) advance() {
 	newline := p.token.Kind == token.Newline
 	p.token = p.lookahead
-	p.lookahead, err = p.lex.Next()
-	if err != nil {
-		var lerr lexer.Error
-		if !errors.As(err, &lerr) {
-			return Error{
-				Err:      fmt.Errorf("failed to extract a lexer.Error from: %w", err),
-				Location: p.token.Location,
-			}
-		}
-		return Error{
-			Err:      err,
-			Location: lerr.Location,
-		}
+	tok, ok := p.lex.Next()
+	if !ok {
+		// Force lexer errors to skip recovery.
+		p.fatal = true
+		panic(p.log.Last())
 	}
+	p.lookahead = tok
 	if !p.blankLine && newline && p.token.Kind == token.Newline {
 		p.blankLine = true
 	}
-	return nil
 }
 
-func (p *parser) consumeComments(suffix bool) (err error) {
+func (p *parser) consumeComments(suffix bool) {
 	for p.token.Kind == token.Semicolon || p.token.Kind == token.BlockCommentOpen {
 		var comment ast.Comment
 		switch p.token.Kind {
 		case token.Semicolon:
-			if comment, err = p.ParseLineComment(suffix); err != nil {
-				return err
-			}
+			comment = p.ParseLineComment(suffix)
 		case token.BlockCommentOpen:
-			if comment, err = p.ParseBlockComment(suffix); err != nil {
-				return err
-			}
+			comment = p.ParseBlockComment(suffix)
 		}
 		if p.keepComments && comment != nil {
 			if !comment.Prefix() && !comment.Suffix() {
@@ -275,16 +273,13 @@ func (p *parser) consumeComments(suffix bool) (err error) {
 				continue
 			}
 			p.inlineComments = append(p.inlineComments, comment)
-			return nil
+			return
 		}
 		if p.token.Kind == token.Newline &&
 			(p.lookahead.Kind == token.Semicolon || p.lookahead.Kind == token.BlockCommentOpen) {
-			if err := p.advance(); err != nil {
-				return err
-			}
+			p.advance()
 		}
 	}
-	return nil
 }
 
 func (p *parser) commentStatement() *ast.CommentStatement {
@@ -296,42 +291,42 @@ func (p *parser) commentStatement() *ast.CommentStatement {
 	return stmt
 }
 
-func unexpectedTokenError(got token.Token, want token.Kind, alts ...token.Kind) error {
+func (p *parser) unexpectedToken(def *issue.Definition, got token.Token, want token.Kind, alts ...token.Kind) {
 	if len(alts) > 0 {
-		return newError(
-			got.Location,
-			"expected any of [%s, %s], but found: %s",
-			want,
-			tokensTypesToString(alts...),
-			got.Kind,
-		)
+		var detail strings.Builder
+		_, _ = detail.WriteString("Expected ")
+		_, _ = detail.WriteString(want.Article())
+		_, _ = detail.WriteRune(' ')
+		_, _ = detail.WriteString(want.String())
+		for _, alt := range alts[:len(alts)-1] {
+			_, _ = detail.WriteString(", ")
+			_, _ = detail.WriteString(alt.String())
+		}
+		_, _ = detail.WriteString("or ")
+		_, _ = detail.WriteString(alts[len(alts)-1].String())
+		_, _ = detail.WriteString(" token, but encountered ")
+		_, _ = detail.WriteString(got.Kind.Article())
+		_, _ = detail.WriteRune(' ')
+		_, _ = detail.WriteString(got.String())
+		_, _ = detail.WriteString(" token.")
+		p.failWithDetail(def, got.Location, "%v", detail)
 	}
-	return newError(got.Location, "expected '%s', but found: %s", want, got.Kind)
-}
-
-func tokensTypesToString(kinds ...token.Kind) string {
-	if len(kinds) == 0 {
-		return ""
-	}
-	if len(kinds) == 1 {
-		return kinds[0].String()
-	}
-	strs := make([]string, len(kinds))
-	for i, t := range kinds {
-		strs[i] = t.String()
-	}
-	return strings.Join(strs, ", ")
+	p.failWithDetail(
+		def,
+		got.Location,
+		"Expected %s token, but encountered %s %s token.",
+		want,
+		got.Kind.Article(),
+		got.Kind,
+	)
 }
 
 // consumeNewlines advances the token position through the as many newlines as
 // possible until a non-newline token is found.
-func (p *parser) consumeNewlines() error {
+func (p *parser) consumeNewlines() {
 	for p.token.Kind == token.Newline {
-		if err := p.consume(); err != nil {
-			return err
-		}
+		p.consume()
 	}
-	return nil
 }
 
 func (p *parser) hasLeadingBlankLine() bool {
@@ -340,104 +335,75 @@ func (p *parser) hasLeadingBlankLine() bool {
 	return l
 }
 
-func (p *parser) ParseDocComment() (*ast.Documentation, error) {
+func (p *parser) ParseDocComment() *ast.Documentation {
 	node := &ast.Documentation{
 		OpenLocation: p.token.Location,
 	}
-	if err := p.tryConsume(token.BraceOpen); err != nil {
-		return nil, err
-	}
+	p.advanceExpected(token.BraceOpen)
 	node.TextLocation = p.token.Location
-	if err := p.tryConsume(token.Comment); err != nil {
-		return nil, err
-	}
+	p.advanceExpected(token.Comment)
 	node.CloseLocation = p.token.Location
-	if err := p.tryConsume(token.BraceClose); err != nil {
-		return nil, err
-	}
-	return node, nil
+	p.advanceExpected(token.BraceClose)
+	return node
 }
 
-func (p *parser) ParseBlockComment(suffix bool) (*ast.BlockComment, error) {
+func (p *parser) ParseBlockComment(suffix bool) *ast.BlockComment {
 	node := &ast.BlockComment{
 		IsPrefix:            true,
 		IsSuffix:            suffix,
 		HasLeadingBlankLine: p.hasLeadingBlankLine(),
 		OpenLocation:        p.token.Location,
 	}
-	if err := p.tryAdvance(token.BlockCommentOpen); err != nil {
-		return nil, err
-	}
+	p.advanceExpected(token.BlockCommentOpen)
 	node.TextLocation = p.token.Location
-	if err := p.tryAdvance(token.Comment); err != nil {
-		return nil, err
-	}
+	p.advanceExpected(token.Comment)
 	node.CloseLocation = p.token.Location
-	if err := p.tryAdvance(token.BlockCommentClose); err != nil {
-		return nil, err
-	}
+	p.advanceExpected(token.BlockCommentClose)
 	if p.token.Kind == token.Newline || p.token.Kind == token.EOF {
 		node.IsPrefix = false
 		if p.lookahead.Kind == token.Newline || p.lookahead.Kind == token.EOF {
 			node.HasTrailingBlankLine = true
 		}
 	}
-	return node, nil
+	return node
 }
 
-func (p *parser) ParseLineComment(suffix bool) (*ast.LineComment, error) {
+func (p *parser) ParseLineComment(suffix bool) *ast.LineComment {
 	node := &ast.LineComment{
 		IsSuffix:            suffix,
 		HasLeadingBlankLine: p.hasLeadingBlankLine(),
 		SemicolonLocation:   p.token.Location,
 	}
-	if err := p.tryAdvance(token.Semicolon); err != nil {
-		return nil, err
-	}
+	p.advanceExpected(token.Semicolon)
 	node.TextLocation = p.token.Location
-	if err := p.tryAdvance(token.Comment); err != nil {
-		return nil, err
-	}
+	p.advanceExpected(token.Comment)
 	if (p.token.Kind == token.Newline || p.token.Kind == token.EOF) &&
 		(p.lookahead.Kind == token.Newline || p.lookahead.Kind == token.EOF) {
 		node.HasTrailingBlankLine = true
 	}
-	return node, nil
+	return node
 }
 
-func (p *parser) ParseScript() (*ast.Script, error) {
-	var err error
+func (p *parser) ParseScript() *ast.Script {
 	node := &ast.Script{
 		File:         p.file,
 		NodeLocation: source.NewLocation(0, p.file.Len()),
 	}
 	for p.token.Kind != token.ScriptName {
-		if err := p.consumeNewlines(); err != nil {
-			return nil, err
-		}
-		if err := p.consumeComments(false); err != nil {
-			return nil, err
-		}
+		p.consumeNewlines()
+		p.consumeComments(false)
 		if len(p.standaloneComments) > 0 {
 			node.HeaderComments = append(node.HeaderComments, p.standaloneComments...)
 			p.standaloneComments = p.standaloneComments[:0]
 		}
 	}
 	node.KeywordLocation = p.token.Location
-	if err := p.tryConsume(token.ScriptName); err != nil {
-		return nil, err
-	}
-	if node.Name, err = p.ParseIdentifier(); err != nil {
-		return nil, err
-	}
+	p.tryConsume(errorExpectedScriptName, token.ScriptName)
+	node.Name = p.ParseIdentifier(errorExpectedScriptNameIdent)
 	if p.token.Kind == token.Extends {
 		node.ExtendsLocation = p.token.Location
-		if err := p.consume(); err != nil {
-			return nil, err
-		}
-		if node.Parent, err = p.ParseIdentifier(); err != nil {
-			return nil, err
-		}
+		p.consume()
+		node.Parent = p.ParseIdentifier(errorExpectedExtendsIdent)
 	}
 	for p.token.Kind == token.Hidden || p.token.Kind == token.Conditional {
 		if p.token.Kind == token.Hidden {
@@ -445,22 +411,14 @@ func (p *parser) ParseScript() (*ast.Script, error) {
 		} else {
 			node.ConditionalLocations = append(node.ConditionalLocations, p.token.Location)
 		}
-		if err := p.consume(); err != nil {
-			return nil, err
-		}
+		p.consume()
 	}
-	if err := p.consumeNewlines(); err != nil {
-		return nil, err
-	}
+	p.consumeNewlines()
 	if p.token.Kind == token.BraceOpen {
-		if node.Documentation, err = p.ParseDocComment(); err != nil {
-			return nil, err
-		}
+		node.Documentation = p.ParseDocComment()
 	}
 	for p.token.Kind != token.EOF {
-		if err := p.consumeNewlines(); err != nil {
-			return nil, err
-		}
+		p.consumeNewlines()
 		if len(p.standaloneComments) > 0 {
 			node.Statements = append(node.Statements, p.commentStatement())
 			continue
@@ -468,10 +426,7 @@ func (p *parser) ParseScript() (*ast.Script, error) {
 		if p.token.Kind == token.EOF {
 			break
 		}
-		stmt, err := p.ParseScriptStatement()
-		if err != nil {
-			return nil, err
-		}
+		stmt := p.ParseScriptStatement()
 		if stmt != nil {
 			node.Statements = append(node.Statements, stmt)
 		}
@@ -479,45 +434,65 @@ func (p *parser) ParseScript() (*ast.Script, error) {
 	if len(p.standaloneComments) > 0 {
 		node.Statements = append(node.Statements, p.commentStatement())
 	}
-	return node, nil
+	return node
 }
 
-func (p *parser) ParseScriptStatement() (stmt ast.ScriptStatement, err error) {
+func (p *parser) ParseScriptStatement() (stmt ast.ScriptStatement) {
 	start := p.token
+	if p.attemptRecovery {
+		// Error recovery. Attempt to realign to a known statement token and emit an
+		// error statement to fill the gap.
+		defer func() {
+			if r := recover(); r != nil {
+				if p.fatal || p.recovery || r.(*issue.Issue).Definition().Severity() == issue.Internal {
+					// If a recovery fails or it's an internal issue, just propagate.
+					panic(r)
+				}
+				p.recovery = true
+				p.recoverScriptStatement()
+				stmt = &ast.ErrorStatement{
+					Issue:        r.(*issue.Issue),
+					NodeLocation: source.Span(start.Location, p.token.Location),
+				}
+				p.consume()
+				p.recovery = false
+			}
+		}()
+	}
+
 	switch p.token.Kind {
 	case token.Import:
-		stmt, err = p.ParseImport()
+		return p.ParseImport()
 	case token.Event:
-		stmt, err = p.ParseEvent()
+		return p.ParseEvent()
 	case token.Auto, token.State:
-		stmt, err = p.ParseState()
+		return p.ParseState()
 	case token.Function:
-		stmt, err = p.ParseFunction(nil)
+		return p.ParseFunction(nil)
 	case token.Bool,
 		token.Float,
 		token.Int,
 		token.String,
 		token.Identifier:
-		var typeLiteral *ast.TypeLiteral
-		if typeLiteral, err = p.ParseTypeLiteral(); err != nil {
-			return nil, err
-		}
+		typeLiteral := p.ParseTypeLiteral(intenalInvalidState)
 		switch p.token.Kind {
 		case token.Property:
-			stmt, err = p.ParseProperty(typeLiteral)
+			return p.ParseProperty(typeLiteral)
 		case token.Function:
-			stmt, err = p.ParseFunction(typeLiteral)
+			return p.ParseFunction(typeLiteral)
 		case token.Identifier:
-			stmt, err = p.ParseScriptVariable(typeLiteral)
+			return p.ParseScriptVariable(typeLiteral)
 		default:
-			err = unexpectedTokenError(
+			p.unexpectedToken(
+				errorExpectedScriptStatementKeyword,
 				p.token,
 				token.Property,
 				token.Function,
 				token.Identifier)
 		}
 	default:
-		err = unexpectedTokenError(
+		p.unexpectedToken(
+			errorExpectedScriptStatement,
 			p.token,
 			token.Import,
 			token.Event,
@@ -530,75 +505,46 @@ func (p *parser) ParseScriptStatement() (stmt ast.ScriptStatement, err error) {
 			token.String,
 			token.Identifier)
 	}
-	if err == nil {
-		return stmt, nil
-	}
-	// Error recovery. Attempt to realign to a known statement token and emit an
-	// error statement to fill the gap.
-	if p.recovery || !p.attemptRecovery {
-		// If an error was returned during a recovery operation
-		// or we shouldn't even attempt recovery, just propagate it.
-		return nil, err
-	}
-	p.recovery = true
-	if err := p.recoverScriptStatement(); err != nil {
-		return nil, err
-	}
-	errStmt := &ast.ErrorStatement{
-		ErrorMessage: fmt.Sprintf("%v", err),
-		NodeLocation: source.Span(start.Location, p.token.Location),
-	}
-	p.errors = append(p.errors, errStmt)
-	if err := p.consume(); err != nil {
-		return nil, err
-	}
-	p.recovery = false
-	return errStmt, nil
+	return nil
 }
 
-func (p *parser) recoverScriptStatement() error {
+func (p *parser) recoverScriptStatement() {
 	for {
 		switch p.lookahead.Kind {
 		case token.EOF:
 			// Hit end of file, give up.
-			return nil
+			return
 		case token.Import,
 			token.Event,
 			token.Auto,
 			token.State,
-			token.Function,
-			token.Bool,
+			token.Function:
+			// Next token is the start of a script statement.
+		case token.Bool,
 			token.Float,
 			token.Int,
 			token.String,
 			token.Identifier:
-			// Next token is the start of a valid statement.
-			return nil
-		default:
-			if err := p.consume(); err != nil {
-				return err // An error during recovery just fails.
+			if p.token.Kind == token.Newline {
+				return // Next token is likely the start of a script statement.
 			}
 		}
+		p.consume()
 	}
 }
 
-func (p *parser) ParseImport() (*ast.Import, error) {
-	var err error
+func (p *parser) ParseImport() *ast.Import {
 	node := &ast.Import{
 		HasLeadingBlankLine: p.hasLeadingBlankLine(),
 		KeywordLocation:     p.token.Location,
 	}
-	if err := p.tryConsume(token.Import); err != nil {
-		return nil, err
-	}
-	if node.Name, err = p.ParseIdentifier(); err != nil {
-		return nil, err
-	}
-	return node, p.tryConsume(token.Newline, token.EOF)
+	p.consumeExpected(token.Import)
+	node.Name = p.ParseIdentifier(errorExpectedImportIdent)
+	p.tryConsume(errorExpectedImportEnd, token.Newline, token.EOF)
+	return node
 }
 
-func (p *parser) ParseState() (ast.ScriptStatement, error) {
-	var err error
+func (p *parser) ParseState() ast.ScriptStatement {
 	node := &ast.State{
 		HasLeadingBlankLine: p.hasLeadingBlankLine(),
 	}
@@ -606,70 +552,84 @@ func (p *parser) ParseState() (ast.ScriptStatement, error) {
 	if p.token.Kind == token.Auto {
 		node.IsAuto = true
 		node.AutoLocation = p.token.Location
-		if err := p.consume(); err != nil {
-			return nil, err
-		}
+		p.consume()
 	}
 	node.StartKeywordLocation = p.token.Location
-	if err := p.tryConsume(token.State); err != nil {
-		return nil, err
-	}
-	if node.Name, err = p.ParseIdentifier(); err != nil {
-		return nil, err
-	}
+	p.tryConsume(errorExpectedAutoStateKeyword, token.State)
+	node.Name = p.ParseIdentifier(errorExpectedStateIdent)
 	for p.token.Kind != token.EndState {
 		if p.token.Kind == token.EOF {
 			// State was never closed, proactively create an error statement.
-			errStmt := &ast.ErrorStatement{
-				ErrorMessage: fmt.Sprintf(
-					"hit end of file while parsing state %q, did you forget %s?",
-					p.file.Bytes(node.Name.NodeLocation),
-					token.EndState,
-				),
-				NodeLocation: source.Span(start, p.token.Location),
+			loc := source.Span(start, p.token.Location)
+			err := issue.New(errorUnclosedState, p.file, loc)
+			p.log.Append(err)
+			stmt := &ast.ErrorStatement{
+				Issue:        err,
+				NodeLocation: loc,
 			}
-			p.errors = append(p.errors, errStmt)
-			return errStmt, nil
+			return stmt
 		}
-		if err := p.consumeNewlines(); err != nil {
-			return nil, err
-		}
+		p.consumeNewlines()
 		if len(p.standaloneComments) > 0 {
 			node.Invokables = append(node.Invokables, p.commentStatement())
 		}
 		if p.token.Kind == token.EndState {
 			break
 		}
-		stmt, err := p.ParseInvokable()
-		if err != nil {
-			return nil, err
-		}
-		if stmt != nil {
-			node.Invokables = append(node.Invokables, stmt)
-		}
+		node.Invokables = append(node.Invokables, p.ParseInvokable())
 	}
 	node.EndKeywordLocation = p.token.Location
-	if err := p.tryConsume(token.EndState); err != nil {
-		return nil, err
-	}
-	return node, p.tryConsume(token.Newline, token.EOF)
+	p.consumeExpected(token.EndState)
+	p.tryConsume(errorStateEnd, token.Newline, token.EOF)
+	return node
 }
 
-func (p *parser) ParseInvokable() (stmt ast.Invokable, err error) {
+func (p *parser) ParseInvokable() (stmt ast.Invokable) {
 	start := p.token
+	if p.attemptRecovery {
+		// Error recovery. Attempt to realign to a known statement token and emit an
+		// error statement to fill the gap.
+		defer func() {
+			if r := recover(); r != nil {
+				if p.fatal || p.recovery || r.(*issue.Issue).Definition().Severity() == issue.Internal {
+					// If a recovery fails or it's an internal issue, just propagate.
+					panic(r)
+				}
+				p.recovery = true
+				p.recoverInvokable()
+				stmt = &ast.ErrorStatement{
+					Issue:        r.(*issue.Issue),
+					NodeLocation: source.Span(start.Location, p.token.Location),
+				}
+				p.consume()
+				p.recovery = false
+			}
+		}()
+	}
+
 	switch p.token.Kind {
 	case token.Event:
-		stmt, err = p.ParseEvent()
+		return p.ParseEvent()
 	case token.Function:
-		stmt, err = p.ParseFunction(nil)
-	case token.Bool, token.Float, token.Int, token.String, token.Identifier:
-		var typeLiteral *ast.TypeLiteral
-		if typeLiteral, err = p.ParseTypeLiteral(); err != nil {
-			return nil, err
+		return p.ParseFunction(nil)
+	case token.Bool,
+		token.Float,
+		token.Int,
+		token.String,
+		token.Identifier:
+		typeLiteral := p.ParseTypeLiteral(intenalInvalidState)
+		switch p.token.Kind {
+		case token.Function:
+			return p.ParseFunction(typeLiteral)
+		default:
+			p.unexpectedToken(
+				errorExpectedStateStatementKeyword,
+				p.token,
+				token.Function)
 		}
-		stmt, err = p.ParseFunction(typeLiteral)
 	default:
-		err = unexpectedTokenError(
+		p.unexpectedToken(
+			errorExpectedStateStatement,
 			p.token,
 			token.Event,
 			token.Function,
@@ -679,263 +639,177 @@ func (p *parser) ParseInvokable() (stmt ast.Invokable, err error) {
 			token.String,
 			token.Identifier)
 	}
-	if err == nil {
-		return stmt, nil
-	}
-	// Error recovery. Attempt to realign to a known statement token and emit an
-	// error statement to fill the gap.
-	if p.recovery || !p.attemptRecovery {
-		// If an error was returned during a recovery operation
-		// or we shouldn't even attempt recovery, just propagate it.
-		return nil, err
-	}
-	p.recovery = true
-	if err := p.recoverInvokable(); err != nil {
-		return nil, err
-	}
-	errStmt := &ast.ErrorStatement{
-		ErrorMessage: fmt.Sprintf("%v", err),
-		NodeLocation: source.Span(start.Location, p.token.Location),
-	}
-	p.errors = append(p.errors, errStmt)
-	if err := p.consume(); err != nil {
-		return nil, err
-	}
-	p.recovery = false
-	return errStmt, nil
+	return nil
 }
 
-func (p *parser) recoverInvokable() error {
+func (p *parser) recoverInvokable() {
 	for {
 		switch p.lookahead.Kind {
 		case token.EOF:
 			// Hit end of file, give up.
-			return nil
-		case token.Event, token.Function, token.Bool, token.Float, token.Int, token.String, token.Identifier:
-			// Next token is the start of a valid invokable.
-			return nil
-		default:
-			if err := p.consume(); err != nil {
-				return err // An error during recovery just fails.
+			return
+		case token.EndState:
+			// Hit end of state, give up.
+			return
+		case token.Event, token.Function:
+			// Next token is the start of a statement.
+			return
+		case token.Bool,
+			token.Float,
+			token.Int,
+			token.String,
+			token.Identifier:
+			if p.token.Kind == token.Newline {
+				return // Next token is likely the start of a valid statement.
 			}
 		}
+		p.consume()
 	}
 }
 
-func (p *parser) ParseEvent() (*ast.Event, error) {
-	var err error
+func (p *parser) ParseEvent() *ast.Event {
 	node := &ast.Event{
 		HasLeadingBlankLine:  p.hasLeadingBlankLine(),
 		StartKeywordLocation: p.token.Location,
 	}
-	if err := p.tryConsume(token.Event); err != nil {
-		return nil, err
-	}
-	if node.Name, err = p.ParseIdentifier(); err != nil {
-		return nil, err
-	}
+	p.consumeExpected(token.Event)
+	node.Name = p.ParseIdentifier(errorExpectedEventIdent)
 	node.OpenLocation = p.token.Location
-	if err := p.tryConsume(token.ParenthesisOpen); err != nil {
-		return nil, err
-	}
-	if node.ParameterList, err = p.ParseParameterList(); err != nil {
-		return nil, err
-	}
+	p.tryConsume(errorExpectedEventOpenParen, token.ParenthesisOpen)
+	node.ParameterList = p.ParseParameterList()
 	node.CloseLocation = p.token.Location
-	if err := p.tryConsume(token.ParenthesisClose); err != nil {
-		return nil, err
-	}
+	p.consumeExpected(token.ParenthesisClose)
 	for p.token.Kind == token.Native {
 		node.NativeLocations = append(node.NativeLocations, p.token.Location)
-		if err := p.consume(); err != nil {
-			return nil, err
-		}
+		p.consume()
 	}
 	if p.token.Kind == token.Newline {
-		if err := p.consumeNewlines(); err != nil {
-			return nil, err
-		}
+		p.consumeNewlines()
 		if p.token.Kind == token.BraceOpen {
-			if node.Documentation, err = p.ParseDocComment(); err != nil {
-				return nil, err
-			}
+			node.Documentation = p.ParseDocComment()
 		}
 	}
 	if len(node.NativeLocations) > 0 {
-		if err := p.consumeNewlines(); err != nil {
-			return nil, err
-		}
-		return node, nil
+		p.consumeNewlines()
+		return node
 	}
-	if node.Statements, err = p.ParseFunctionStatementBlock(token.EndEvent); err != nil {
-		return nil, err
-	}
+	node.Statements = p.ParseFunctionStatementBlock(node.StartKeywordLocation, errorUnclosedEvent, token.EndEvent)
 	node.EndKeywordLocation = p.token.Location
-	if err := p.tryConsume(token.EndEvent); err != nil {
-		return nil, err
-	}
-	return node, p.tryConsume(token.Newline, token.EOF)
+	p.consumeExpected(token.EndEvent)
+	p.tryConsume(errorEventEnd, token.Newline, token.EOF)
+	return node
 }
 
-func (p *parser) ParseFunction(returnType *ast.TypeLiteral) (*ast.Function, error) {
-	var err error
+func (p *parser) ParseFunction(returnType *ast.TypeLiteral) *ast.Function {
 	node := &ast.Function{
 		HasLeadingBlankLine: p.hasLeadingBlankLine(),
 		ReturnType:          returnType, // May be nil.
 	}
 	node.StartKeywordLocation = p.token.Location
-	if err := p.tryConsume(token.Function); err != nil {
-		return nil, err
-	}
-	if node.Name, err = p.ParseIdentifier(); err != nil {
-		return nil, err
-	}
+	p.consumeExpected(token.Function)
+	node.Name = p.ParseIdentifier(errorExpectedFunctionIdent)
 	node.OpenLocation = p.token.Location
-	if err := p.tryConsume(token.ParenthesisOpen); err != nil {
-		return nil, err
-	}
-	if node.ParameterList, err = p.ParseParameterList(); err != nil {
-		return nil, err
-	}
+	p.tryConsume(errorExpectedFunctionOpenParen, token.ParenthesisOpen)
+	node.ParameterList = p.ParseParameterList()
 	node.CloseLocation = p.token.Location
-	if err := p.tryConsume(token.ParenthesisClose); err != nil {
-		return nil, err
-	}
+	p.consumeExpected(token.ParenthesisClose)
 	for p.token.Kind == token.Native || p.token.Kind == token.Global {
 		if p.token.Kind == token.Native {
 			node.NativeLocations = append(node.NativeLocations, p.token.Location)
 		} else {
 			node.GlobalLocations = append(node.GlobalLocations, p.token.Location)
 		}
-		if err := p.consume(); err != nil {
-			return nil, err
-		}
+		p.consume()
 	}
 	if p.token.Kind == token.Newline {
-		if err := p.consumeNewlines(); err != nil {
-			return nil, err
-		}
+		p.consumeNewlines()
 		if p.token.Kind == token.BraceOpen {
-			if node.Documentation, err = p.ParseDocComment(); err != nil {
-				return nil, err
-			}
+			node.Documentation = p.ParseDocComment()
 		}
 	}
 	if len(node.NativeLocations) > 0 {
-		return node, nil
+		return node
 	}
-	if node.Statements, err = p.ParseFunctionStatementBlock(token.EndFunction); err != nil {
-		return nil, err
-	}
+	node.Statements = p.ParseFunctionStatementBlock(node.StartKeywordLocation, errorUnclosedFunction, token.EndFunction)
 	node.EndKeywordLocation = p.token.Location
-	if err := p.tryConsume(token.EndFunction); err != nil {
-		return nil, err
-	}
-	return node, p.tryConsume(token.Newline, token.EOF)
+	p.consumeExpected(token.EndFunction)
+	p.tryConsume(errorFunctionEnd, token.Newline, token.EOF)
+	return node
 }
 
-func (p *parser) ParseParameterList() (params []*ast.Parameter, err error) {
+func (p *parser) ParseParameterList() []*ast.Parameter {
+	var params []*ast.Parameter
 	for {
 		switch p.token.Kind {
+		case token.EOF:
+			p.fail(errorUnclosedParamListEOF, p.token.Location)
+		case token.Newline:
+			p.fail(errorUnclosedParamListNewline, p.token.Location)
 		case token.Comma:
-			if err := p.consume(); err != nil {
-				return params, err
-			}
+			p.consume()
 		case token.ParenthesisClose:
-			return params, nil
+			return params
 		default:
-			param, err := p.ParseParameter()
-			if err != nil {
-				return params, err
-			}
-			params = append(params, param)
+			params = append(params, p.ParseParameter())
 		}
 	}
 }
 
-func (p *parser) ParseParameter() (*ast.Parameter, error) {
-	var err error
+func (p *parser) ParseParameter() *ast.Parameter {
 	node := &ast.Parameter{}
-	if node.Type, err = p.ParseTypeLiteral(); err != nil {
-		return nil, err
-	}
-	if node.Name, err = p.ParseIdentifier(); err != nil {
-		return nil, err
-	}
+	p.ParseTypeLiteral(errorExpectedParamTypeLiteral)
+	node.Name = p.ParseIdentifier(errorExpectedParamIdent)
 	if p.token.Kind == token.Assign {
 		// Has default.
 		node.OperatorLocation = p.token.Location
-		if err := p.tryConsume(token.Assign); err != nil {
-			return nil, err
-		}
-		if node.DefaultValue, err = p.ParseLiteral(); err != nil {
-			return nil, err
-		}
+		p.advanceExpected(token.Assign)
+		node.DefaultValue = p.ParseLiteral(errorExpectedParamLiteral)
 	}
-	return node, nil
+	return node
 }
 
-func (p *parser) ParseFunctionStatementBlock(terminals ...token.Kind) ([]ast.FunctionStatement, error) {
-	terms := make(map[token.Kind]struct{})
-	for _, t := range terminals {
-		terms[t] = struct{}{}
-	}
+func (p *parser) ParseFunctionStatementBlock(
+	start source.Location,
+	unclosed *issue.Definition,
+	terminals ...token.Kind,
+) []ast.FunctionStatement {
 	var stmts []ast.FunctionStatement
 	for {
-		if err := p.consumeNewlines(); err != nil {
-			return nil, err
+		if p.token.Kind == token.EOF {
+			p.fail(unclosed, source.Span(start, p.token.Location))
 		}
+		p.consumeNewlines()
 		if len(p.standaloneComments) > 0 {
 			stmts = append(stmts, p.commentStatement())
 		}
-		if _, ok := terms[p.token.Kind]; ok {
-			return stmts, nil
+		if slices.Contains(terminals, p.token.Kind) {
+			return stmts
 		}
-		start := p.token.Location
-		stmt, err := p.ParseFunctionStatement()
-		if err == nil {
-			stmts = append(stmts, stmt)
-			continue
-		}
+		stmts = append(stmts, p.ParseFunctionStatement())
+	}
+}
+
+func (p *parser) ParseFunctionStatement() (stmt ast.FunctionStatement) {
+	start := p.token
+	if p.attemptRecovery {
 		// Error recovery. Attempt to realign to a known statement token and emit an
 		// error statement to fill the gap.
-		if p.recovery || !p.attemptRecovery {
-			// If an error was returned during a recovery operation
-			// or we shouldn't even attempt recovery, just propagate it.
-			return nil, err
-		}
-		p.recovery = true
-		if err := p.recoverFunctionStatement(); err != nil {
-			return nil, err
-		}
-		errStmt := &ast.ErrorStatement{
-			ErrorMessage: fmt.Sprintf("%v", err),
-			NodeLocation: source.Span(start, p.token.Location),
-		}
-		p.errors = append(p.errors, errStmt)
-		p.recovery = false
-		stmts = append(stmts, errStmt)
-	}
-}
-
-func (p *parser) recoverFunctionStatement() error {
-	for {
-		switch p.lookahead.Kind {
-		case token.EOF:
-			// Hit end of file, give up.
-			return nil
-		case token.Newline:
-			// Next token is the start of a valid invokable.
-			return nil
-		default:
-			if err := p.consume(); err != nil {
-				return err // An error during recovery just fails.
+		defer func() {
+			if r := recover(); r != nil {
+				if p.fatal || p.recovery || r.(*issue.Issue).Definition().Severity() == issue.Internal {
+					// If a recovery fails or it's an internal issue, just propagate.
+					panic(r)
+				}
+				p.recovery = true
+				p.recoverFunctionStatement()
+				stmt = &ast.ErrorStatement{
+					Issue:        r.(*issue.Issue),
+					NodeLocation: source.Span(start.Location, p.token.Location),
+				}
+				p.recovery = false
 			}
-		}
+		}()
 	}
-}
-
-func (p *parser) ParseFunctionStatement() (ast.FunctionStatement, error) {
 	switch p.token.Kind {
 	case token.Return:
 		return p.ParseReturn()
@@ -961,10 +835,7 @@ func (p *parser) ParseFunctionStatement() (ast.FunctionStatement, error) {
 			return p.ParseAssignment(nil)
 		}
 	}
-	expr, err := p.ParseExpression(lowest)
-	if err != nil {
-		return nil, err
-	}
+	expr := p.ParseExpression(errorExpectedFunctionStatementExpr, lowest)
 	switch p.token.Kind {
 	case token.Assign,
 		token.AssignAdd,
@@ -977,107 +848,100 @@ func (p *parser) ParseFunctionStatement() (ast.FunctionStatement, error) {
 	return &ast.ExpressionStatement{
 		HasLeadingBlankLine: p.hasLeadingBlankLine(),
 		Expression:          expr,
-	}, nil
+	}
 }
 
-func (p *parser) ParseFunctionVariable() (*ast.Variable, error) {
-	var err error
+func (p *parser) recoverFunctionStatement() {
+	for {
+		switch p.lookahead.Kind {
+		case token.EOF:
+			// Hit end of file, give up.
+			return
+		case token.Newline:
+			// Next token is the start of a statement.
+			return
+		default:
+			p.consume()
+		}
+	}
+}
+
+func (p *parser) ParseFunctionVariable() *ast.Variable {
 	node := &ast.Variable{
 		HasLeadingBlankLine: p.hasLeadingBlankLine(),
 	}
-	if node.Type, err = p.ParseTypeLiteral(); err != nil {
-		return nil, err
-	}
-	if node.Name, err = p.ParseIdentifier(); err != nil {
-		return nil, err
-	}
+	node.Type = p.ParseTypeLiteral(intenalInvalidState)
+	node.Name = p.ParseIdentifier(errorExpectedFunctionVariableIdent)
 	if p.token.Kind == token.Assign {
 		node.OperatorLocation = p.token.Location
-		if err := p.tryConsume(token.Assign); err != nil {
-			return nil, err
-		}
-		if node.Value, err = p.ParseExpression(lowest); err != nil {
-			return nil, err
-		}
+		p.consume()
+		node.Value = p.ParseExpression(errorExpectedFunctionVariableExpr, lowest)
 	}
-	return node, nil
+	return node
 }
 
-func (p *parser) ParseAssignment(assignee ast.Expression) (node *ast.Assignment, err error) {
+func (p *parser) ParseAssignment(assignee ast.Expression) *ast.Assignment {
 	if assignee == nil {
-		var err error
-		if assignee, err = p.ParseExpression(lowest); err != nil {
-			return nil, err
-		}
+		assignee = p.ParseExpression(errorExpectedAssignmentAssigneeExpr, lowest)
 	}
-	node = &ast.Assignment{
+	node := &ast.Assignment{
 		Kind:                ast.AssignmentKind(p.token.Kind),
 		HasLeadingBlankLine: p.hasLeadingBlankLine(),
 		Assignee:            assignee,
 		OperatorLocation:    p.token.Location,
 	}
-	if err := p.tryConsume(
+	p.consumeExpected(
 		token.Assign,
 		token.AssignAdd,
 		token.AssignDivide,
 		token.AssignModulo,
 		token.AssignMultiply,
-		token.AssignSubtract); err != nil {
-		return nil, err
-	}
-	if node.Value, err = p.ParseExpression(lowest); err != nil {
-		return nil, err
-	}
-	return node, nil
+		token.AssignSubtract)
+	p.ParseExpression(errorExpectedAssignmentValueExpr, lowest)
+	return node
 }
 
-func (p *parser) ParseReturn() (*ast.Return, error) {
-	var err error
+func (p *parser) ParseReturn() *ast.Return {
 	node := &ast.Return{
 		HasLeadingBlankLine: p.hasLeadingBlankLine(),
 		KeywordLocation:     p.token.Location,
 	}
-	if err := p.tryConsume(token.Return); err != nil {
-		return nil, err
+	p.consumeExpected(token.Return)
+	if p.token.Kind == token.Newline || p.token.Kind == token.EOF {
+		return node
 	}
-	if p.token.Kind == token.Newline {
-		return node, nil
-	}
-	if node.Value, err = p.ParseExpression(lowest); err != nil {
-		return nil, err
-	}
-	return node, nil
+	node.Value = p.ParseExpression(errorExpectedReturnExpr, lowest)
+	return node
 }
 
-func (p *parser) ParseIf() (*ast.If, error) {
-	var err error
+func (p *parser) ParseIf() *ast.If {
 	node := &ast.If{
 		HasLeadingBlankLine:  p.hasLeadingBlankLine(),
 		StartKeywordLocation: p.token.Location,
 	}
-	if err := p.tryConsume(token.If); err != nil {
-		return nil, err
-	}
-	if node.Condition, err = p.ParseExpression(lowest); err != nil {
-		return nil, err
-	}
-	if node.Statements, err = p.ParseFunctionStatementBlock(token.EndIf, token.Else, token.ElseIf); err != nil {
-		return nil, err
-	}
+	p.consumeExpected(token.If)
+	node.Condition = p.ParseExpression(errorExpectedIfConditionExpr, lowest)
+	node.Statements = p.ParseFunctionStatementBlock(
+		node.StartKeywordLocation,
+		errorUnclosedIf,
+		token.EndIf,
+		token.Else,
+		token.ElseIf,
+	)
 	for p.token.Kind == token.ElseIf {
 		block := &ast.ElseIf{
 			HasLeadingBlankLine: p.hasLeadingBlankLine(),
 			KeywordLocation:     p.token.Location,
 		}
-		if err := p.tryConsume(token.ElseIf); err != nil {
-			return nil, err
-		}
-		if block.Condition, err = p.ParseExpression(lowest); err != nil {
-			return nil, err
-		}
-		if block.Statements, err = p.ParseFunctionStatementBlock(token.EndIf, token.Else, token.ElseIf); err != nil {
-			return nil, err
-		}
+		p.consume()
+		block.Condition = p.ParseExpression(errorExpectedElseIfConditionExpr, lowest)
+		block.Statements = p.ParseFunctionStatementBlock(
+			block.KeywordLocation,
+			errorUnclosedElseIf,
+			token.EndIf,
+			token.Else,
+			token.ElseIf,
+		)
 		node.ElseIfs = append(node.ElseIfs, block)
 	}
 	if p.token.Kind == token.Else {
@@ -1085,81 +949,57 @@ func (p *parser) ParseIf() (*ast.If, error) {
 			HasLeadingBlankLine: p.hasLeadingBlankLine(),
 			KeywordLocation:     p.token.Location,
 		}
-		if err := p.tryConsume(token.Else); err != nil {
-			return nil, err
-		}
-		if block.Statements, err = p.ParseFunctionStatementBlock(token.EndIf); err != nil {
-			return nil, err
-		}
+		p.consume()
+		block.Statements = p.ParseFunctionStatementBlock(block.KeywordLocation, errorUnclosedElse, token.EndIf)
 		node.Else = block
 	}
 	node.EndKeywordLocation = p.token.Location
-	if err := p.tryConsume(token.EndIf); err != nil {
-		return nil, err
-	}
-	return node, nil
+	p.consumeExpected(token.EndIf)
+	return node
 }
 
-func (p *parser) ParseWhile() (*ast.While, error) {
-	var err error
+func (p *parser) ParseWhile() *ast.While {
 	node := &ast.While{
 		HasLeadingBlankLine:  p.hasLeadingBlankLine(),
 		StartKeywordLocation: p.token.Location,
 	}
-	if err := p.tryConsume(token.While); err != nil {
-		return nil, err
-	}
-	if node.Condition, err = p.ParseExpression(lowest); err != nil {
-		return nil, err
-	}
-	if node.Statements, err = p.ParseFunctionStatementBlock(token.EndWhile); err != nil {
-		return nil, err
-	}
+	p.consumeExpected(token.While)
+	node.Condition = p.ParseExpression(errorExpectedWhileExpr, lowest)
+	node.Statements = p.ParseFunctionStatementBlock(node.StartKeywordLocation, errorUnclosedWhile, token.EndWhile)
 	node.EndKeywordLocation = p.token.Location
-	if err := p.tryConsume(token.EndWhile); err != nil {
-		return nil, err
-	}
-	return node, nil
+	p.consumeExpected(token.EndWhile)
+	return node
 }
 
-func (p *parser) ParseProperty(typeLiteral *ast.TypeLiteral) (*ast.Property, error) {
-	var err error
+func (p *parser) ParseProperty(typeLiteral *ast.TypeLiteral) *ast.Property {
+	start := p.token.Location
+	if typeLiteral != nil {
+		start = typeLiteral.Location()
+	}
 	node := &ast.Property{
 		HasLeadingBlankLine: p.hasLeadingBlankLine(),
 		Type:                typeLiteral,
 	}
 	node.StartKeywordLocation = p.token.Location
-	if err := p.tryConsume(token.Property); err != nil {
-		return nil, err
-	}
-	if node.Name, err = p.ParseIdentifier(); err != nil {
-		return nil, err
-	}
+	p.consumeExpected(token.Property)
+	node.Name = p.ParseIdentifier(errorExpectedPropertyIdent)
 	if p.token.Kind == token.Assign {
 		node.OperatorLocation = p.token.Location
-		if err := p.tryConsume(token.Assign); err != nil {
-			return nil, err
-		}
-		if node.Value, err = p.ParseLiteral(); err != nil {
-			return nil, err
-		}
+		p.consume()
+		node.Value = p.ParseLiteral(errorExpectedPropertyLiteral)
 	}
 	switch p.token.Kind {
 	case token.Auto:
 		node.Kind = ast.Auto
 		node.AutoLocation = p.token.Location
-		if err := p.tryConsume(token.Auto); err != nil {
-			return nil, err
-		}
+		p.consume()
 	case token.AutoReadOnly:
 		if node.Value == nil {
-			return nil, newError(p.token.Location, "expected value to be defined for %s property", token.AutoReadOnly)
+			p.fail(errorExpectedPropertyReadOnlyValue, source.Span(start, p.token.Location))
 		}
 		node.Kind = ast.AutoReadOnly
 		node.AutoLocation = p.token.Location
-		if err := p.tryConsume(token.AutoReadOnly); err != nil {
-			return nil, err
-		}
+		p.consume()
 	}
 	if node.Kind == ast.Auto || node.Kind == ast.AutoReadOnly {
 		for p.token.Kind == token.Hidden || p.token.Kind == token.Conditional {
@@ -1168,293 +1008,207 @@ func (p *parser) ParseProperty(typeLiteral *ast.TypeLiteral) (*ast.Property, err
 			} else {
 				node.ConditionalLocations = append(node.ConditionalLocations, p.token.Location)
 			}
-			if err := p.tryConsume(token.Hidden, token.Conditional); err != nil {
-				return nil, err
-			}
+			p.consume()
 		}
 		if p.token.Kind == token.Newline {
-			if err := p.consumeNewlines(); err != nil {
-				return nil, err
-			}
+			p.consumeNewlines()
 			if p.token.Kind == token.BraceOpen {
-				if node.Documentation, err = p.ParseDocComment(); err != nil {
-					return nil, err
-				}
+				node.Documentation = p.ParseDocComment()
 			}
 		}
-		return node, nil
+		return node
 	}
 	// Full Property
 	for p.token.Kind == token.Hidden {
 		node.HiddenLocations = append(node.HiddenLocations, p.token.Location)
-		if err := p.tryConsume(token.Hidden); err != nil {
-			return nil, err
-		}
+		p.consume()
 	}
-	if err := p.consumeNewlines(); err != nil {
-		return nil, err
-	}
+	p.consumeNewlines()
 	if p.token.Kind == token.BraceOpen {
-		if err := p.consume(); err != nil {
-			return nil, err
-		}
-		comment, err := p.ParseDocComment()
-		if err != nil {
-			return nil, err
-		}
-		node.Documentation = comment
+		p.advance()
+		node.Documentation = p.ParseDocComment()
 	}
-	if err := p.consumeNewlines(); err != nil {
-		return nil, err
-	}
+	p.consumeNewlines()
 	var returnType *ast.TypeLiteral
 	if p.token.Kind != token.Function {
-		if returnType, err = p.ParseTypeLiteral(); err != nil {
-			return nil, err
+		returnType = p.ParseTypeLiteral(errorExpectedFullPropertyStatement)
+		if p.token.Kind != token.Function {
+			p.fail(errorExpectedFullPropertyKeywordType, p.token.Location)
 		}
 	}
-	first, err := p.ParseFunction(returnType)
-	if err != nil {
-		return nil, err
-	}
-	if err := p.consumeNewlines(); err != nil {
-		return nil, err
-	}
+	first := p.ParseFunction(returnType)
+	p.consumeNewlines()
 	var second *ast.Function
+	if p.token.Kind == token.EOF {
+		p.fail(errorUnclosedFullProperty, source.Span(start, p.token.Location))
+	}
 	if p.token.Kind != token.EndProperty {
 		var returnType *ast.TypeLiteral
 		if p.token.Kind != token.Function {
-			if returnType, err = p.ParseTypeLiteral(); err != nil {
-				return nil, err
+			returnType = p.ParseTypeLiteral(errorExpectedFullPropertyStatement)
+			if p.token.Kind != token.Function {
+				p.fail(errorExpectedFullPropertyKeywordType, p.token.Location)
 			}
 		}
-		second, err = p.ParseFunction(returnType)
-		if err != nil {
-			return nil, err
-		}
-		if err := p.consumeNewlines(); err != nil {
-			return nil, err
-		}
+		second = p.ParseFunction(returnType)
+		p.consumeNewlines()
+	}
+	if p.token.Kind == token.EOF {
+		p.fail(errorUnclosedFullProperty, source.Span(start, p.token.Location))
 	}
 	switch {
 	case strings.EqualFold(first.Name.Text, "get"):
 		if first.ReturnType == nil {
-			return nil, newError(
-				first.Name.Location(),
-				"expected '%s' to have a return type of %s, but found none",
-				p.file.Bytes(first.Name.Location()),
-				p.file.Bytes(node.Type.Location()),
-			)
+			p.fail(errorExpectedFullPropertyGetReturnType, first.Location())
 		}
 		if len(first.ParameterList) != 0 {
-			loc := source.Span(first.ParameterList[0].Location(), first.ParameterList[len(first.ParameterList)-1].Location())
-			return nil, newError(
-				loc,
-				"expected '%s' to have no parameters, but found %d",
-				p.file.Bytes(first.Name.Location()),
-				len(first.ParameterList),
-			)
+			p.fail(errorExpectedFullPropertyGetParams, first.Location())
 		}
 		node.Get = first
 	case strings.EqualFold(first.Name.Text, "set"):
 		if first.ReturnType != nil {
-			return nil, newError(
-				first.ReturnType.Location(),
-				"expected '%s' to have no return type, but found %s",
-				p.file.Bytes(first.Name.Location()),
-				p.file.Bytes(first.ReturnType.Location()),
-			)
+			p.fail(errorExpectedFullPropertySetReturnType, first.Location())
 		}
-		if len(first.ParameterList) == 0 {
-			return nil, newError(
-				first.Name.Location(),
-				"expected '%s' to have one parameter, but found none",
-				p.file.Bytes(first.Name.Location()),
-			)
-		}
-		if len(first.ParameterList) > 1 {
-			loc := source.Span(first.ParameterList[0].Location(), first.ParameterList[len(first.ParameterList)-1].Location())
-			return nil, newError(
-				loc,
-				"expected '%s' to have one parameter, but found %d",
-				p.file.Bytes(first.Name.Location()),
-				len(first.ParameterList),
-			)
+		if len(first.ParameterList) != 1 {
+			p.fail(errorExpectedFullPropertySetParams, first.Location())
 		}
 		node.Set = first
 	default:
-		return nil, newError(
-			first.Location(),
-			"expected 'Get' or 'Set' function for property, but found '%s'",
-			p.file.Bytes(first.Name.Location()),
-		)
+		p.fail(errorExpectedFullPropertyGetOrSet, first.Name.Location())
 	}
 	switch {
 	case second == nil:
 		// Do nothing, property is either read only or write only.
 	case strings.EqualFold(second.Name.Text, "get"):
 		if node.Get != nil {
-			return nil, newError(second.Location(), "expected exactly one 'Get' function, but found two")
+			panic(
+				issue.New(
+					errorExpectedFullPropertyGetDuplicate,
+					p.file,
+					second.Location(),
+				).AppendRelated(
+					p.file,
+					node.Get.Location(),
+					"'Get' already defined.",
+				),
+			)
 		}
 		if second.ReturnType == nil {
-			return nil, newError(
-				second.Name.Location(),
-				"expected '%s' to have a return type of %s, but found none",
-				p.file.Bytes(second.Name.Location()),
-				p.file.Bytes(node.Type.Location()),
-			)
+			p.fail(errorExpectedFullPropertyGetReturnType, second.Location())
 		}
 		if len(second.ParameterList) != 0 {
-			loc := source.Span(
-				second.ParameterList[0].Location(),
-				second.ParameterList[len(second.ParameterList)-1].Location(),
-			)
-			return nil, newError(
-				loc,
-				"expected '%s' to have no parameters, but found %d",
-				p.file.Bytes(second.Name.Location()),
-				len(second.ParameterList),
-			)
+			p.fail(errorExpectedFullPropertyGetParams, second.Location())
 		}
 		node.Get = second
 	case strings.EqualFold(second.Name.Text, "set"):
 		if node.Set != nil {
-			return nil, newError(second.Location(), "expected exactly one 'Set' function, but found two")
+			panic(
+				issue.New(
+					errorExpectedFullPropertySetDuplicate,
+					p.file,
+					second.Location(),
+				).AppendRelated(
+					p.file,
+					node.Set.Location(),
+					"'Set' already defined.",
+				),
+			)
 		}
 		if second.ReturnType != nil {
-			return nil, newError(
-				second.ReturnType.Location(),
-				"expected '%s' to have no return type, but found %s",
-				p.file.Bytes(second.Name.Location()),
-				p.file.Bytes(second.ReturnType.Location()),
-			)
+			p.fail(errorExpectedFullPropertySetReturnType, second.Location())
 		}
-		if len(second.ParameterList) == 0 {
-			return nil, newError(
-				second.Name.Location(),
-				"expected '%s' to have one parameter, but found none",
-				p.file.Bytes(second.Name.Location()),
-			)
-		}
-		if len(second.ParameterList) > 1 {
-			loc := source.Span(
-				second.ParameterList[0].Location(),
-				second.ParameterList[len(second.ParameterList)-1].Location(),
-			)
-			return nil, newError(
-				loc,
-				"expected '%s' to have one parameter, but found %d",
-				p.file.Bytes(second.Name.Location()),
-				len(second.ParameterList),
-			)
+		if len(first.ParameterList) != 1 {
+			p.fail(errorExpectedFullPropertySetParams, second.Location())
 		}
 		node.Set = second
 	default:
-		return nil, newError(
-			second.Location(),
-			"expected 'Get' or 'Set' function for property, but found '%s'",
-			p.file.Bytes(second.Name.Location()),
-		)
+		p.fail(errorExpectedFullPropertyGetOrSet, second.Name.Location())
 	}
 	node.EndKeywordLocation = p.token.Location
-	if err := p.tryConsume(token.EndProperty); err != nil {
-		return nil, err
-	}
-	return node, p.tryConsume(token.Newline, token.EOF)
+	p.tryConsume(errorFullPropertyExtra, token.EndProperty)
+	p.tryConsume(errorFullPropertyEnd, token.Newline, token.EOF)
+	return node
 }
 
-func (p *parser) ParseScriptVariable(typeLiteral *ast.TypeLiteral) (*ast.Variable, error) {
-	var err error
+func (p *parser) ParseScriptVariable(typeLiteral *ast.TypeLiteral) *ast.Variable {
 	node := &ast.Variable{
 		HasLeadingBlankLine: p.hasLeadingBlankLine(),
 		Type:                typeLiteral,
 	}
-	if node.Name, err = p.ParseIdentifier(); err != nil {
-		return nil, err
-	}
+	node.Name = p.ParseIdentifier(errorExpectedScriptVariableIdent)
 	if p.token.Kind == token.Assign {
 		node.OperatorLocation = p.token.Location
-		if err := p.tryConsume(token.Assign); err != nil {
-			return nil, err
-		}
-		if node.Value, err = p.ParseLiteral(); err != nil {
-			return nil, err
-		}
+		p.consume()
+		node.Value = p.ParseLiteral(errorExpectedScriptVariableLiteral)
 	}
 	for p.token.Kind == token.Conditional {
 		node.ConditionalLocations = append(node.ConditionalLocations, p.token.Location)
-		if err := p.consume(); err != nil {
-			return nil, err
-		}
+		p.consume()
 	}
-	if err := p.tryConsume(token.Newline, token.EOF); err != nil {
-		return nil, err
-	}
-	return node, nil
+	p.tryConsume(errorExpectedScriptVariableEnd, token.Newline, token.EOF)
+	return node
 }
 
-func (p *parser) ParseIdentifier() (*ast.Identifier, error) {
+func (p *parser) ParseIdentifier(def *issue.Definition) *ast.Identifier {
 	node := &ast.Identifier{
 		Text:         string(p.token.Text),
 		NodeLocation: p.token.Location,
 	}
-	if err := p.tryConsume(token.Identifier, token.Self, token.Parent, token.Length); err != nil {
-		return nil, err
-	}
-	return node, nil
+	p.tryConsume(def, token.Identifier, token.Self, token.Parent, token.Length)
+	return node
 }
 
-func (p *parser) ParseTypeLiteral() (node *ast.TypeLiteral, err error) {
-	node = &ast.TypeLiteral{
+func (p *parser) ParseTypeLiteral(def *issue.Definition) *ast.TypeLiteral {
+	node := &ast.TypeLiteral{
 		Name: &ast.Identifier{
 			Text:         string(p.token.Text),
 			NodeLocation: p.token.Location,
 		},
 	}
-	if err := p.tryConsume(token.Identifier, token.Bool, token.Int, token.Float, token.String); err != nil {
-		return nil, err
-	}
+	p.tryConsume(def, token.Identifier, token.Bool, token.Int, token.Float, token.String)
 	if p.token.Kind == token.ArrayType {
 		node.BracketLocation = p.token.Location
 		node.IsArray = true
-		if err := p.consume(); err != nil {
-			return nil, err
-		}
+		p.consume()
 	}
-	return node, nil
+	return node
 }
 
-func (p *parser) ParseExpression(precedence int) (ast.Expression, error) {
+func (p *parser) ParseExpression(def *issue.Definition, precedence int) ast.Expression {
 	prefix := p.prefix[p.token.Kind]
 	if prefix == nil {
 		want := keys(p.prefix)
-		return nil, unexpectedTokenError(p.token, want[0], want[1:]...)
+		p.unexpectedToken(def, p.token, want[0], want[1:]...)
+		return nil // Unreachable, unexpectedToken panics.
 	}
-	expr, err := prefix()
-	if err != nil {
-		return nil, err
-	}
+	expr := prefix()
 	for p.token.Kind != token.Newline && p.token.Kind != token.EOF && precedence < precedenceOf(p.token.Kind) {
 		infix := p.infix[p.token.Kind]
 		if infix == nil {
-			return expr, nil
+			return expr
 		}
-		expr, err = infix(expr)
-		if err != nil {
-			return nil, err
-		}
+		expr = infix(expr)
 	}
-	return expr, nil
+	return expr
 }
 
-func (p *parser) ParseBinary(left ast.Expression) (node *ast.Binary, err error) {
+func (p *parser) ParseExpressionIdentifier() *ast.Identifier {
+	node := &ast.Identifier{
+		Text:         string(p.token.Text),
+		NodeLocation: p.token.Location,
+	}
+	p.advanceExpected(token.Identifier, token.Self, token.Parent, token.Length)
+	return node
+}
+
+func (p *parser) ParseExpressionBinary(left ast.Expression) *ast.Binary {
 	precedence := precedenceOf(p.token.Kind)
-	node = &ast.Binary{
+	node := &ast.Binary{
 		Kind:             ast.BinaryKind(p.token.Kind),
 		LeftOperand:      left,
 		OperatorLocation: p.token.Location,
 	}
-	if err := p.tryConsume(
+	p.consumeExpected(
 		token.LogicalOr,
 		token.LogicalAnd,
 		token.Equal,
@@ -1467,195 +1221,144 @@ func (p *parser) ParseBinary(left ast.Expression) (node *ast.Binary, err error) 
 		token.Minus,
 		token.Divide,
 		token.Multiply,
-		token.Modulo); err != nil {
-		return nil, err
-	}
-	if node.RightOperand, err = p.ParseExpression(precedence); err != nil {
-		return nil, err
-	}
-	return node, nil
+		token.Modulo)
+	node.RightOperand = p.ParseExpression(errorExpectedBinaryExpr, precedence)
+	return node
 }
 
-func (p *parser) ParseUnary() (ast.Expression, error) {
-	if p.token.Kind == token.Minus &&
-		(p.lookahead.Kind == token.IntLiteral || p.lookahead.Kind == token.FloatLiteral) {
-		return p.ParseLiteral()
+func (p *parser) ParseExpressionUnary() ast.Expression {
+	if p.token.Kind == token.Minus {
+		if p.lookahead.Kind == token.IntLiteral {
+			return p.ParseExpressionIntLiteral()
+		}
+		if p.lookahead.Kind == token.FloatLiteral {
+			return p.ParseExpressionFloatLiteral()
+		}
 	}
-	var err error
 	node := &ast.Unary{
 		Kind:             ast.UnaryKind(p.token.Kind),
 		OperatorLocation: p.token.Location,
 	}
-	if err := p.tryConsume(token.Minus, token.LogicalNot); err != nil {
-		return nil, err
-	}
-	if node.Operand, err = p.ParseExpression(prefix); err != nil {
-		return nil, err
-	}
-	return node, nil
+	p.consumeExpected(token.Minus, token.LogicalNot)
+	node.Operand = p.ParseExpression(errorExpectedUnaryExpr, prefix)
+	return node
 }
 
-func (p *parser) ParseCast(value ast.Expression) (node *ast.Cast, err error) {
-	node = &ast.Cast{
+func (p *parser) ParseExpressionCast(value ast.Expression) *ast.Cast {
+	node := &ast.Cast{
 		Value:      value,
 		AsLocation: p.token.Location,
 	}
-	if err := p.tryConsume(token.As); err != nil {
-		return nil, err
-	}
-	if node.Type, err = p.ParseTypeLiteral(); err != nil {
-		return nil, err
-	}
-	return node, nil
+	p.consumeExpected(token.As)
+	node.Type = p.ParseTypeLiteral(errorExpectedCastTypeLiteral)
+	return node
 }
 
-func (p *parser) ParseAccess(value ast.Expression) (node *ast.Access, err error) {
-	node = &ast.Access{
+func (p *parser) ParseExpressionAccess(value ast.Expression) *ast.Access {
+	node := &ast.Access{
 		Value:       value,
 		DotLocation: p.token.Location,
 	}
-	if err := p.tryConsume(token.Dot); err != nil {
-		return nil, err
-	}
-	if node.Name, err = p.ParseIdentifier(); err != nil {
-		return nil, err
-	}
-	return node, nil
+	p.consumeExpected(token.Dot)
+	node.Name = p.ParseIdentifier(errorExpectedAccessIdent)
+	return node
 }
 
-func (p *parser) ParseIndex(array ast.Expression) (node *ast.Index, err error) {
-	node = &ast.Index{
+func (p *parser) ParseExpressionIndex(array ast.Expression) *ast.Index {
+	node := &ast.Index{
 		Value:        array,
 		OpenLocation: p.token.Location,
 	}
-	if err := p.tryConsume(token.BracketOpen); err != nil {
-		return nil, err
-	}
-	if node.Index, err = p.ParseExpression(lowest); err != nil {
-		return nil, err
-	}
+	p.consumeExpected(token.BracketOpen)
+	node.Index = p.ParseExpression(errorExpectedIndexExpr, lowest)
 	node.CloseLocation = p.token.Location
-	if err := p.tryConsume(token.BracketClose); err != nil {
-		return nil, err
-	}
-	return node, nil
+	p.tryConsume(errorExpectedIndexCloseBracket, token.BracketClose)
+	return node
 }
 
-func (p *parser) ParseCall(function ast.Expression) (node *ast.Call, err error) {
-	node = &ast.Call{
+func (p *parser) ParseExpressionCall(function ast.Expression) *ast.Call {
+	node := &ast.Call{
 		Function:     function,
 		OpenLocation: p.token.Location,
 	}
-	if err := p.tryConsume(token.ParenthesisOpen); err != nil {
-		return nil, err
-	}
-	if node.Arguments, err = p.ParseArgumentList(); err != nil {
-		return nil, err
-	}
+	p.consumeExpected(token.ParenthesisOpen)
+	node.Arguments = p.ParseArgumentList()
 	node.CloseLocation = p.token.Location
-	if err := p.tryConsume(token.ParenthesisClose); err != nil {
-		return nil, err
-	}
-	return node, nil
+	p.consumeExpected(token.ParenthesisClose)
+	return node
 }
 
-func (p *parser) ParseArgumentList() ([]*ast.Argument, error) {
+func (p *parser) ParseArgumentList() []*ast.Argument {
 	var args []*ast.Argument
 	for {
 		switch p.token.Kind {
+		case token.EOF:
+			p.fail(errorUnclosedArgListEOF, p.token.Location)
+		case token.Newline:
+			p.fail(errorUnclosedArgListNewline, p.token.Location)
 		case token.Comma:
-			if err := p.consume(); err != nil {
-				return nil, err
-			}
+			p.consume()
 		case token.ParenthesisClose:
-			return args, nil
+			return args
 		default:
-			arg, err := p.ParseArgument()
-			if err != nil {
-				return nil, err
-			}
-			args = append(args, arg)
+			args = append(args, p.ParseArgument())
 		}
 	}
 }
 
-func (p *parser) ParseArgument() (*ast.Argument, error) {
+func (p *parser) ParseArgument() *ast.Argument {
 	node := &ast.Argument{}
 	if p.token.Kind == token.Identifier && p.lookahead.Kind == token.Assign {
-		id, err := p.ParseIdentifier()
-		if err != nil {
-			return nil, err
-		}
-		node.Name = id
+		node.Name = p.ParseIdentifier(intenalInvalidState)
 		node.OperatorLocation = p.token.Location
-		if err := p.tryConsume(token.Assign); err != nil {
-			return nil, err
-		}
+		p.consumeExpected(token.Assign)
 	}
-	value, err := p.ParseExpression(lowest)
-	if err != nil {
-		return nil, err
-	}
-	node.Value = value
-	return node, nil
+	node.Value = p.ParseExpression(errorExpectedArgExpr, lowest)
+	return node
 }
 
-func (p *parser) ParseArrayCreation() (node *ast.ArrayCreation, err error) {
-	node = &ast.ArrayCreation{
+func (p *parser) ParseExpressionArrayCreation() *ast.ArrayCreation {
+	node := &ast.ArrayCreation{
 		NewLocation: p.token.Location,
 	}
-	if err := p.tryConsume(token.New); err != nil {
-		return nil, err
-	}
-	if node.Type, err = p.ParseTypeLiteral(); err != nil {
-		return nil, err
-	}
+	p.advanceExpected(token.New)
+	node.Type = p.ParseTypeLiteral(errorExpectedArrayCreationTypeLiteral)
 	node.OpenLocation = p.token.Location
-	if err := p.tryConsume(token.BracketOpen); err != nil {
-		return nil, err
+	p.tryConsume(errorExpectedArrayCreationOpenBracket, token.BracketOpen)
+	if p.token.Kind != token.IntLiteral {
+		p.failWithDetail(errorExpectedArrayCreationInt, p.token.Location, "Encountered a %s token.", p.token.Kind)
 	}
-	if node.Size, err = p.ParseIntLiteral(); err != nil {
-		return nil, err
-	}
+	node.Size = p.ParseExpressionIntLiteral()
 	node.CloseLocation = p.token.Location
-	if err := p.tryConsume(token.BracketClose); err != nil {
-		return nil, err
-	}
-	return node, nil
+	p.tryConsume(errorExpectedArrayCreationCloseBracket, token.BracketClose)
+	return node
 }
 
-func (p *parser) ParseParenthetical() (*ast.Parenthetical, error) {
-	var err error
+func (p *parser) ParseExpressionParenthetical() *ast.Parenthetical {
 	node := &ast.Parenthetical{
 		OpenLocation: p.token.Location,
 	}
-	if err := p.tryConsume(token.ParenthesisOpen); err != nil {
-		return nil, err
-	}
-	if node.Value, err = p.ParseExpression(lowest); err != nil {
-		return nil, err
-	}
+	p.advanceExpected(token.ParenthesisOpen)
+	p.ParseExpression(errorExpectedParenExpr, lowest)
 	node.CloseLocation = p.token.Location
-	if err := p.tryConsume(token.ParenthesisClose); err != nil {
-		return nil, err
-	}
-	return node, nil
+	p.tryConsume(errorExpectedParenClose, token.ParenthesisClose)
+	return node
 }
 
-func (p *parser) ParseLiteral() (ast.Literal, error) {
+func (p *parser) ParseLiteral(def *issue.Definition) ast.Literal {
 	switch p.token.Kind {
 	case token.True, token.False:
-		return p.ParseBoolLiteral()
+		p.ParseExpressionBoolLiteral()
 	case token.IntLiteral:
-		return p.ParseIntLiteral()
+		p.ParseExpressionIntLiteral()
 	case token.FloatLiteral:
-		return p.ParseFloatLiteral()
+		p.ParseExpressionFloatLiteral()
 	case token.StringLiteral:
-		return p.ParseStringLiteral()
+		p.ParseExpressionStringLiteral()
 	case token.None:
-		return p.ParseNoneLiteral()
+		p.ParseExpressionNoneLiteral()
 	}
-	return nil, unexpectedTokenError(
+	p.unexpectedToken(def,
 		p.token,
 		token.True,
 		token.False,
@@ -1663,72 +1366,71 @@ func (p *parser) ParseLiteral() (ast.Literal, error) {
 		token.FloatLiteral,
 		token.StringLiteral,
 		token.None)
+	return nil // Unreachable, unexpectedToken panics.
 }
 
-func (p *parser) ParseIntLiteral() (*ast.IntLiteral, error) {
+func (p *parser) ParseExpressionIntLiteral() *ast.IntLiteral {
 	node := &ast.IntLiteral{
 		RawText:      p.file.Bytes(p.token.Location),
 		NodeLocation: p.token.Location,
 	}
-	if err := p.tryConsume(token.IntLiteral); err != nil {
-		return nil, err
-	}
-	return node, nil
+	p.consumeExpected(token.IntLiteral)
+	return node
 }
 
-func (p *parser) ParseFloatLiteral() (*ast.FloatLiteral, error) {
+func (p *parser) ParseExpressionFloatLiteral() *ast.FloatLiteral {
 	node := &ast.FloatLiteral{
 		RawText:      p.file.Bytes(p.token.Location),
 		NodeLocation: p.token.Location,
 	}
-	if err := p.tryConsume(token.FloatLiteral); err != nil {
-		return nil, err
-	}
-	return node, nil
+	p.consumeExpected(token.FloatLiteral)
+	return node
 }
 
-func (p *parser) ParseBoolLiteral() (*ast.BoolLiteral, error) {
+func (p *parser) ParseExpressionBoolLiteral() *ast.BoolLiteral {
 	node := &ast.BoolLiteral{
 		RawText:      p.file.Bytes(p.token.Location),
 		NodeLocation: p.token.Location,
 	}
-	if err := p.tryConsume(token.True, token.False); err != nil {
-		return nil, err
-	}
-	return node, nil
+	p.consumeExpected(token.StringLiteral, token.False)
+	return node
 }
 
-func (p *parser) ParseStringLiteral() (*ast.StringLiteral, error) {
+func (p *parser) ParseExpressionStringLiteral() *ast.StringLiteral {
 	node := &ast.StringLiteral{
 		RawText:      p.file.Bytes(p.token.Location),
 		NodeLocation: p.token.Location,
 	}
-	if err := p.tryConsume(token.StringLiteral); err != nil {
-		return nil, err
-	}
-	return node, nil
+	p.consumeExpected(token.StringLiteral)
+	return node
 }
 
-func (p *parser) ParseNoneLiteral() (*ast.NoneLiteral, error) {
+func (p *parser) ParseExpressionNoneLiteral() *ast.NoneLiteral {
 	node := &ast.NoneLiteral{
 		RawText:      p.file.Bytes(p.token.Location),
 		NodeLocation: p.token.Location,
 	}
-	if err := p.tryConsume(token.None); err != nil {
-		return nil, err
-	}
-	return node, nil
+	p.consumeExpected(token.None)
+	return node
 }
 
-func registerPrefix[T ast.Expression](p *parser, fn func() (T, error), kinds ...token.Kind) {
+func (p *parser) fail(def *issue.Definition, loc source.Location) {
+	panic(issue.New(def, p.file, loc))
+}
+
+func (p *parser) failWithDetail(def *issue.Definition, loc source.Location, msg string, args ...any) {
+	panic(issue.New(def, p.file, loc).WithDetail(msg, args...))
+}
+
+func registerPrefix[T ast.Expression](p *parser, fn func() T, kinds ...token.Kind) {
 	for _, t := range kinds {
-		p.prefix[t] = func() (ast.Expression, error) { return fn() }
+		p.prefix[t] = func() ast.Expression { return fn() }
 	}
 }
 
-func registerInfix[T ast.Expression](p *parser, fn func(ast.Expression) (T, error), kinds ...token.Kind) {
+func registerInfix[T ast.Expression](p *parser, fn func(ast.Expression) T, kinds ...token.Kind) {
 	for _, t := range kinds {
-		p.infix[t] = func(expr ast.Expression) (ast.Expression, error) { return fn(expr) }
+		p.infix[t] = func(expr ast.Expression) ast.Expression { return fn(expr) }
 	}
 }
 

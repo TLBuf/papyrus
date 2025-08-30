@@ -1,18 +1,16 @@
 package ast
 
-import "github.com/TLBuf/papyrus/source"
+import (
+	"github.com/TLBuf/papyrus/issue"
+	"github.com/TLBuf/papyrus/source"
+)
 
 // ErrorStatement is a statement that failed to parse.
 type ErrorStatement struct {
-	// ErrorMessage is a human-readable message describing the error encountered.
-	ErrorMessage string
+	// Issue is the issue describing the error encountered.
+	Issue *issue.Issue
 	// NodeLocation is the source location of the node.
 	NodeLocation source.Location
-}
-
-// Message returns a human-readable message describing the error encountered.
-func (e *ErrorStatement) Message() string {
-	return e.ErrorMessage
 }
 
 // Parameters implements the [Invokable] interface and always returns nil.

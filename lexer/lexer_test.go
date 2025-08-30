@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/TLBuf/papyrus/issue"
 	"github.com/TLBuf/papyrus/lexer"
 	"github.com/TLBuf/papyrus/source"
 	"github.com/TLBuf/papyrus/token"
@@ -96,14 +97,15 @@ EndState ; Comment
 	// Papyrus uses Windows line endings.
 	text = strings.ReplaceAll(text, "\n", "\r\n")
 	file, _ := source.NewFile("test.psc", []byte(text))
-	lex, err := lexer.New(file)
-	if err != nil {
-		t.Fatalf("New() returned an unexpected error: %v", err)
+	log := issue.NewLog()
+	lex := lexer.New(file, log)
+	if lex == nil {
+		t.Fatalf("New() failed unexpectedly:\n%v", log)
 	}
 	for i, tt := range tests {
-		tok, err := lex.Next()
-		if err != nil {
-			t.Fatalf("NextToken() returned an unexpected error at token %d: %v", i, err)
+		tok, ok := lex.Next()
+		if !ok {
+			t.Fatalf("NextToken() failed unexpectedly at token %d: %v", i, log)
 		}
 		if tok.Kind != tt.wantType {
 			t.Errorf("token type mismatch at token %d %q, want: %v, got: %v", i, tok, tt.wantType, tok.Kind)
@@ -169,16 +171,18 @@ EndState ; Comment
 `
 	text = strings.ReplaceAll(text, "\n", "\r\n")
 	file, _ := source.NewFile("test.psc", []byte(text))
+	log := issue.NewLog()
 	b.ReportAllocs()
 	for b.Loop() {
-		lex, err := lexer.New(file)
-		if err != nil {
-			b.Fatalf("New() returned an unexpected error: %v", err)
+		lex := lexer.New(file, log)
+		if lex == nil {
+			b.Fatalf("New() failed unexpectedly:\n%v", log)
 		}
 		var tok token.Token
 		for tok.Kind != token.EOF {
-			if tok, err = lex.Next(); err != nil {
-				b.Fatalf("Next() returned an unexpected error: %v", err)
+			var ok bool
+			if tok, ok = lex.Next(); !ok {
+				b.Fatalf("Next() failed unexpectedly:\n%v", log)
 			}
 		}
 	}

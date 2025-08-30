@@ -357,6 +357,39 @@ func (k Kind) String() string {
 	return "<Unknown>"
 }
 
+// Article returns the article that should be used to refer to this token, e.g.
+// [Auto] will return "an" as in "an Auto token" while [String] will return "a"
+// as in "a String token".
+func (k Kind) Article() string {
+	switch k {
+	case Illegal,
+		EOF,
+		As,
+		Auto,
+		AutoReadOnly,
+		Else,
+		ElseIf,
+		EndEvent,
+		EndFunction,
+		EndIf,
+		EndProperty,
+		EndState,
+		EndWhile,
+		Event,
+		Extends,
+		Identifier,
+		If,
+		Import,
+		Int,
+		IntLiteral:
+		return "an"
+	}
+	if int(k) < len(names) {
+		return "a"
+	}
+	return "an" // Unknown
+}
+
 var names = []string{
 	"<Illegal>",
 	"<EOF>",

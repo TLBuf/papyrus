@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/TLBuf/papyrus/ast"
+	"github.com/TLBuf/papyrus/issue"
 	"github.com/TLBuf/papyrus/parser"
 	"github.com/TLBuf/papyrus/source"
 	"github.com/google/go-cmp/cmp"
@@ -221,15 +222,16 @@ func TestHeader(t *testing.T) {
 			if err != nil {
 				t.Fatalf("NewFile() returned an unexpected error: %v", err)
 			}
-			got, err := parser.Parse(f)
-			if err != nil {
-				t.Errorf("ParseScript() returned an unexpected error: %v", err)
+			log := issue.NewLog()
+			got, ok := parser.Parse(f, log)
+			if !ok {
+				t.Errorf("Parse() failed unexpectedly: %v", log)
 			}
 			if got == nil {
-				t.Fatal("ParseScript() returned nil")
+				t.Fatal("Parse() returned nil")
 			}
 			if diff := cmp.Diff(test.want, got, ignoreFields...); diff != "" {
-				t.Errorf("ParseScript() mismatch (-want +got):\n%s", diff)
+				t.Errorf("Parse() mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
@@ -288,8 +290,9 @@ EndState ; Comment
 	file, _ := source.NewFile("test.psc", []byte(text))
 	b.ReportAllocs()
 	for b.Loop() {
-		if _, err := parser.Parse(file); err != nil {
-			b.Fatalf("New() returned an unexpected error: %v", err)
+		log := issue.NewLog()
+		if _, ok := parser.Parse(file, log); !ok {
+			b.Fatalf("Parse() failed unexpectedly: %v", log)
 		}
 	}
 }

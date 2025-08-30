@@ -1,26 +1,20 @@
 package parser
 
 import (
-	"fmt"
-
 	"github.com/TLBuf/papyrus/ast"
 )
 
 // attachLooseComments attaches comments to nodes in place.
-func attachLooseComments(script *ast.Script, comments []ast.Comment) error {
+func (p *parser) attachLooseComments(script *ast.Script, comments []ast.Comment) {
 	if len(comments) == 0 {
-		return nil
+		return
 	}
 
 	var visitor nodes
-	if err := script.Accept(&ast.PreorderVisitor{Delegate: &visitor}); err != nil {
-		return err
-	}
+	_ = script.Accept(&ast.PreorderVisitor{Delegate: &visitor})
 	preorder := visitor.nodes
 	visitor.nodes = make([]commentable, 0, len(visitor.nodes))
-	if err := script.Accept(&ast.PostorderVisitor{Delegate: &visitor}); err != nil {
-		return err
-	}
+	_ = script.Accept(&ast.PostorderVisitor{Delegate: &visitor})
 	postorder := visitor.nodes
 
 	prefixCursor := 0
@@ -32,9 +26,7 @@ func attachLooseComments(script *ast.Script, comments []ast.Comment) error {
 			last := postorder[len(postorder)-1]
 			ll := last.Location()
 			if ll.End() < cl.Start() {
-				if err := attachSuffixComments(last, comment); err != nil {
-					return err
-				}
+				p.attachSuffixComments(last, comment)
 				continue
 			}
 			node := preorder[prefixCursor]
@@ -45,9 +37,7 @@ func attachLooseComments(script *ast.Script, comments []ast.Comment) error {
 				prefixCursor++
 				node = preorder[prefixCursor]
 			}
-			if err := attachPrefixComments(last, comment); err != nil {
-				return err
-			}
+			p.attachPrefixComments(last, comment)
 		case comment.Suffix():
 			node := postorder[suffixCursor]
 			for suffixCursor < len(postorder) {
@@ -62,14 +52,11 @@ func attachLooseComments(script *ast.Script, comments []ast.Comment) error {
 				node = curr
 				suffixCursor++
 			}
-			if err := attachSuffixComments(node, comment); err != nil {
-				return err
-			}
+			p.attachSuffixComments(node, comment)
 		default:
-			return newError(comment.Location(), "encoundered unexpected standalone comment")
+			p.failWithDetail(intenalInvalidState, comment.Location(), "Unexpected standalone commnet.")
 		}
 	}
-	return nil
 }
 
 type commentable interface {
@@ -78,25 +65,23 @@ type commentable interface {
 	Comments() *ast.Comments
 }
 
-func attachPrefixComments(node commentable, comments ...ast.Comment) error {
-	dst, err := nodeComments(node)
-	if err != nil {
-		return err
+func (p *parser) attachPrefixComments(node commentable, comments ...ast.Comment) {
+	dst := nodeComments(node)
+	if dst == nil {
+		p.failWithDetail(intenalInvalidState, node.Location(), "Cannot attach comments to %T", node)
 	}
 	dst.PrefixComments = append(dst.PrefixComments, comments...)
-	return nil
 }
 
-func attachSuffixComments(node commentable, comments ...ast.Comment) error {
-	dst, err := nodeComments(node)
-	if err != nil {
-		return err
+func (p *parser) attachSuffixComments(node commentable, comments ...ast.Comment) {
+	dst := nodeComments(node)
+	if dst == nil {
+		p.failWithDetail(intenalInvalidState, node.Location(), "Cannot attach comments to %T", node)
 	}
 	dst.SuffixComments = append(dst.SuffixComments, comments...)
-	return nil
 }
 
-func nodeComments(node commentable) (*ast.Comments, error) {
+func nodeComments(node commentable) *ast.Comments {
 	var ptr **ast.Comments
 	switch node := node.(type) {
 	case *ast.Access:
@@ -160,12 +145,12 @@ func nodeComments(node commentable) (*ast.Comments, error) {
 	case *ast.While:
 		ptr = &node.NodeComments
 	default:
-		return nil, fmt.Errorf("cannot set inline comments on %T", node)
+		return nil
 	}
 	if *ptr == nil {
 		*ptr = &ast.Comments{}
 	}
-	return node.Comments(), nil
+	return node.Comments()
 }
 
 // nodes is an [ast.Visitor] that builds and ordererd

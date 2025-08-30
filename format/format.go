@@ -1250,7 +1250,7 @@ func (f *formatter) VisitWhile(node *ast.While) error {
 }
 
 func (*formatter) VisitErrorStatement(node *ast.ErrorStatement) error {
-	return fmt.Errorf("attempted to format error statement: %s", node.ErrorMessage)
+	return fmt.Errorf("attempted to format error statement: %s", node.Issue)
 }
 
 var _ ast.Visitor = (*formatter)(nil)

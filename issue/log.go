@@ -2,11 +2,13 @@ package issue
 
 import (
 	"iter"
+	"strings"
 )
 
 // Log is an ordered record of issues collected during processing.
 type Log struct {
 	issues   []*Issue
+	internal int
 	errors   int
 	warnings int
 	infos    int
@@ -19,7 +21,9 @@ func NewLog() *Log {
 
 // Append appends an issue to the log.
 func (l *Log) Append(issue *Issue) {
-	switch issue.Key.Severity {
+	switch issue.Definition().Severity() {
+	case Internal:
+		l.internal++
 	case Error:
 		l.errors++
 	case Warning:
@@ -35,9 +39,42 @@ func (l *Log) Len() int {
 	return len(l.issues)
 }
 
-// HasErrors returns true if the log has at least one [Error] issue.
-func (l *Log) HasErrors() bool {
+// First returns the first issue in
+// the log or nil if the log is empty.
+func (l *Log) First() *Issue {
+	if len(l.issues) == 0 {
+		return nil
+	}
+	return l.issues[0]
+}
+
+// Last returns the last issue in the log (i.e. the
+// most recently appended) or nil if the log is empty.
+func (l *Log) Last() *Issue {
+	if len(l.issues) == 0 {
+		return nil
+	}
+	return l.issues[len(l.issues)-1]
+}
+
+// HasInternal returns true if the log has at least one [Internal] issue.
+func (l *Log) HasInternal() bool {
+	return l.internal > 0
+}
+
+// HasError returns true if the log has at least one [Error] issue.
+func (l *Log) HasError() bool {
 	return l.errors > 0
+}
+
+// HasWarning returns true if the log has at least one [Warning] issue.
+func (l *Log) HasWarning() bool {
+	return l.warnings > 0
+}
+
+// HasInfo returns true if the log has at least one [Info] issue.
+func (l *Log) HasInfo() bool {
+	return l.infos > 0
 }
 
 // All returns an iterator over all issues in the log.
@@ -78,9 +115,18 @@ func (l *Log) Infos() iter.Seq[*Issue] {
 func (l *Log) iter(severity Severity) iter.Seq[*Issue] {
 	return func(yield func(*Issue) bool) {
 		for _, i := range l.issues {
-			if i.Key.Severity == severity && !yield(i) {
+			if i.Definition().Severity() == severity && !yield(i) {
 				return
 			}
 		}
 	}
+}
+
+func (l *Log) String() string {
+	var sb strings.Builder
+	for _, i := range l.issues {
+		sb.WriteString(i.String())
+		sb.WriteRune('\n')
+	}
+	return sb.String()
 }

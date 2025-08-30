@@ -2,13 +2,13 @@ package cmd
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/TLBuf/papyrus/format"
+	"github.com/TLBuf/papyrus/issue"
 	"github.com/TLBuf/papyrus/parser"
 	"github.com/TLBuf/papyrus/source"
 	"github.com/spf13/cobra"
@@ -78,13 +78,10 @@ func formatFile(path string) error {
 	if err != nil {
 		return fmt.Errorf("create file %q: %w", path, err)
 	}
-	script, err := parser.Parse(file, parser.WithComments(true))
-	if err != nil {
-		var perr parser.Error
-		if !errors.As(err, &perr) {
-			return fmt.Errorf("extract a parser.Error from: %w", err)
-		}
-		snip, serr := perr.Location.Snippet(file, 80, 9)
+	log := issue.NewLog()
+	script, ok := parser.Parse(file, log, parser.WithComments(true))
+	if !ok {
+		snip, serr := log.First().Location().Snippet(file, 80, 9)
 		if serr != nil {
 			return fmt.Errorf("create snippet for parser error: %w: %w", serr, err)
 		}
@@ -92,7 +89,7 @@ func formatFile(path string) error {
 		if err := source.Format(&sb, snip); err != nil {
 			return fmt.Errorf("format snippet: %w", err)
 		}
-		return fmt.Errorf("parse: %w\n\n%s %s\n%s", perr.Err, path, perr.Location, sb.String())
+		return fmt.Errorf("parse: %s", log.First())
 	}
 	var formatted bytes.Buffer
 	if err := format.Format(&formatted, script, format.WithTabs(formatTabs), format.WithUnixLineEndings(formatUnix), format.WithIndentWidth(formatIndent)); err != nil {
