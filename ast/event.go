@@ -75,12 +75,15 @@ func (e *Event) Comments() *Comments {
 
 // Location returns the source location of the node.
 func (e *Event) Location() source.Location {
-	if len(e.NativeLocations) == 0 {
+	if e.EndKeywordLocation != source.UnknownLocation {
 		return source.Span(e.StartKeywordLocation, e.EndKeywordLocation)
 	}
-	end := e.NativeLocations[len(e.NativeLocations)-1]
 	if e.Documentation != nil {
-		end = e.Documentation.Location()
+		return source.Span(e.StartKeywordLocation, e.Documentation.Location())
+	}
+	end := e.CloseLocation
+	if len(e.NativeLocations) > 0 {
+		end = e.NativeLocations[len(e.NativeLocations)-1]
 	}
 	return source.Span(e.StartKeywordLocation, end)
 }

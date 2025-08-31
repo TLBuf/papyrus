@@ -84,20 +84,27 @@ func (f *Function) Comments() *Comments {
 
 // Location returns the source location of the node.
 func (f *Function) Location() source.Location {
-	if len(f.NativeLocations) == 0 {
-		return source.Span(f.StartKeywordLocation, f.EndKeywordLocation)
+	start := f.StartKeywordLocation
+	if f.ReturnType != nil {
+		start = f.ReturnType.Location()
 	}
-	end := f.NativeLocations[len(f.NativeLocations)-1]
+	if f.EndKeywordLocation != source.UnknownLocation {
+		return source.Span(start, f.EndKeywordLocation)
+	}
+	if f.Documentation != nil {
+		return source.Span(start, f.Documentation.Location())
+	}
+	end := f.CloseLocation
+	if len(f.NativeLocations) > 0 {
+		end = f.NativeLocations[len(f.NativeLocations)-1]
+	}
 	if len(f.GlobalLocations) > 0 {
 		last := f.GlobalLocations[len(f.GlobalLocations)-1]
 		if last.Start() > end.Start() {
 			end = last
 		}
 	}
-	if f.Documentation != nil {
-		end = f.Documentation.Location()
-	}
-	return source.Span(f.StartKeywordLocation, end)
+	return source.Span(start, end)
 }
 
 func (*Function) block() {}

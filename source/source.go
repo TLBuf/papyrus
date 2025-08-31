@@ -8,6 +8,9 @@ import (
 	"unicode/utf8"
 )
 
+// UnknownLocation is the default unset location.
+const UnknownLocation = Location(0)
+
 // File contains information for a source code file.
 type File struct {
 	path        string
