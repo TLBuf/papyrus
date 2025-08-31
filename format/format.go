@@ -98,6 +98,9 @@ type formatter struct {
 	unixLineEndings bool
 	keywords        Keywords
 	level           int
+	stall           bool
+	skip            *ast.LineComment
+	comment         *ast.LineComment
 }
 
 func (f *formatter) visitPrefixComments(node interface{ Comments() *ast.Comments }) error {
@@ -120,6 +123,15 @@ func (f *formatter) visitSuffixComments(node interface{ Comments() *ast.Comments
 		return nil
 	}
 	for _, c := range node.Comments().SuffixComments {
+		if line, ok := c.(*ast.LineComment); ok {
+			if line == f.skip {
+				continue
+			}
+			if f.stall {
+				f.comment = line
+				continue
+			}
+		}
 		if err := f.space(); err != nil {
 			return fmt.Errorf("failed to format space: %w", err)
 		}
@@ -424,6 +436,7 @@ func (f *formatter) VisitEvent(node *ast.Event) error {
 	if err := f.str(token.ParenthesisOpen.Symbol()); err != nil {
 		return fmt.Errorf("failed for format open parenthesis: %w", err)
 	}
+	f.stall = true
 	for i, parameter := range node.ParameterList {
 		if i > 0 {
 			if err := f.str(token.Comma.String()); err != nil {
@@ -446,6 +459,17 @@ func (f *formatter) VisitEvent(node *ast.Event) error {
 		}
 		if err := f.str(token.Native.String()); err != nil {
 			return fmt.Errorf("failed to format native keyword: %w", err)
+		}
+	}
+	f.stall = false
+	if node.Comments() != nil && len(node.Comments().SuffixComments) > 0 && len(node.NativeLocations) > 0 {
+		last := node.Comments().SuffixComments[len(node.Comments().SuffixComments)-1]
+		if line, ok := last.(*ast.LineComment); ok {
+			if err := f.space(); err != nil {
+				return fmt.Errorf("failed to format space: %w", err)
+			}
+			f.VisitLineComment(line)
+			f.skip = line
 		}
 	}
 	if node.Documentation != nil {
@@ -484,7 +508,9 @@ func (f *formatter) VisitEvent(node *ast.Event) error {
 			return fmt.Errorf("failed for format end keyword: %w", err)
 		}
 	}
-	return f.visitSuffixComments(node)
+	err := f.visitSuffixComments(node)
+	f.skip = nil
+	return err
 }
 
 func (f *formatter) VisitFunction(node *ast.Function) error {
@@ -511,6 +537,7 @@ func (f *formatter) VisitFunction(node *ast.Function) error {
 	if err := f.str(token.ParenthesisOpen.Symbol()); err != nil {
 		return fmt.Errorf("failed for format open parenthesis: %w", err)
 	}
+	f.stall = true
 	for i, parameter := range node.ParameterList {
 		if i > 0 {
 			if err := f.str(token.Comma.String()); err != nil {
@@ -541,6 +568,17 @@ func (f *formatter) VisitFunction(node *ast.Function) error {
 		}
 		if err := f.str(token.Native.String()); err != nil {
 			return fmt.Errorf("failed to format native keyword: %w", err)
+		}
+	}
+	f.stall = false
+	if node.Comments() != nil && len(node.Comments().SuffixComments) > 0 && len(node.NativeLocations) > 0 {
+		last := node.Comments().SuffixComments[len(node.Comments().SuffixComments)-1]
+		if line, ok := last.(*ast.LineComment); ok {
+			if err := f.space(); err != nil {
+				return fmt.Errorf("failed to format space: %w", err)
+			}
+			f.VisitLineComment(line)
+			f.skip = line
 		}
 	}
 	if node.Documentation != nil {
@@ -582,7 +620,9 @@ func (f *formatter) VisitFunction(node *ast.Function) error {
 			return fmt.Errorf("failed for format end keyword: %w", err)
 		}
 	}
-	return f.visitSuffixComments(node)
+	err := f.visitSuffixComments(node)
+	f.skip = nil
+	return err
 }
 
 func (f *formatter) VisitIdentifier(node *ast.Identifier) error {
@@ -883,6 +923,7 @@ func (f *formatter) VisitProperty(node *ast.Property) error {
 	if err := f.space(); err != nil {
 		return fmt.Errorf("failed to format space: %w", err)
 	}
+	f.stall = true
 	if err := node.Name.Accept(f); err != nil {
 		return fmt.Errorf("failed to format name: %w", err)
 	}
@@ -932,6 +973,17 @@ func (f *formatter) VisitProperty(node *ast.Property) error {
 			return fmt.Errorf("failed to format Conditional keyword: %w", err)
 		}
 	}
+	if node.Comments() != nil && len(node.Comments().SuffixComments) > 0 && node.Kind != ast.Full {
+		last := node.Comments().SuffixComments[len(node.Comments().SuffixComments)-1]
+		if line, ok := last.(*ast.LineComment); ok {
+			if err := f.space(); err != nil {
+				return fmt.Errorf("failed to format space: %w", err)
+			}
+			f.VisitLineComment(line)
+			f.skip = line
+		}
+	}
+	f.stall = false
 	if node.Documentation != nil {
 		if err := f.newline(); err != nil {
 			return fmt.Errorf("failed to format newline: %w", err)
@@ -974,7 +1026,9 @@ func (f *formatter) VisitProperty(node *ast.Property) error {
 			return fmt.Errorf("failed for format end keyword: %w", err)
 		}
 	}
-	return f.visitSuffixComments(node)
+	err := f.visitSuffixComments(node)
+	f.skip = nil
+	return err
 }
 
 func (f *formatter) VisitReturn(node *ast.Return) error {
@@ -1255,6 +1309,13 @@ func (f *formatter) space() error {
 }
 
 func (f *formatter) newline() error {
+	if f.comment != nil {
+		if err := f.space(); err != nil {
+			return fmt.Errorf("failed to format space: %w", err)
+		}
+		f.VisitLineComment(f.comment)
+		f.comment = nil
+	}
 	if f.unixLineEndings {
 		return f.str("\n")
 	}
