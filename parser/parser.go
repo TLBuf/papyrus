@@ -2,6 +2,7 @@
 package parser
 
 import (
+	"iter"
 	"slices"
 	"strings"
 
@@ -52,7 +53,7 @@ func WithRecovery(enabled bool) Option {
 // Parse returns the file parsed as an [*ast.Script] or false if parsing failed.
 // If this returns false, the log is guarnteed to contain at least one issue.
 func Parse(file *source.File, log *issue.Log, opts ...Option) (script *ast.Script, ok bool) {
-	lex := lexer.New(file, log)
+	lex, _ := iter.Pull2(lexer.Lex(file))
 	p := &parser{
 		file:            file,
 		lex:             lex,
@@ -121,7 +122,7 @@ func Parse(file *source.File, log *issue.Log, opts ...Option) (script *ast.Scrip
 type parser struct {
 	log  *issue.Log
 	file *source.File
-	lex  *lexer.Lexer
+	lex  func() (token.Token, *issue.Issue, bool)
 
 	token     token.Token
 	lookahead token.Token
@@ -245,12 +246,16 @@ func (p *parser) advanceExpected(t token.Kind, alts ...token.Kind) {
 // advance advances token and lookahead by one.
 func (p *parser) advance() {
 	newline := p.token.Kind == token.Newline
-	p.token = p.lookahead
-	tok, ok := p.lex.Next()
-	if !ok {
+	tok, err, ok := p.lex()
+	if err != nil {
 		// Force lexer errors to skip recovery.
 		p.fatal = true
-		panic(p.log.Last())
+		panic(err)
+	}
+	p.token = p.lookahead
+	if !ok {
+		// Hit end of token stream, last token is always EOF, don't advance.
+		return
 	}
 	p.lookahead = tok
 	if !p.blankLine && newline && p.token.Kind == token.Newline {

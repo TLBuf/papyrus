@@ -3,12 +3,40 @@ package lexer
 
 import (
 	"bytes"
+	"iter"
 	"unicode/utf8"
 
 	"github.com/TLBuf/papyrus/issue"
 	"github.com/TLBuf/papyrus/source"
 	"github.com/TLBuf/papyrus/token"
 )
+
+// Lex returns an iterator over the tokens lexed from a source file, the
+// iterator returns an [issue.Issue] if lexing the next token failed and
+// iteration is halted.
+func Lex(file *source.File) iter.Seq2[token.Token, *issue.Issue] {
+	l := &lexer{
+		file:   file,
+		length: file.Len(),
+	}
+	return func(yield func(token.Token, *issue.Issue) bool) {
+		defer func() {
+			if r := recover(); r != nil {
+				_ = yield(token.Token{}, r.(*issue.Issue))
+			}
+		}()
+		l.readChar()
+		for {
+			tok := l.nextToken()
+			if !yield(tok, nil) {
+				return
+			}
+			if tok.Kind == token.EOF {
+				return
+			}
+		}
+	}
+}
 
 // mode records what state the lexer is currently in (i.e. is it processing a
 // block comment or just lexing normally).
@@ -25,10 +53,9 @@ const (
 	commentDoc
 )
 
-// Lexer provides the ability to lex a Papyrus script.
-type Lexer struct {
+// lexer provides the ability to lex a Papyrus script.
+type lexer struct {
 	file      *source.File
-	log       *issue.Log
 	position  uint32
 	next      uint32
 	length    uint32
@@ -37,52 +64,22 @@ type Lexer struct {
 	terminal  token.Token
 }
 
-// New returns a new [Lexer] ready to read tokens from a source file or nil if
-// the lexer failed to initialize. If this returns nil, the [issue.Log] is
-// guarnteed to contain an issue.
-func New(file *source.File, log *issue.Log) (l *Lexer) {
-	l = &Lexer{
-		file:   file,
-		length: file.Len(),
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			log.Append(r.(*issue.Issue))
-			l = nil
-		}
-	}()
-	l.readChar()
-	return l
-}
-
-// Next scans the input for the next [token.Token] and returns true if a token
-// was lexed successfully. If this returns false, the lexer's [issue.Log] is
-// guarnteed to contain an issue.
-func (l *Lexer) Next() (tok token.Token, ok bool) {
-	defer func() {
-		if r := recover(); r != nil {
-			l.log.Append(r.(*issue.Issue))
-			tok = token.Token{}
-			ok = false
-		}
-	}()
+func (l *lexer) nextToken() token.Token {
 	switch l.mode {
 	case normal:
-		tok = l.nextToken()
+		return l.normal()
 	case commentLine:
-		tok = l.commentLine()
+		return l.commentLine()
 	case commentBlock:
-		tok = l.commentBlock()
+		return l.commentBlock()
 	case commentDoc:
-		tok = l.commentDoc()
-	default:
-		l.log.Append(issue.New(intenalInvalidMode, l.file, l.here()))
-		return tok, false
+		return l.commentDoc()
 	}
-	return tok, true
+	l.fail(intenalInvalidMode, l.here())
+	return token.Token{} // Unreachable, fail panics.
 }
 
-func (l *Lexer) nextToken() token.Token {
+func (l *lexer) normal() token.Token {
 	var tok token.Token
 	l.skipWhitespace()
 	switch l.character {
@@ -119,11 +116,11 @@ func (l *Lexer) nextToken() token.Token {
 		tok = l.newTokenFrom(token.Newline, start)
 	case '\\':
 		l.readChar()
-		tok := l.nextToken()
+		tok := l.normal()
 		if tok.Kind != token.Newline {
 			l.fail(errorMissingNewlineTerm, tok.Location)
 		}
-		return l.nextToken()
+		return l.normal()
 	case '=':
 		start := l.here()
 		l.readChar()
@@ -242,7 +239,7 @@ func (l *Lexer) nextToken() token.Token {
 	return tok
 }
 
-func (l *Lexer) newToken(t token.Kind) token.Token {
+func (l *lexer) newToken(t token.Kind) token.Token {
 	return token.Token{
 		Kind:     t,
 		Text:     l.file.Content()[l.position : l.position+1],
@@ -250,7 +247,7 @@ func (l *Lexer) newToken(t token.Kind) token.Token {
 	}
 }
 
-func (l *Lexer) newTokenAt(t token.Kind, at source.Location) token.Token {
+func (l *lexer) newTokenAt(t token.Kind, at source.Location) token.Token {
 	return token.Token{
 		Kind:     t,
 		Text:     l.file.Bytes(at),
@@ -258,7 +255,7 @@ func (l *Lexer) newTokenAt(t token.Kind, at source.Location) token.Token {
 	}
 }
 
-func (l *Lexer) newTokenFrom(t token.Kind, from source.Location) token.Token {
+func (l *lexer) newTokenFrom(t token.Kind, from source.Location) token.Token {
 	return token.Token{
 		Kind:     t,
 		Text:     l.file.Bytes(from),
@@ -266,15 +263,15 @@ func (l *Lexer) newTokenFrom(t token.Kind, from source.Location) token.Token {
 	}
 }
 
-func (l *Lexer) here() source.Location {
+func (l *lexer) here() source.Location {
 	return source.NewLocation(l.position, l.next-l.position)
 }
 
-func (l *Lexer) nextByteLocation() source.Location {
+func (l *lexer) nextByteLocation() source.Location {
 	return source.NewLocation(l.position, 1)
 }
 
-func (l *Lexer) readIdentifier() token.Token {
+func (l *lexer) readIdentifier() token.Token {
 	start := l.here()
 	l.readChar()
 	end := start
@@ -286,7 +283,7 @@ func (l *Lexer) readIdentifier() token.Token {
 	return l.newTokenAt(token.LookupIdentifier(string(l.file.Bytes(loc))), loc)
 }
 
-func (l *Lexer) readNumber(start source.Location) token.Token {
+func (l *lexer) readNumber(start source.Location) token.Token {
 	first := l.character
 	l.readChar()
 	end := start
@@ -322,7 +319,7 @@ func (l *Lexer) readNumber(start source.Location) token.Token {
 	return tok
 }
 
-func (l *Lexer) readString() token.Token {
+func (l *lexer) readString() token.Token {
 	start := l.here()
 	escaping := false
 	for {
@@ -364,7 +361,7 @@ func (l *Lexer) readString() token.Token {
 }
 
 // commentLine handles lexing in the commentLine mode.
-func (l *Lexer) commentLine() token.Token {
+func (l *lexer) commentLine() token.Token {
 	if l.terminal.Kind == token.Newline || l.terminal.Kind == token.EOF {
 		// Already hit the terminal token, clean up, and return it.
 		terminal := l.terminal
@@ -400,7 +397,7 @@ func (l *Lexer) commentLine() token.Token {
 }
 
 // commentBlock handles lexing in the commentBlock mode.
-func (l *Lexer) commentBlock() token.Token {
+func (l *lexer) commentBlock() token.Token {
 	if l.terminal.Kind == token.BlockCommentClose {
 		// Already hit the terminal token, clean up, and return it.
 		terminal := l.terminal
@@ -437,7 +434,7 @@ func (l *Lexer) commentBlock() token.Token {
 }
 
 // commentDoc handles lexing in the commentDoc mode.
-func (l *Lexer) commentDoc() token.Token {
+func (l *lexer) commentDoc() token.Token {
 	if l.terminal.Kind == token.BraceClose {
 		// Already hit the terminal token, clean up, and return it.
 		terminal := l.terminal
@@ -463,13 +460,13 @@ func (l *Lexer) commentDoc() token.Token {
 	return comment
 }
 
-func (l *Lexer) skipWhitespace() {
+func (l *lexer) skipWhitespace() {
 	for l.character == ' ' || l.character == '\t' {
 		l.readChar()
 	}
 }
 
-func (l *Lexer) readChar() {
+func (l *lexer) readChar() {
 	width := uint32(1)
 	if l.next >= l.length {
 		l.character = 0
@@ -485,7 +482,7 @@ func (l *Lexer) readChar() {
 	l.next += width
 }
 
-func (l *Lexer) fail(def *issue.Definition, loc source.Location) {
+func (l *lexer) fail(def *issue.Definition, loc source.Location) {
 	panic(issue.New(def, l.file, loc))
 }
 
