@@ -11,7 +11,7 @@ var (
 	)
 	errorExpectedScriptName = issue.NewError(
 		"PRSR1001",
-		`Expected script to start with "ScriptName`,
+		`Expected script to start with 'ScriptName'.`,
 	)
 	errorExpectedScriptNameIdent = issue.NewError(
 		"PRSR1002",

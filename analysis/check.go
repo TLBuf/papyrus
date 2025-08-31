@@ -2,47 +2,23 @@
 package analysis
 
 import (
-	"fmt"
 	"slices"
 	"strings"
 
 	"github.com/TLBuf/papyrus/analysis/symbol"
 	"github.com/TLBuf/papyrus/ast"
+	"github.com/TLBuf/papyrus/issue"
 	"github.com/TLBuf/papyrus/literal"
 	"github.com/TLBuf/papyrus/source"
 	"github.com/TLBuf/papyrus/types"
 )
 
-// Error defines an error raised by the type checker.
-type Error struct {
-	// The underlying error.
-	Err error
-	// Location identifies the place in the source that caused the error.
-	Location source.Location
-}
-
-// Error implments the error interface.
-func (e Error) Error() string {
-	return fmt.Sprintf("%s: %v", e.Location, e.Err)
-}
-
-// Unwrap returns the underlying error.
-func (e Error) Unwrap() error {
-	return e.Err
-}
-
-func newError(location source.Location, msg string, args ...any) Error {
-	return Error{
-		Err:      fmt.Errorf(msg, args...),
-		Location: location,
-	}
-}
-
 // Check performs type-checking over some number of
 // scripts and collated summarized type information.
-func Check(scripts ...*ast.Script) (*Info, error) {
+func Check(log *issue.Log, scripts ...*ast.Script) (*Info, bool) {
 	global := symbol.NewGlobalScope()
 	checker := &checker{
+		log:    log,
 		global: global,
 		info: &Info{
 			Types:  make(map[ast.Expression]types.Type),
@@ -56,13 +32,14 @@ func Check(scripts ...*ast.Script) (*Info, error) {
 	for _, t := range []types.Type{types.Bool, types.BoolArray, types.Int, types.IntArray, types.Float, types.FloatArray, types.String, types.StringArray} {
 		checker.typeNames[normalize(t.Name())] = t
 	}
-	if err := checker.check(scripts); err != nil {
-		return nil, err
+	if ok := checker.check(scripts); !ok {
+		return nil, false
 	}
-	return checker.info, nil
+	return checker.info, true
 }
 
 type checker struct {
+	log       *issue.Log
 	info      *Info
 	global    *symbol.Scope
 	typeNames map[string]types.Type
@@ -71,25 +48,42 @@ type checker struct {
 	scope     *symbol.Scope
 }
 
-func (c *checker) check(scripts []*ast.Script) error {
+func (c *checker) check(scripts []*ast.Script) bool {
+	success := true
 	// Build script types.
-	if err := sortScripts(scripts); err != nil {
-		return fmt.Errorf("check script inheritance: %w", err)
+	if ok := c.sortScripts(scripts); !ok {
+		return false
 	}
 	for _, script := range scripts {
 		sym, err := c.global.Symbol(script)
 		if err != nil {
-			return fmt.Errorf("%v symbol: %w", script, err)
+			c.log.Append(
+				issue.New(intenalInvalidState, script.File, script.Location()).WithDetail("Symbol creation: %v", err),
+			)
+			success = false
+			continue
 		}
 		c.info.Scopes[script] = sym.Scope()
 		c.typeNames[sym.Normalized()] = sym.Type()
 	}
-
+	if !success {
+		return false // Don't try to keep going.
+	}
 	// Build all other types, except imports.
+	for _, script := range scripts {
+		scriptSymbol, err := c.global.Lookup(script.Name.Text, symbol.ScriptClass)
+		if err != nil {
+			c.log.Append(
+				issue.New(intenalInvalidState, script.File, script.Location()).WithDetail("Script symbol lookup: %v", err),
+			)
+			success = false
+			continue
+		}
+		_ = scriptSymbol
+	}
 
 	// Handle imported types.
-
-	return nil
+	return success
 }
 
 // file returns the current source file being checked.
@@ -110,13 +104,29 @@ func (c *checker) leaveScope() {
 	c.scope = c.scope.Parent()
 }
 
-func sortScripts(scripts []*ast.Script) error {
+func (c *checker) sortScripts(scripts []*ast.Script) bool {
+	success := true
 	slices.SortFunc(scripts, func(a, b *ast.Script) int {
 		return strings.Compare(normalize(a.Name.Text), normalize(b.Name.Text))
 	})
 	byName := make(map[string]*ast.Script, len(scripts))
 	for _, s := range scripts {
-		byName[normalize(s.Name.Text)] = s
+		name := normalize(s.Name.Text)
+		if existing, ok := byName[name]; ok {
+			c.log.Append(
+				issue.New(
+					errorScriptNameCollision,
+					s.File,
+					s.Name.Location(),
+				).WithDetail(
+					"%s name collides with %s.",
+					existing.File.Path(), s.File.Path(),
+				),
+			)
+			success = false
+			continue
+		}
+		byName[name] = s
 	}
 	seen := make(map[*ast.Script]struct{}, len(scripts))
 	children := make(map[*ast.Script][]*ast.Script, len(scripts))
@@ -128,7 +138,17 @@ func sortScripts(scripts []*ast.Script) error {
 		}
 		parent, ok := byName[normalize(s.Parent.Text)]
 		if !ok {
-			return fmt.Errorf("%v extends unknown script %q", s, s.Parent.Text)
+			c.log.Append(
+				issue.New(
+					errorScriptUnknownParent,
+					s.File,
+					s.Parent.Location(),
+				).WithDetail(
+					"%q is not a known script.",
+					s.Parent.Text,
+				),
+			)
+			success = false
 		}
 		children[parent] = append(children[parent], s)
 	}
@@ -138,13 +158,14 @@ func sortScripts(scripts []*ast.Script) error {
 		sorted, seen[s] = append(sorted, s), struct{}{}
 		for _, child := range children[s] {
 			if _, ok := seen[child]; ok {
-				return fmt.Errorf("%v extends a script that forms a cycle", child)
+				c.log.Append(issue.New(errorScriptCycle, s.File, s.Parent.Location()))
+				success = false
 			}
 			sorted, seen[child] = append(sorted, child), struct{}{}
 		}
 	}
 	copy(scripts, sorted)
-	return nil
+	return success
 }
 
 func normalize(name string) string {
