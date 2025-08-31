@@ -468,7 +468,9 @@ func (f *formatter) VisitEvent(node *ast.Event) error {
 			if err := f.space(); err != nil {
 				return fmt.Errorf("failed to format space: %w", err)
 			}
-			f.VisitLineComment(line)
+			if err := f.VisitLineComment(line); err != nil {
+				return fmt.Errorf("failed to format line comment: %w", err)
+			}
 			f.skip = line
 		}
 	}
@@ -577,7 +579,9 @@ func (f *formatter) VisitFunction(node *ast.Function) error {
 			if err := f.space(); err != nil {
 				return fmt.Errorf("failed to format space: %w", err)
 			}
-			f.VisitLineComment(line)
+			if err := f.VisitLineComment(line); err != nil {
+				return fmt.Errorf("failed to format line comment: %w", err)
+			}
 			f.skip = line
 		}
 	}
@@ -979,7 +983,9 @@ func (f *formatter) VisitProperty(node *ast.Property) error {
 			if err := f.space(); err != nil {
 				return fmt.Errorf("failed to format space: %w", err)
 			}
-			f.VisitLineComment(line)
+			if err := f.VisitLineComment(line); err != nil {
+				return fmt.Errorf("failed to format line comment: %w", err)
+			}
 			f.skip = line
 		}
 	}
@@ -1313,7 +1319,9 @@ func (f *formatter) newline() error {
 		if err := f.space(); err != nil {
 			return fmt.Errorf("failed to format space: %w", err)
 		}
-		f.VisitLineComment(f.comment)
+		if err := f.VisitLineComment(f.comment); err != nil {
+			return fmt.Errorf("failed to format line comment: %w", err)
+		}
 		f.comment = nil
 	}
 	if f.unixLineEndings {

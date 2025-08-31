@@ -229,19 +229,13 @@ func (p *parser) consume() {
 // given token type or raises an internal issue. This is used for cases where
 // the parser should be guarnteed to always find a match even if the input is
 // malformed.
-func (p *parser) advanceExpected(t token.Kind, alts ...token.Kind) {
+func (p *parser) advanceExpected(t token.Kind) {
 	if p.token.Kind == t {
 		p.advance()
 		return
 	}
-	for _, alt := range alts {
-		if p.token.Kind == alt {
-			p.advance()
-			return
-		}
-	}
 	p.fatal = true // Force unexpected parser state to skip recovery.
-	p.unexpectedToken(intenalInvalidState, p.token, t, alts...)
+	p.unexpectedToken(intenalInvalidState, p.token, t)
 }
 
 // advance advances token and lookahead by one.
