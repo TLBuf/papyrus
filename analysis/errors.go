@@ -21,4 +21,20 @@ var (
 		"CHKR1003",
 		`Script has a name that matches another script.`,
 	)
+	errorStateNameCollision = issue.NewError(
+		"CHKR1004",
+		`Another state with the same name already exists in the script.`,
+	)
+	errorScriptValueNameCollision = issue.NewError(
+		"CHKR1005",
+		`Another property or variable with the same name already exists in the script.`,
+	)
+	errorFunctionNameCollision = issue.NewError(
+		"CHKR1006",
+		`Another function or event with the same name already exists in the script.`,
+	)
+	errorParameterNameCollision = issue.NewError(
+		"CHKR1007",
+		`Another parameter with the same name is already defined for this function or event.`,
+	)
 )

@@ -17,8 +17,8 @@ type Variable struct {
 	// Value is the expression the variable is assigned or nil if there isn't one
 	// (and the variable should have the default value for its type).
 	//
-	// Only variables defined at the script level (i.e. not in a function or
-	// event) may only set a [Literal] value.
+	// Variables defined at the script level  (i.e. not in a function or event)
+	// may only set a [Literal] value.
 	Value Expression
 	// ConditionalLocations are the locations of the Conditional keywords that
 	// mark this variable as conditional (i.e. it can appear in conditions) or

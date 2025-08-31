@@ -285,12 +285,12 @@ func (s *Scope) insertState(node *ast.State) (*Symbol, error) {
 		name:       node.Name.Text,
 		normalized: normalize(node.Name.Text),
 		node:       node,
-	}
-	symbol.scope = &Scope{
-		resolver: s.resolver,
-		parent:   s,
-		kind:     stateScope,
-		node:     node,
+		scope: &Scope{
+			resolver: s.resolver,
+			parent:   s,
+			kind:     stateScope,
+			node:     node,
+		},
 	}
 	return symbol, nil
 }
@@ -310,14 +310,12 @@ func (s *Scope) insertFunction(node *ast.Function) (*Symbol, error) {
 		name:       node.Name.Text,
 		normalized: typ.Normalized(),
 		node:       node,
-	}
-	if len(node.NativeLocations) == 0 {
-		symbol.scope = &Scope{
+		scope: &Scope{
 			resolver: s.resolver,
 			parent:   s,
 			kind:     functionScope,
 			node:     node,
-		}
+		},
 	}
 	return symbol, nil
 }
@@ -337,14 +335,12 @@ func (s *Scope) insertEvent(node *ast.Event) (*Symbol, error) {
 		name:       node.Name.Text,
 		normalized: typ.Normalized(),
 		node:       node,
-	}
-	if len(node.NativeLocations) == 0 {
-		symbol.scope = &Scope{
+		scope: &Scope{
 			resolver: s.resolver,
 			parent:   s,
 			kind:     eventScope,
 			node:     node,
-		}
+		},
 	}
 	return symbol, nil
 }

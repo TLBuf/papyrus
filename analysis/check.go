@@ -21,10 +21,10 @@ func Check(log *issue.Log, scripts ...*ast.Script) (*Info, bool) {
 		log:    log,
 		global: global,
 		info: &Info{
-			Types:  make(map[ast.Expression]types.Type),
-			Values: make(map[ast.Literal]literal.Value),
-			Scopes: make(map[ast.Node]*symbol.Scope),
-			Global: global,
+			Expressions: make(map[ast.Expression]types.Type),
+			Values:      make(map[ast.Literal]literal.Value),
+			Scopes:      make(map[ast.Node]*symbol.Scope),
+			Global:      global,
 		},
 		typeNames: make(map[string]types.Type),
 		scope:     global,
@@ -63,6 +63,7 @@ func (c *checker) check(scripts []*ast.Script) bool {
 			success = false
 			continue
 		}
+		c.info.Symbols[script] = sym
 		c.info.Scopes[script] = sym.Scope()
 		c.typeNames[sym.Normalized()] = sym.Type()
 	}
@@ -79,29 +80,158 @@ func (c *checker) check(scripts []*ast.Script) bool {
 			success = false
 			continue
 		}
-		_ = scriptSymbol
+		c.scope = scriptSymbol.Scope()
+		if c.state, err = scriptSymbol.Scope().Lookup("", symbol.StateClass); err != nil {
+			c.log.Append(
+				issue.New(intenalInvalidState, script.File, script.Location()).WithDetail("Script empty state lookup: %v", err),
+			)
+		}
+		c.scope = c.state.Scope()
 	}
 
 	// Handle imported types.
 	return success
 }
 
+func (c *checker) State(node *ast.State) bool {
+	sym, err := c.script.Scope().Symbol(node)
+	if err != nil {
+		c.log.Append(issue.New(errorStateNameCollision, c.file(), node.Name.Location()).WithDetail("%v", err))
+		return false
+	}
+	c.info.Symbols[node] = sym
+	c.info.Scopes[node] = sym.Scope()
+	prev := c.scope
+	defer func() {
+		c.scope = prev
+	}()
+	c.scope = sym.Scope()
+	success := true
+	for _, invokable := range node.Invokables {
+		switch invokable := invokable.(type) {
+		case *ast.CommentStatement:
+			// Nothing
+		case *ast.Function:
+			success = c.Function(invokable) && success
+		case *ast.Event:
+			success = c.Event(invokable) && success
+		default:
+			c.log.Append(issue.New(intenalInvalidState, c.file(), node.Name.Location()).WithDetail("Unknown state invokable: %v", invokable))
+			success = false
+		}
+	}
+	return success
+}
+
+func (c *checker) Property(node *ast.Property) bool {
+	sym, err := c.script.Scope().Symbol(node)
+	if err != nil {
+		c.log.Append(issue.New(errorScriptValueNameCollision, c.file(), node.Name.Location()).WithDetail("%v", err))
+		return false
+	}
+	c.info.Symbols[node] = sym
+	success := true
+	if sym.Scope() != nil {
+		// Full Property
+		c.info.Scopes[node] = sym.Scope()
+		prev := c.scope
+		defer func() {
+			c.scope = prev
+		}()
+		c.scope = sym.Scope()
+		if node.Get != nil {
+			success = c.Function(node.Get) && success
+		}
+		if node.Set != nil {
+			success = c.Function(node.Set) && success
+		}
+	}
+	return success
+}
+
+func (c *checker) ScriptVariable(node *ast.Variable) bool {
+	sym, err := c.script.Scope().Symbol(node)
+	if err != nil {
+		c.log.Append(issue.New(errorScriptValueNameCollision, c.file(), node.Name.Location()).WithDetail("%v", err))
+		return false
+	}
+	c.info.Symbols[node] = sym
+	if node.Value != nil {
+		return c.Literal(node.Value.(ast.Literal))
+	}
+	return true
+}
+
+func (c *checker) Function(node *ast.Function) bool {
+	sym, err := c.scope.Symbol(node)
+	if err != nil {
+		c.log.Append(issue.New(errorFunctionNameCollision, c.file(), node.Name.Location()).WithDetail("%v", err))
+		return false
+	}
+	c.info.Symbols[node] = sym
+	c.info.Scopes[node] = sym.Scope()
+	prev := c.scope
+	defer func() {
+		c.scope = prev
+	}()
+	c.scope = sym.Scope()
+	success := true
+	for _, p := range node.Parameters() {
+		success = c.Parameter(p) && success
+	}
+	for _, s := range node.Statements {
+		success = c.FunctionStatement(s) && success
+	}
+	return success
+}
+
+func (c *checker) Event(node *ast.Event) bool {
+	sym, err := c.scope.Symbol(node)
+	if err != nil {
+		c.log.Append(issue.New(errorFunctionNameCollision, c.file(), node.Name.Location()).WithDetail("%v", err))
+		return false
+	}
+	c.info.Symbols[node] = sym
+	c.info.Scopes[node] = sym.Scope()
+	prev := c.scope
+	defer func() {
+		c.scope = prev
+	}()
+	c.scope = sym.Scope()
+	success := true
+	for _, p := range node.Parameters() {
+		success = c.Parameter(p) && success
+	}
+	for _, s := range node.Statements {
+		success = c.FunctionStatement(s) && success
+	}
+	return success
+}
+
+func (c *checker) Parameter(node *ast.Parameter) bool {
+	sym, err := c.scope.Symbol(node)
+	if err != nil {
+		c.log.Append(issue.New(errorParameterNameCollision, c.file(), node.Name.Location()).WithDetail("%v", err))
+		return false
+	}
+	c.info.Symbols[node] = sym
+	if node.DefaultValue != nil && !c.Literal(node.DefaultValue) {
+		return false
+	}
+	return true
+}
+
+func (*checker) FunctionStatement(ast.FunctionStatement) bool {
+	return false
+}
+
+func (*checker) Literal(ast.Literal) bool {
+	return false
+}
+
 // file returns the current source file being checked.
 func (c *checker) file() *source.File {
 	return c.script.Node().(*ast.Script).File
-}
-
-// self returns the type of the current script being checked.
-func (c *checker) self() *types.Object {
-	return c.script.Type().(*types.Object)
-}
-
-func (c *checker) enterScope(s *symbol.Scope) {
-	c.scope = s
-}
-
-func (c *checker) leaveScope() {
-	c.scope = c.scope.Parent()
 }
 
 func (c *checker) sortScripts(scripts []*ast.Script) bool {
