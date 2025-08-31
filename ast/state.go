@@ -1,6 +1,10 @@
 package ast
 
-import "github.com/TLBuf/papyrus/source"
+import (
+	"fmt"
+
+	"github.com/TLBuf/papyrus/source"
+)
 
 // State defines a Papyrus script state.
 //
@@ -53,6 +57,10 @@ func (s *State) Location() source.Location {
 		return source.Span(s.AutoLocation, s.EndKeywordLocation)
 	}
 	return source.Span(s.StartKeywordLocation, s.EndKeywordLocation)
+}
+
+func (s *State) String() string {
+	return fmt.Sprintf("State%s", s.Location())
 }
 
 func (*State) statement() {}

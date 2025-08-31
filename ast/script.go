@@ -1,7 +1,11 @@
 // Package ast defines the Papyrus AST.
 package ast
 
-import "github.com/TLBuf/papyrus/source"
+import (
+	"fmt"
+
+	"github.com/TLBuf/papyrus/source"
+)
 
 // Script represents a single Papyrus script file.
 type Script struct {
@@ -57,6 +61,10 @@ func (s *Script) Accept(v Visitor) error {
 // Location returns the source location of the node.
 func (s *Script) Location() source.Location {
 	return s.NodeLocation
+}
+
+func (s *Script) String() string {
+	return fmt.Sprintf("Script%s %s", s.Location(), s.File.Path())
 }
 
 var _ Node = (*Script)(nil)

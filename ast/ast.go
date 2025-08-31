@@ -2,11 +2,15 @@
 package ast
 
 import (
+	"fmt"
+
 	"github.com/TLBuf/papyrus/source"
 )
 
 // Node is a common interfface for all AST nodes.
 type Node interface {
+	fmt.Stringer
+
 	// Accept calls the appropriate visitor method for the node.
 	Accept(Visitor) error
 	// Location returns the source location of the node.

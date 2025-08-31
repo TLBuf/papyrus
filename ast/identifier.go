@@ -1,6 +1,10 @@
 package ast
 
-import "github.com/TLBuf/papyrus/source"
+import (
+	"fmt"
+
+	"github.com/TLBuf/papyrus/source"
+)
 
 // Identifier represents an arbitrary identifier.
 type Identifier struct {
@@ -27,6 +31,10 @@ func (i *Identifier) Comments() *Comments {
 // Location returns the source location of the node.
 func (i *Identifier) Location() source.Location {
 	return i.NodeLocation
+}
+
+func (i *Identifier) String() string {
+	return fmt.Sprintf("Identifier%s", i.Location())
 }
 
 func (*Identifier) expression() {}

@@ -1,6 +1,8 @@
 package ast
 
 import (
+	"fmt"
+
 	"github.com/TLBuf/papyrus/issue"
 	"github.com/TLBuf/papyrus/source"
 )
@@ -37,6 +39,10 @@ func (*ErrorStatement) Comments() *Comments {
 // Location returns the source location of the node.
 func (e *ErrorStatement) Location() source.Location {
 	return e.NodeLocation
+}
+
+func (e *ErrorStatement) String() string {
+	return fmt.Sprintf("ErrorStatement%s", e.Location())
 }
 
 func (*ErrorStatement) statement() {}

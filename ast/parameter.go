@@ -1,6 +1,10 @@
 package ast
 
-import "github.com/TLBuf/papyrus/source"
+import (
+	"fmt"
+
+	"github.com/TLBuf/papyrus/source"
+)
 
 // Parameter is a named and typed parameter to an invokable.
 type Parameter struct {
@@ -37,6 +41,10 @@ func (p *Parameter) Location() source.Location {
 		return source.Span(p.Type.Location(), p.Name.Location())
 	}
 	return source.Span(p.Type.Location(), p.DefaultValue.Location())
+}
+
+func (p *Parameter) String() string {
+	return fmt.Sprintf("Parameter%s", p.Location())
 }
 
 var _ Node = (*Parameter)(nil)

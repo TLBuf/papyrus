@@ -1,6 +1,8 @@
 package ast
 
 import (
+	"fmt"
+
 	"github.com/TLBuf/papyrus/source"
 	"github.com/TLBuf/papyrus/token"
 )
@@ -86,6 +88,10 @@ func (a *Assignment) Comments() *Comments {
 // Location returns the source location of the node.
 func (a *Assignment) Location() source.Location {
 	return source.Span(a.Assignee.Location(), a.Value.Location())
+}
+
+func (a *Assignment) String() string {
+	return fmt.Sprintf("Assignment%s", a.Location())
 }
 
 func (*Assignment) statement() {}

@@ -1,6 +1,10 @@
 package ast
 
-import "github.com/TLBuf/papyrus/source"
+import (
+	"fmt"
+
+	"github.com/TLBuf/papyrus/source"
+)
 
 // Event defines a Papyrus event.
 //
@@ -86,6 +90,10 @@ func (e *Event) Location() source.Location {
 		end = e.NativeLocations[len(e.NativeLocations)-1]
 	}
 	return source.Span(e.StartKeywordLocation, end)
+}
+
+func (e *Event) String() string {
+	return fmt.Sprintf("Event%s", e.Location())
 }
 
 func (*Event) block() {}

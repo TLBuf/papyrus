@@ -1,6 +1,10 @@
 package ast
 
-import "github.com/TLBuf/papyrus/source"
+import (
+	"fmt"
+
+	"github.com/TLBuf/papyrus/source"
+)
 
 // Index represents the access of a specific element in an array.
 type Index struct {
@@ -32,6 +36,10 @@ func (i *Index) Comments() *Comments {
 // Location returns the source location of the node.
 func (i *Index) Location() source.Location {
 	return source.Span(i.Value.Location(), i.CloseLocation)
+}
+
+func (i *Index) String() string {
+	return fmt.Sprintf("Index%s", i.Location())
 }
 
 func (*Index) expression() {}

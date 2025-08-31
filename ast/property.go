@@ -1,6 +1,8 @@
 package ast
 
 import (
+	"fmt"
+
 	"github.com/TLBuf/papyrus/source"
 	"github.com/TLBuf/papyrus/token"
 )
@@ -125,6 +127,10 @@ func (p *Property) Location() source.Location {
 		}
 	}
 	return source.Span(p.Type.Location(), end)
+}
+
+func (p *Property) String() string {
+	return fmt.Sprintf("Property%s", p.Location())
 }
 
 func (*Property) statement() {}

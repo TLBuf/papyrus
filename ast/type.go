@@ -1,6 +1,8 @@
 package ast
 
 import (
+	"fmt"
+
 	"github.com/TLBuf/papyrus/source"
 )
 
@@ -38,6 +40,10 @@ func (t *TypeLiteral) Location() source.Location {
 		return t.Name.Location()
 	}
 	return source.Span(t.Name.Location(), t.BracketLocation)
+}
+
+func (t *TypeLiteral) String() string {
+	return fmt.Sprintf("TypeLiteral%s", t.Location())
 }
 
 var _ Node = (*TypeLiteral)(nil)

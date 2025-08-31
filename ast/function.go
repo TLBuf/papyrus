@@ -1,6 +1,10 @@
 package ast
 
-import "github.com/TLBuf/papyrus/source"
+import (
+	"fmt"
+
+	"github.com/TLBuf/papyrus/source"
+)
 
 // Function defines a Papyrus function.
 type Function struct {
@@ -105,6 +109,10 @@ func (f *Function) Location() source.Location {
 		}
 	}
 	return source.Span(start, end)
+}
+
+func (f *Function) String() string {
+	return fmt.Sprintf("Event%s", f.Location())
 }
 
 func (*Function) block() {}

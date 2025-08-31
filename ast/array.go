@@ -1,6 +1,10 @@
 package ast
 
-import "github.com/TLBuf/papyrus/source"
+import (
+	"fmt"
+
+	"github.com/TLBuf/papyrus/source"
+)
 
 // ArrayCreation is an expression that creates a new array of a fixed length.
 type ArrayCreation struct {
@@ -33,6 +37,10 @@ func (a *ArrayCreation) Comments() *Comments {
 // Location returns the source location of the node.
 func (a *ArrayCreation) Location() source.Location {
 	return source.Span(a.NewLocation, a.CloseLocation)
+}
+
+func (a *ArrayCreation) String() string {
+	return fmt.Sprintf("ArrayCreation%s", a.Location())
 }
 
 func (*ArrayCreation) expression() {}

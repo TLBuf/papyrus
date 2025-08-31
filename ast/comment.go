@@ -1,6 +1,10 @@
 package ast
 
-import "github.com/TLBuf/papyrus/source"
+import (
+	"fmt"
+
+	"github.com/TLBuf/papyrus/source"
+)
 
 // Comment is a common interface for non-doc comments.
 type Comment interface {
@@ -73,6 +77,10 @@ func (c *BlockComment) Location() source.Location {
 	return source.Span(c.OpenLocation, c.CloseLocation)
 }
 
+func (c *BlockComment) String() string {
+	return fmt.Sprintf("BlockComment%s", c.Location())
+}
+
 func (*BlockComment) comment() {}
 
 var _ Comment = (*BlockComment)(nil)
@@ -124,6 +132,10 @@ func (c *LineComment) Location() source.Location {
 	return source.Span(c.SemicolonLocation, c.TextLocation)
 }
 
+func (c *LineComment) String() string {
+	return fmt.Sprintf("LineComment%s", c.Location())
+}
+
 func (*LineComment) comment() {}
 
 var _ Comment = (*LineComment)(nil)
@@ -168,6 +180,10 @@ func (c *Documentation) Accept(v Visitor) error {
 // Location returns the source location of the node.
 func (c *Documentation) Location() source.Location {
 	return source.Span(c.OpenLocation, c.CloseLocation)
+}
+
+func (c *Documentation) String() string {
+	return fmt.Sprintf("Documentation%s", c.Location())
 }
 
 var _ Node = (*Documentation)(nil)

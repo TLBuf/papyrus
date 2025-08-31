@@ -1,6 +1,8 @@
 package ast
 
 import (
+	"fmt"
+
 	"github.com/TLBuf/papyrus/source"
 	"github.com/TLBuf/papyrus/token"
 )
@@ -56,6 +58,10 @@ func (u *Unary) Comments() *Comments {
 // Location returns the source location of the node.
 func (u *Unary) Location() source.Location {
 	return source.Span(u.OperatorLocation, u.Operand.Location())
+}
+
+func (u *Unary) String() string {
+	return fmt.Sprintf("Unary%s", u.Location())
 }
 
 func (*Unary) expression() {}

@@ -1,6 +1,10 @@
 package ast
 
-import "github.com/TLBuf/papyrus/source"
+import (
+	"fmt"
+
+	"github.com/TLBuf/papyrus/source"
+)
 
 // Argument is a named argument for a function call.
 type Argument struct {
@@ -35,6 +39,10 @@ func (a *Argument) Location() source.Location {
 		return a.Value.Location()
 	}
 	return source.Span(a.Name.Location(), a.Value.Location())
+}
+
+func (a *Argument) String() string {
+	return fmt.Sprintf("Argument%s", a.Location())
 }
 
 var _ Node = (*Argument)(nil)

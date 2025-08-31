@@ -1,6 +1,10 @@
 package ast
 
-import "github.com/TLBuf/papyrus/source"
+import (
+	"fmt"
+
+	"github.com/TLBuf/papyrus/source"
+)
 
 // Access is an expression that reference a value or function that belongs to
 // some scope.
@@ -30,6 +34,10 @@ func (a *Access) Comments() *Comments {
 // Location returns the source location of the node.
 func (a *Access) Location() source.Location {
 	return source.Span(a.Value.Location(), a.Name.Location())
+}
+
+func (a *Access) String() string {
+	return fmt.Sprintf("Access%s", a.Location())
 }
 
 func (*Access) expression() {}

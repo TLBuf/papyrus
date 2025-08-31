@@ -1,6 +1,10 @@
 package ast
 
-import "github.com/TLBuf/papyrus/source"
+import (
+	"fmt"
+
+	"github.com/TLBuf/papyrus/source"
+)
 
 // BoolLiteral is a boolean literal (i.e. true or false).
 type BoolLiteral struct {
@@ -32,6 +36,10 @@ func (l *BoolLiteral) Text() []byte {
 // Location returns the source location of the node.
 func (l *BoolLiteral) Location() source.Location {
 	return l.NodeLocation
+}
+
+func (l *BoolLiteral) String() string {
+	return fmt.Sprintf("BoolLiteral%s", l.Location())
 }
 
 func (*BoolLiteral) expression() {}
@@ -72,6 +80,10 @@ func (l *IntLiteral) Location() source.Location {
 	return l.NodeLocation
 }
 
+func (l *IntLiteral) String() string {
+	return fmt.Sprintf("IntLiteral%s", l.Location())
+}
+
 func (*IntLiteral) expression() {}
 
 func (*IntLiteral) literal() {}
@@ -108,6 +120,10 @@ func (l *FloatLiteral) Text() []byte {
 // Location returns the source location of the node.
 func (l *FloatLiteral) Location() source.Location {
 	return l.NodeLocation
+}
+
+func (l *FloatLiteral) String() string {
+	return fmt.Sprintf("FloatLiteral%s", l.Location())
 }
 
 func (*FloatLiteral) expression() {}
@@ -148,6 +164,10 @@ func (l *StringLiteral) Location() source.Location {
 	return l.NodeLocation
 }
 
+func (l *StringLiteral) String() string {
+	return fmt.Sprintf("StringLiteral%s", l.Location())
+}
+
 func (*StringLiteral) expression() {}
 
 func (*StringLiteral) literal() {}
@@ -184,6 +204,10 @@ func (l *NoneLiteral) Text() []byte {
 // Location returns the source location of the node.
 func (l *NoneLiteral) Location() source.Location {
 	return l.NodeLocation
+}
+
+func (l *NoneLiteral) String() string {
+	return fmt.Sprintf("NoneLiteral%s", l.Location())
 }
 
 func (*NoneLiteral) expression() {}

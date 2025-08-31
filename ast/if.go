@@ -1,6 +1,10 @@
 package ast
 
-import "github.com/TLBuf/papyrus/source"
+import (
+	"fmt"
+
+	"github.com/TLBuf/papyrus/source"
+)
 
 // If is a statement that evaluates some set of statements if a condition is
 // true and potentially a different set of statements if that condition is
@@ -53,6 +57,10 @@ func (i *If) Comments() *Comments {
 // Location returns the source location of the node.
 func (i *If) Location() source.Location {
 	return source.Span(i.StartKeywordLocation, i.EndKeywordLocation)
+}
+
+func (i *If) String() string {
+	return fmt.Sprintf("If%s", i.Location())
 }
 
 func (*If) block() {}
@@ -110,6 +118,10 @@ func (e *ElseIf) Location() source.Location {
 	return source.Span(e.KeywordLocation, e.Statements[len(e.Statements)-1].Location())
 }
 
+func (e *ElseIf) String() string {
+	return fmt.Sprintf("ElseIf%s", e.Location())
+}
+
 func (*ElseIf) block() {}
 
 var _ Node = (*ElseIf)(nil)
@@ -155,6 +167,10 @@ func (e *Else) Location() source.Location {
 		return e.KeywordLocation
 	}
 	return source.Span(e.KeywordLocation, e.Statements[len(e.Statements)-1].Location())
+}
+
+func (e *Else) String() string {
+	return fmt.Sprintf("Else%s", e.Location())
 }
 
 func (*Else) block() {}

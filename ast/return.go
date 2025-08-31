@@ -1,6 +1,10 @@
 package ast
 
-import "github.com/TLBuf/papyrus/source"
+import (
+	"fmt"
+
+	"github.com/TLBuf/papyrus/source"
+)
 
 // Return is a statement that terminates a function potentially with a value.
 type Return struct {
@@ -39,6 +43,10 @@ func (r *Return) Location() source.Location {
 		return r.KeywordLocation
 	}
 	return source.Span(r.KeywordLocation, r.Value.Location())
+}
+
+func (r *Return) String() string {
+	return fmt.Sprintf("Return%s", r.Location())
 }
 
 func (*Return) statement() {}

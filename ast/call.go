@@ -1,6 +1,10 @@
 package ast
 
-import "github.com/TLBuf/papyrus/source"
+import (
+	"fmt"
+
+	"github.com/TLBuf/papyrus/source"
+)
 
 // Call is an expression the calls a function defined elsewhere.
 type Call struct {
@@ -34,6 +38,10 @@ func (c *Call) Comments() *Comments {
 // Location returns the source location of the node.
 func (c *Call) Location() source.Location {
 	return source.Span(c.Function.Location(), c.CloseLocation)
+}
+
+func (c *Call) String() string {
+	return fmt.Sprintf("Call%s", c.Location())
 }
 
 func (*Call) expression() {}

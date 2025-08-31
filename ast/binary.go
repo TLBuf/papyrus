@@ -1,6 +1,8 @@
 package ast
 
 import (
+	"fmt"
+
 	"github.com/TLBuf/papyrus/source"
 	"github.com/TLBuf/papyrus/token"
 )
@@ -113,6 +115,10 @@ func (b *Binary) Comments() *Comments {
 // Location returns the source location of the node.
 func (b *Binary) Location() source.Location {
 	return source.Span(b.LeftOperand.Location(), b.RightOperand.Location())
+}
+
+func (b *Binary) String() string {
+	return fmt.Sprintf("Binary%s", b.Location())
 }
 
 func (*Binary) expression() {}

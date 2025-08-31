@@ -1,6 +1,10 @@
 package ast
 
-import "github.com/TLBuf/papyrus/source"
+import (
+	"fmt"
+
+	"github.com/TLBuf/papyrus/source"
+)
 
 // Cast is an expression that casts a value of some type to another.
 type Cast struct {
@@ -29,6 +33,10 @@ func (c *Cast) Comments() *Comments {
 // Location returns the source location of the node.
 func (c *Cast) Location() source.Location {
 	return source.Span(c.Value.Location(), c.Type.Location())
+}
+
+func (c *Cast) String() string {
+	return fmt.Sprintf("Cast%s", c.Location())
 }
 
 func (*Cast) expression() {}

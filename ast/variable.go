@@ -1,6 +1,10 @@
 package ast
 
-import "github.com/TLBuf/papyrus/source"
+import (
+	"fmt"
+
+	"github.com/TLBuf/papyrus/source"
+)
 
 // Variable is a variable definition.
 type Variable struct {
@@ -63,6 +67,10 @@ func (v *Variable) Location() source.Location {
 		end = v.ConditionalLocations[len(v.ConditionalLocations)-1]
 	}
 	return source.Span(v.Type.Location(), end)
+}
+
+func (v *Variable) String() string {
+	return fmt.Sprintf("Variable%s", v.Location())
 }
 
 func (*Variable) statement() {}

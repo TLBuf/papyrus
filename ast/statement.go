@@ -1,6 +1,10 @@
 package ast
 
-import "github.com/TLBuf/papyrus/source"
+import (
+	"fmt"
+
+	"github.com/TLBuf/papyrus/source"
+)
 
 // Statement is a common interface for all statement nodes.
 type Statement interface {
@@ -75,6 +79,10 @@ func (s *ExpressionStatement) Location() source.Location {
 	return s.Expression.Location()
 }
 
+func (s *ExpressionStatement) String() string {
+	return fmt.Sprintf("ExpressionStatement%s", s.Location())
+}
+
 func (*ExpressionStatement) statement() {}
 
 func (*ExpressionStatement) functionStatement() {}
@@ -114,6 +122,10 @@ func (s *CommentStatement) Location() source.Location {
 		return s.Elements[0].Location()
 	}
 	return source.Span(s.Elements[0].Location(), s.Elements[len(s.Elements)-1].Location())
+}
+
+func (s *CommentStatement) String() string {
+	return fmt.Sprintf("CommentStatement%s", s.Location())
 }
 
 func (*CommentStatement) statement() {}

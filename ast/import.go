@@ -1,6 +1,8 @@
 package ast
 
 import (
+	"fmt"
+
 	"github.com/TLBuf/papyrus/source"
 )
 
@@ -40,6 +42,10 @@ func (i *Import) Comments() *Comments {
 // Location returns the source location of the node.
 func (i *Import) Location() source.Location {
 	return source.Span(i.KeywordLocation, i.Name.Location())
+}
+
+func (i *Import) String() string {
+	return fmt.Sprintf("Import%s", i.Location())
 }
 
 func (*Import) statement() {}

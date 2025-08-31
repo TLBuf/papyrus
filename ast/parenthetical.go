@@ -1,6 +1,10 @@
 package ast
 
-import "github.com/TLBuf/papyrus/source"
+import (
+	"fmt"
+
+	"github.com/TLBuf/papyrus/source"
+)
 
 // Parenthetical represents a parenthesized expression.
 type Parenthetical struct {
@@ -29,6 +33,10 @@ func (p *Parenthetical) Comments() *Comments {
 // Location returns the source location of the node.
 func (p *Parenthetical) Location() source.Location {
 	return source.Span(p.OpenLocation, p.CloseLocation)
+}
+
+func (p *Parenthetical) String() string {
+	return fmt.Sprintf("Parenthetical%s", p.Location())
 }
 
 func (*Parenthetical) expression() {}

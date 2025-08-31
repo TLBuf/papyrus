@@ -1,6 +1,10 @@
 package ast
 
-import "github.com/TLBuf/papyrus/source"
+import (
+	"fmt"
+
+	"github.com/TLBuf/papyrus/source"
+)
 
 // While is a statement that evaluates some set of statements repeatedly so long
 // as a condition is true.
@@ -48,6 +52,10 @@ func (w *While) Comments() *Comments {
 // Location returns the source location of the node.
 func (w *While) Location() source.Location {
 	return source.Span(w.StartKeywordLocation, w.EndKeywordLocation)
+}
+
+func (w *While) String() string {
+	return fmt.Sprintf("While%s", w.Location())
 }
 
 func (*While) block() {}
