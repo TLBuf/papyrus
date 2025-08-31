@@ -126,13 +126,13 @@ func (i *Issue) AppendRelated(file *source.File, loc source.Location, msg string
 
 func (i *Issue) String() string {
 	var sb strings.Builder
+	_, _ = sb.WriteString(i.definition.String())
+	_, _ = sb.WriteString(" - ")
 	_, _ = sb.WriteString(i.file.Path())
 	_, _ = sb.WriteRune(':')
 	_, _ = sb.Write(strconv.AppendUint(nil, uint64(i.file.StartLine(i.location)), 10))
 	_, _ = sb.WriteRune(':')
 	_, _ = sb.Write(strconv.AppendUint(nil, uint64(i.file.StartColumn(i.location)), 10))
-	_, _ = sb.WriteString(" - ")
-	_, _ = sb.WriteString(i.definition.String())
 	if i.detail != "" {
 		_, _ = sb.WriteString(" - ")
 		_, _ = sb.WriteString(i.detail)

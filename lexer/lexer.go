@@ -268,7 +268,7 @@ func (l *lexer) here() source.Location {
 }
 
 func (l *lexer) nextByteLocation() source.Location {
-	return source.NewLocation(l.position, 1)
+	return source.NewLocation(l.next, 1)
 }
 
 func (l *lexer) readIdentifier() token.Token {
@@ -285,8 +285,8 @@ func (l *lexer) readIdentifier() token.Token {
 
 func (l *lexer) readNumber(start source.Location) token.Token {
 	first := l.character
+	end := l.here()
 	l.readChar()
-	end := start
 	if first == '0' && (l.character == 'x' || l.character == 'X') {
 		// Hex Int
 		l.readChar()

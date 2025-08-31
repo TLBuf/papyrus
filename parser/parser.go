@@ -2,6 +2,7 @@
 package parser
 
 import (
+	"cmp"
 	"iter"
 	"slices"
 	"strings"
@@ -303,9 +304,12 @@ func (p *parser) unexpectedToken(def *issue.Definition, got token.Token, want to
 		_, _ = detail.WriteString(want.Article())
 		_, _ = detail.WriteRune(' ')
 		_, _ = detail.WriteString(want.String())
-		for _, alt := range alts[:len(alts)-1] {
+		if len(alts) > 1 {
 			_, _ = detail.WriteString(", ")
+		}
+		for _, alt := range alts[:len(alts)-1] {
 			_, _ = detail.WriteString(alt.String())
+			_, _ = detail.WriteString(", ")
 		}
 		_, _ = detail.WriteString("or ")
 		_, _ = detail.WriteString(alts[len(alts)-1].String())
@@ -314,7 +318,7 @@ func (p *parser) unexpectedToken(def *issue.Definition, got token.Token, want to
 		_, _ = detail.WriteRune(' ')
 		_, _ = detail.WriteString(got.String())
 		_, _ = detail.WriteString(" token.")
-		p.failWithDetail(def, got.Location, "%v", detail)
+		p.failWithDetail(def, got.Location, "%s", detail.String())
 	}
 	p.failWithDetail(
 		def,
@@ -762,7 +766,7 @@ func (p *parser) ParseParameterList() []*ast.Parameter {
 
 func (p *parser) ParseParameter() *ast.Parameter {
 	node := &ast.Parameter{}
-	p.ParseTypeLiteral(errorExpectedParamTypeLiteral)
+	node.Type = p.ParseTypeLiteral(errorExpectedParamTypeLiteral)
 	node.Name = p.ParseIdentifier(errorExpectedParamIdent)
 	if p.token.Kind == token.Assign {
 		// Has default.
@@ -902,7 +906,7 @@ func (p *parser) ParseAssignment(assignee ast.Expression) *ast.Assignment {
 		token.AssignModulo,
 		token.AssignMultiply,
 		token.AssignSubtract)
-	p.ParseExpression(errorExpectedAssignmentValueExpr, lowest)
+	node.Value = p.ParseExpression(errorExpectedAssignmentValueExpr, lowest)
 	return node
 }
 
@@ -1202,7 +1206,7 @@ func (p *parser) ParseExpressionIdentifier() *ast.Identifier {
 		Text:         string(p.token.Text),
 		NodeLocation: p.token.Location,
 	}
-	p.advanceExpected(token.Identifier, token.Self, token.Parent, token.Length)
+	p.consumeExpected(token.Identifier, token.Self, token.Parent, token.Length)
 	return node
 }
 
@@ -1232,14 +1236,6 @@ func (p *parser) ParseExpressionBinary(left ast.Expression) *ast.Binary {
 }
 
 func (p *parser) ParseExpressionUnary() ast.Expression {
-	if p.token.Kind == token.Minus {
-		if p.lookahead.Kind == token.IntLiteral {
-			return p.ParseExpressionIntLiteral()
-		}
-		if p.lookahead.Kind == token.FloatLiteral {
-			return p.ParseExpressionFloatLiteral()
-		}
-	}
 	node := &ast.Unary{
 		Kind:             ast.UnaryKind(p.token.Kind),
 		OperatorLocation: p.token.Location,
@@ -1344,7 +1340,7 @@ func (p *parser) ParseExpressionParenthetical() *ast.Parenthetical {
 		OpenLocation: p.token.Location,
 	}
 	p.advanceExpected(token.ParenthesisOpen)
-	p.ParseExpression(errorExpectedParenExpr, lowest)
+	node.Value = p.ParseExpression(errorExpectedParenExpr, lowest)
 	node.CloseLocation = p.token.Location
 	p.tryConsume(errorExpectedParenClose, token.ParenthesisClose)
 	return node
@@ -1353,15 +1349,15 @@ func (p *parser) ParseExpressionParenthetical() *ast.Parenthetical {
 func (p *parser) ParseLiteral(def *issue.Definition) ast.Literal {
 	switch p.token.Kind {
 	case token.True, token.False:
-		p.ParseExpressionBoolLiteral()
+		return p.ParseExpressionBoolLiteral()
 	case token.IntLiteral:
-		p.ParseExpressionIntLiteral()
+		return p.ParseExpressionIntLiteral()
 	case token.FloatLiteral:
-		p.ParseExpressionFloatLiteral()
+		return p.ParseExpressionFloatLiteral()
 	case token.StringLiteral:
-		p.ParseExpressionStringLiteral()
+		return p.ParseExpressionStringLiteral()
 	case token.None:
-		p.ParseExpressionNoneLiteral()
+		return p.ParseExpressionNoneLiteral()
 	}
 	p.unexpectedToken(def,
 		p.token,
@@ -1397,7 +1393,7 @@ func (p *parser) ParseExpressionBoolLiteral() *ast.BoolLiteral {
 		RawText:      p.file.Bytes(p.token.Location),
 		NodeLocation: p.token.Location,
 	}
-	p.consumeExpected(token.StringLiteral, token.False)
+	p.consumeExpected(token.True, token.False)
 	return node
 }
 
@@ -1439,10 +1435,11 @@ func registerInfix[T ast.Expression](p *parser, fn func(ast.Expression) T, kinds
 	}
 }
 
-func keys[K comparable, V any](data map[K]V) []K {
+func keys[K cmp.Ordered, V any](data map[K]V) []K {
 	keys := make([]K, 0, len(data))
 	for k := range data {
 		keys = append(keys, k)
 	}
+	slices.Sort(keys)
 	return keys
 }

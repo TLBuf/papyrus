@@ -104,6 +104,9 @@ func (e *ElseIf) Comments() *Comments {
 
 // Location returns the source location of the node.
 func (e *ElseIf) Location() source.Location {
+	if len(e.Statements) == 0 {
+		return source.Span(e.KeywordLocation, e.Condition.Location())
+	}
 	return source.Span(e.KeywordLocation, e.Statements[len(e.Statements)-1].Location())
 }
 
@@ -148,6 +151,9 @@ func (e *Else) Comments() *Comments {
 
 // Location returns the source location of the node.
 func (e *Else) Location() source.Location {
+	if len(e.Statements) == 0 {
+		return e.KeywordLocation
+	}
 	return source.Span(e.KeywordLocation, e.Statements[len(e.Statements)-1].Location())
 }
 

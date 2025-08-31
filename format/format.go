@@ -1148,11 +1148,6 @@ func (f *formatter) VisitTypeLiteral(node *ast.TypeLiteral) error {
 	if err := f.str(text); err != nil {
 		return fmt.Errorf("failed to format type: %w", err)
 	}
-	if node.IsArray {
-		if err := f.str("[]"); err != nil {
-			return fmt.Errorf("failed to format array type: %w", err)
-		}
-	}
 	return f.visitSuffixComments(node)
 }
 
