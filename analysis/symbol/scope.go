@@ -114,10 +114,9 @@ type key struct {
 }
 
 // NewGlobalScope returns an empty global (root) scope.
-func NewGlobalScope() *Scope {
-	var resolver types.Resolver
+func NewGlobalScope(resolver *types.Resolver) *Scope {
 	return &Scope{
-		resolver: &resolver,
+		resolver: resolver,
 		kind:     globalScope,
 	}
 }

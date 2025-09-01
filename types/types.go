@@ -1,6 +1,6 @@
 // Package types defines the Papyrus type system.
 //
-// Types are broken down into two main categories: [Function] and [Value] types;
+// Types are broken down into two main categories: [Invokable] and [Value] types;
 // as the names imply, the former describes function type information and the
 // latter value type information (e.g. for variables and parameters).
 //
@@ -35,6 +35,9 @@ var (
 	FloatArray = &Array{Float}
 	// StringArray is the string array type.
 	StringArray = &Array{String}
+	// Any is the type that is compatible with any object or array
+	// type. This is used exclusively with the 'None' literal.
+	Any = None{}
 )
 
 // Type is the common interface for all types.

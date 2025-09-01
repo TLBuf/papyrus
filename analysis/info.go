@@ -3,8 +3,8 @@ package analysis
 import (
 	"github.com/TLBuf/papyrus/analysis/symbol"
 	"github.com/TLBuf/papyrus/ast"
-	"github.com/TLBuf/papyrus/literal"
 	"github.com/TLBuf/papyrus/types"
+	"github.com/TLBuf/papyrus/value"
 )
 
 // Info holds type information for a type-checked set of scripts.
@@ -13,7 +13,7 @@ type Info struct {
 	Expressions map[ast.Expression]types.Type
 
 	// Values maps literals to their values.
-	Values map[ast.Literal]literal.Value
+	Values map[ast.Literal]value.Value
 
 	// Scopes maps AST nodes to the scopes they define.
 	//

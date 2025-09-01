@@ -5,10 +5,21 @@ import (
 	"strings"
 )
 
-// NewFunction returns a new Function type with an
-// optional return type and zero or more parameters.
-func NewFunction(name string, returnType Value, params ...Value) *Function {
-	return &Function{
+// InvokableKind defines the different kinds of invokable types.
+type InvokableKind uint8
+
+const (
+	// FunctionKind represents the function invokable type.
+	FunctionKind InvokableKind = iota
+	// EventKind represents the event invokable type.
+	EventKind
+)
+
+// NewFunction returns a new function Invokable type with
+// an optional return type and zero or more parameters.
+func NewFunction(name string, returnType Value, params ...Value) *Invokable {
+	return &Invokable{
+		kind:       FunctionKind,
 		name:       name,
 		normalized: normalize(name),
 		params:     params,
@@ -16,32 +27,48 @@ func NewFunction(name string, returnType Value, params ...Value) *Function {
 	}
 }
 
-// Function is a function type.
-type Function struct {
+// NewEvent returns a new event Invokable type with zero or more parameters.
+func NewEvent(name string, params ...Value) *Invokable {
+	return &Invokable{
+		kind:       EventKind,
+		name:       name,
+		normalized: normalize(name),
+		params:     params,
+	}
+}
+
+// Invokable is a function or event type.
+type Invokable struct {
 	name, normalized string
 	params           []Value
 	returnType       Value
+	kind             InvokableKind
+}
+
+// Kind returns the kind of this invokable.
+func (i *Invokable) Kind() InvokableKind {
+	return i.kind
 }
 
 // ReturnType returns the return type of
 // the function or nil if there isn't one.
-func (f *Function) ReturnType() Value {
-	return f.returnType
+func (i *Invokable) ReturnType() Value {
+	return i.returnType
 }
 
 // Parameters returns the parameters in declaration order.
-func (f *Function) Parameters() []Value {
-	return f.params
+func (i *Invokable) Parameters() []Value {
+	return i.params
 }
 
 // Name returns the declared name for the type.
-func (f *Function) Name() string {
-	return f.name
+func (i *Invokable) Name() string {
+	return i.name
 }
 
 // Normalized returns the normalized name for the type.
-func (f *Function) Normalized() string {
-	return f.normalized
+func (i *Invokable) Normalized() string {
+	return i.normalized
 }
 
 // IsIdentical returns true if this type is
@@ -52,11 +79,11 @@ func (f *Function) Normalized() string {
 //
 //	a.IsIdentical(b)
 //	b.IsIdentical(a)
-func (f *Function) IsIdentical(other Type) bool {
-	o, ok := other.(*Function)
-	return ok && f.normalized == o.normalized && f.returnType.IsIdentical(o.returnType) &&
-		len(f.params) == len(o.params) &&
-		slices.EqualFunc(f.params, o.params, func(a, b Value) bool { return a.IsIdentical(b) })
+func (i *Invokable) IsIdentical(other Type) bool {
+	o, ok := other.(*Invokable)
+	return ok && i.normalized == o.normalized && i.returnType.IsIdentical(o.returnType) &&
+		len(i.params) == len(o.params) &&
+		slices.EqualFunc(i.params, o.params, func(a, b Value) bool { return a.IsIdentical(b) })
 }
 
 // IsAssignable returns true if a value of another type can be assigned to a
@@ -68,7 +95,7 @@ func (f *Function) IsIdentical(other Type) bool {
 //
 //	a.IsAssignable(b)
 //	b.IsAssignable(a)
-func (*Function) IsAssignable(Type) bool {
+func (*Invokable) IsAssignable(Type) bool {
 	return false
 }
 
@@ -80,7 +107,7 @@ func (*Function) IsAssignable(Type) bool {
 //
 //	a.IsComparable(b)
 //	b.IsComparable(a)
-func (*Function) IsComparable(Type) bool {
+func (*Invokable) IsComparable(Type) bool {
 	return false
 }
 
@@ -93,7 +120,7 @@ func (*Function) IsComparable(Type) bool {
 //
 //	a.IsEquatable(b)
 //	b.IsEquatable(a)
-func (*Function) IsEquatable(Type) bool {
+func (*Invokable) IsEquatable(Type) bool {
 	return false
 }
 
@@ -105,19 +132,19 @@ func (*Function) IsEquatable(Type) bool {
 //
 //	a.IsConvertible(b)
 //	b.IsConvertible(a)
-func (*Function) IsConvertible(Type) bool {
+func (*Invokable) IsConvertible(Type) bool {
 	return false
 }
 
-func (f *Function) String() string {
+func (i *Invokable) String() string {
 	var sb strings.Builder
-	if f.returnType != nil {
-		_, _ = sb.WriteString(f.returnType.String())
+	if i.returnType != nil {
+		_, _ = sb.WriteString(i.returnType.String())
 		_, _ = sb.Write([]byte{' '})
 	}
-	_, _ = sb.WriteString(f.name)
+	_, _ = sb.WriteString(i.name)
 	_, _ = sb.Write([]byte{'('})
-	for i, p := range f.params {
+	for i, p := range i.params {
 		if i > 0 {
 			_, _ = sb.Write([]byte{','})
 		}
@@ -127,6 +154,6 @@ func (f *Function) String() string {
 	return sb.String()
 }
 
-func (*Function) types() {}
+func (*Invokable) types() {}
 
-var _ Type = (*Function)(nil)
+var _ Type = (*Invokable)(nil)

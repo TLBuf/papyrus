@@ -16,6 +16,7 @@ import (
 //   - [ast.Property]
 //   - [ast.Variable]
 //   - [ast.Parameter]
+//   - [ast.TypeLiteral]
 var ErrNotTyped = errors.New("node has no type")
 
 // NotFoundError indicates type resolution failed because the type refers
@@ -48,6 +49,7 @@ func (r *Resolver) Resolve(node ast.Node) (Type, error) {
 		obj := &Object{
 			name:       node.Name.Text,
 			normalized: normalize(node.Name.Text),
+			node:       node,
 		}
 		if node.Parent != nil {
 			var ok bool
@@ -79,7 +81,7 @@ func (r *Resolver) Resolve(node ast.Node) (Type, error) {
 			}
 			pts = append(pts, pt)
 		}
-		return NewFunction(node.Name.Text, nil, pts...), nil
+		return NewEvent(node.Name.Text, pts...), nil
 	case *ast.Property:
 		typ, err := r.resolveTypeLiteral(node.Type)
 		if err != nil {
@@ -94,6 +96,12 @@ func (r *Resolver) Resolve(node ast.Node) (Type, error) {
 		return typ, nil
 	case *ast.Parameter:
 		typ, err := r.resolveTypeLiteral(node.Type)
+		if err != nil {
+			return nil, fmt.Errorf("%w", err)
+		}
+		return typ, nil
+	case *ast.TypeLiteral:
+		typ, err := r.resolveTypeLiteral(node)
 		if err != nil {
 			return nil, fmt.Errorf("%w", err)
 		}

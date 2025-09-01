@@ -43,6 +43,9 @@ func (a *Array) IsIdentical(other Type) bool {
 //	a.IsAssignable(b)
 //	b.IsAssignable(a)
 func (a *Array) IsAssignable(other Type) bool {
+	if _, ok := other.(None); ok {
+		return true
+	}
 	o, ok := other.(*Array)
 	return ok && a.element.IsIdentical(o.element)
 }

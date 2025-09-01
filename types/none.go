@@ -1,32 +1,16 @@
 package types
 
-import "github.com/TLBuf/papyrus/ast"
-
-// Object represents a named typed (i.e. a script).
-type Object struct {
-	name, normalized string
-	parent           *Object
-	node             ast.Node
-}
-
-// Parent is the object this object extends or nil if it extends nothing.
-func (o *Object) Parent() *Object {
-	return o.parent
-}
+// None is the special type used for the 'None' literal.
+type None struct{}
 
 // Name returns the declared name for the type.
-func (o *Object) Name() string {
-	return o.name
+func (None) Name() string {
+	return "<Any>"
 }
 
 // Normalized returns the normalized name for the type.
-func (o *Object) Normalized() string {
-	return o.normalized
-}
-
-// Node returns the node that defines the type.
-func (o *Object) Node() ast.Node {
-	return o.node
+func (None) Normalized() string {
+	return "<Any>"
 }
 
 // IsIdentical returns true if this type is
@@ -37,9 +21,8 @@ func (o *Object) Node() ast.Node {
 //
 //	a.IsIdentical(b)
 //	b.IsIdentical(a)
-func (o *Object) IsIdentical(other Type) bool {
-	t, ok := other.(*Object)
-	return ok && o.normalized == t.normalized && o.parent.IsIdentical(t.parent)
+func (None) IsIdentical(Type) bool {
+	return false
 }
 
 // IsAssignable returns true if a value of another type can be assigned to a
@@ -51,13 +34,8 @@ func (o *Object) IsIdentical(other Type) bool {
 //
 //	a.IsAssignable(b)
 //	b.IsAssignable(a)
-func (o *Object) IsAssignable(other Type) bool {
-	if _, ok := other.(None); ok {
-		return true
-	}
-	t, ok := other.(*Object)
-	//revive:disable-next-line:unconditional-recursion t =/= t.parent
-	return ok && o.IsIdentical(t) || o.IsAssignable(t.parent)
+func (None) IsAssignable(Type) bool {
+	return false
 }
 
 // IsComparable returns true if a value of this type can be compared (i.e.
@@ -68,7 +46,7 @@ func (o *Object) IsAssignable(other Type) bool {
 //
 //	a.IsComparable(b)
 //	b.IsComparable(a)
-func (*Object) IsComparable(Type) bool {
+func (None) IsComparable(Type) bool {
 	return false
 }
 
@@ -81,12 +59,12 @@ func (*Object) IsComparable(Type) bool {
 //
 //	a.IsEquatable(b)
 //	b.IsEquatable(a)
-func (o *Object) IsEquatable(other Type) bool {
-	if _, ok := other.(None); ok {
+func (None) IsEquatable(other Type) bool {
+	switch other.(type) {
+	case *Object, None:
 		return true
 	}
-	t, ok := other.(*Object)
-	return ok && (o.IsIdentical(t) || o.parent.IsEquatable(t) || t.parent.IsEquatable(o))
+	return false
 }
 
 // IsConvertible returns true if a value of this type can be converted to
@@ -97,20 +75,18 @@ func (o *Object) IsEquatable(other Type) bool {
 //
 //	a.IsConvertible(b)
 //	b.IsConvertible(a)
-func (o *Object) IsConvertible(other Type) bool {
-	t, ok := other.(*Object)
-	//revive:disable-next-line:unconditional-recursion t =/= t.parent
-	return ok && (o.IsIdentical(t) || o.IsConvertible(t.parent) || o.parent.IsConvertible(t))
+func (None) IsConvertible(Type) bool {
+	return false
 }
 
-func (o *Object) String() string {
-	return o.name
+func (None) String() string {
+	return "<Any>"
 }
 
-func (*Object) types() {}
+func (None) types() {}
 
-func (*Object) scalar() {}
+func (None) scalar() {}
 
-func (*Object) value() {}
+func (None) value() {}
 
-var _ Scalar = (*Object)(nil)
+var _ Scalar = None{}
