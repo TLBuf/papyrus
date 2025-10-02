@@ -38,8 +38,9 @@ const (
 )
 
 var (
-	// ErrNotFound indicates that a lookup for a symbol failed.
-	ErrNotFound = errors.New("not found")
+	// ErrUnknownType indicates that a symbol could not be inserted into a scope
+	// because the symbol's type could not be determined.
+	ErrUnknownType = errors.New("unknown type")
 	// ErrAlreadyExists indicates that a symbol could not be inserted into a scope
 	// because the scope already defines that symbol.
 	ErrAlreadyExists = errors.New("already exists")
@@ -69,48 +70,37 @@ var (
 	ErrNoAnonymousScope = errors.New("does not define an anonymous scope")
 )
 
-// Class identifies the class of symbol being looked up.
-type Class uint16
+// Namespace defines a boundary around different kinds
+// of symbols within which names must be unqiue.
+type Namespace uint16
 
 const (
-	// ScriptClass identifies the symbol being looked up as a [Script].
-	ScriptClass = Class(ScriptKind)
-	// StateClass identifies the symbol being looked up as a [State].
-	StateClass = Class(StateKind)
-	// FunctionClass identifies the symbol being looked up as function-typed,
-	// specifically a symbol of kind [Function] or [Event].
-	FunctionClass = Class(FunctionKind | EventKind)
-	// ValueClass identifies the symbol being looked up as value-typed,
-	// specifically a symbol of kind [Property], [Variable], or [Parameter].
-	ValueClass = Class(PropertyKind | VariableKind | ParameterKind)
+	// Values identifies the symbol namespace that is
+	// shared by scripts, properties, variables, and parameters.
+	Values = Namespace(Script | Property | Variable | Parameter)
+	// Invokables identifies the symbol namespace
+	// that is shared by functions and events.
+	Invokables = Namespace(Function | Event)
+	// States identifies the symbol namespace that is exclusive to states.
+	States = Namespace(State)
 )
 
-func (c Class) String() string {
-	switch c {
-	case ScriptClass:
-		return "Script"
-	case StateClass:
-		return "State"
-	case FunctionClass:
-		return "Function"
-	case ValueClass:
+func (n Namespace) String() string {
+	switch n {
+	case Values:
 		return "Value"
+	case Invokables:
+		return "Invokable"
+	case States:
+		return "State"
 	default:
-		return fmt.Sprintf("Unknown (%d)", c)
+		return fmt.Sprintf("Unknown Namespace (%d)", n)
 	}
 }
 
-type namespace uint8
-
-const (
-	valueNamespace    = namespace(ScriptClass | ValueClass)
-	stateNamespace    = namespace(StateClass)
-	functionNamespace = namespace(FunctionClass)
-)
-
 type key struct {
 	name      string
-	namespace namespace
+	namespace Namespace
 }
 
 // NewGlobalScope returns an empty global (root) scope.
@@ -121,34 +111,46 @@ func NewGlobalScope(resolver *types.Resolver) *Scope {
 	}
 }
 
-// Lookup returns the symbol associated with the name in this scope or a parent
-// scope or and error wrapping [ErrNotFound].
-func (s *Scope) Lookup(name string, class Class) (*Symbol, error) {
-	var namespace namespace
-	switch class {
-	case ScriptClass, ValueClass:
-		namespace = valueNamespace
-	case StateClass:
-		namespace = stateNamespace
-	case FunctionClass:
-		namespace = functionNamespace
+// LookupKind returns the symbol associated with the name of a specific
+// kind in this scope or a parent scope or nil if the symbol does not exist.
+func (s *Scope) LookupKind(name string, kind Kind) *Symbol {
+	var symbol *Symbol
+	switch {
+	case Namespace(kind)&Values > 0:
+		symbol = s.Lookup(name, Values)
+	case Namespace(kind)&Invokables > 0:
+		symbol = s.Lookup(name, Invokables)
+	case Namespace(kind)&States > 0:
+		symbol = s.Lookup(name, States)
 	default:
-		return nil, fmt.Errorf("%w", ErrNotFound)
+		return nil
 	}
+	if symbol == nil || symbol.kind&kind == 0 {
+		return nil
+	}
+	return symbol
+}
+
+// Lookup returns the symbol associated with the name in this
+// scope or a parent scope or nil if the symbol does not exist.
+func (s *Scope) Lookup(name string, namespace Namespace) *Symbol {
 	key := key{name: normalize(name), namespace: namespace}
-	symbol := s.resolve(key)
-	if symbol == nil {
-		return nil, fmt.Errorf("%w", ErrNotFound)
-	}
-	return symbol, nil
+	return s.resolve(key)
 }
 
 func (s *Scope) resolve(key key) *Symbol {
-	if e, ok := s.symbols[key]; ok {
-		return e
+	if symbol, ok := s.symbols[key]; ok {
+		return symbol
 	}
 	if s.parent != nil {
-		return s.parent.resolve(key)
+		if s.kind != scriptScope {
+			return s.parent.resolve(key)
+		}
+		symbol := s.parent.resolve(key)
+		if symbol.kind&Variable == 0 {
+			// Variables cannot be seen by other scripts.
+			return symbol
+		}
 	}
 	return nil
 }
@@ -181,7 +183,7 @@ func (s *Scope) AnonymousScope(node ast.Node) (scope *Scope, err error) {
 // into this scope and returns the symbol or an error that wraps one of the
 // following errors if this fails:
 //
-//   - [ErrNotFound] if a script node extends another
+//   - [ErrUnknownType] if a script node extends another
 //     script that has not had a symbol created for it
 //   - [ErrNoSymbol] if a node does not define a symbol
 //   - [ErrAlreadyExists] if the symbol with the same
@@ -189,51 +191,24 @@ func (s *Scope) AnonymousScope(node ast.Node) (scope *Scope, err error) {
 //   - [ErrSymbolNotSupported] if this scope does
 //     not support the node's class of symbol
 func (s *Scope) Symbol(node ast.Node) (symbol *Symbol, err error) {
-	var symbolKey key
-	var class Class
 	switch node := node.(type) {
 	case *ast.Script:
-		symbol, err = s.insertScript(node)
-		symbolKey = key{name: symbol.normalized, namespace: valueNamespace}
-		class = ScriptClass
+		return s.insertScript(node)
 	case *ast.State:
-		symbol, err = s.insertState(node)
-		symbolKey = key{name: symbol.normalized, namespace: stateNamespace}
-		class = StateClass
+		return s.insertState(node)
 	case *ast.Function:
-		symbol, err = s.insertFunction(node)
-		symbolKey = key{name: symbol.normalized, namespace: functionNamespace}
-		class = FunctionClass
+		return s.insertFunction(node)
 	case *ast.Event:
-		symbol, err = s.insertEvent(node)
-		symbolKey = key{name: symbol.normalized, namespace: functionNamespace}
-		class = FunctionClass
+		return s.insertEvent(node)
 	case *ast.Property:
-		symbol, err = s.insertProperty(node)
-		symbolKey = key{name: symbol.normalized, namespace: valueNamespace}
-		class = ValueClass
+		return s.insertProperty(node)
 	case *ast.Variable:
-		symbol, err = s.insertVariable(node)
-		symbolKey = key{name: symbol.normalized, namespace: valueNamespace}
-		class = ValueClass
+		return s.insertVariable(node)
 	case *ast.Parameter:
-		symbol, err = s.insertParameter(node)
-		symbolKey = key{name: symbol.normalized, namespace: valueNamespace}
-		class = ValueClass
+		return s.insertParameter(node)
 	default:
 		return nil, fmt.Errorf("%w", ErrNoSymbol)
 	}
-	if err != nil {
-		return nil, err
-	}
-	if existing, ok := s.symbols[symbolKey]; ok {
-		return nil, fmt.Errorf("[%s] %s collides with %v: %w", class, symbolKey.name, existing, ErrAlreadyExists)
-	}
-	s.symbols[symbolKey] = symbol
-	if symbol.scope != nil {
-		s.children = append(s.children, symbol.scope)
-	}
-	return symbol, nil
 }
 
 func (s *Scope) insertScript(node *ast.Script) (*Symbol, error) {
@@ -246,7 +221,7 @@ func (s *Scope) insertScript(node *ast.Script) (*Symbol, error) {
 	}
 	symbol := &Symbol{
 		enclosing:  s,
-		kind:       ScriptKind,
+		kind:       Script,
 		typ:        typ,
 		name:       node.Name.Text,
 		normalized: typ.Normalized(),
@@ -259,28 +234,23 @@ func (s *Scope) insertScript(node *ast.Script) (*Symbol, error) {
 		kind:     scriptScope,
 		node:     node,
 	}
-	emptyState := &Symbol{
-		enclosing: symbol.scope,
-		kind:      StateKind,
+	key := key{name: symbol.normalized, namespace: Values}
+	// Only check global scope.
+	if existing, ok := s.symbols[key]; ok {
+		return nil, fmt.Errorf("%v collides with %v: %w", symbol, existing, ErrAlreadyExists)
 	}
-	emptyState.scope = &Scope{
-		resolver: s.resolver,
-		parent:   symbol.scope,
-		kind:     stateScope,
-		node:     node,
-	}
-	symbol.scope.children = append(symbol.scope.children, emptyState.scope)
-	symbol.scope.symbols[key{name: "", namespace: stateNamespace}] = emptyState
+	s.symbols[key] = symbol
+	s.children = append(s.children, symbol.scope)
 	return symbol, nil
 }
 
 func (s *Scope) insertState(node *ast.State) (*Symbol, error) {
-	if s.kind == globalScope || s.kind != scriptScope {
+	if s.kind != scriptScope {
 		return nil, fmt.Errorf("%w", ErrSymbolNotSupported)
 	}
 	symbol := &Symbol{
 		enclosing:  s,
-		kind:       StateKind,
+		kind:       State,
 		name:       node.Name.Text,
 		normalized: normalize(node.Name.Text),
 		node:       node,
@@ -291,11 +261,18 @@ func (s *Scope) insertState(node *ast.State) (*Symbol, error) {
 			node:     node,
 		},
 	}
+	key := key{name: symbol.normalized, namespace: States}
+	// Only check current script scope, parent can define same states.
+	if existing, ok := s.symbols[key]; ok {
+		return nil, fmt.Errorf("%v collides with %v: %w", symbol, existing, ErrAlreadyExists)
+	}
+	s.symbols[key] = symbol
+	s.children = append(s.children, symbol.scope)
 	return symbol, nil
 }
 
 func (s *Scope) insertFunction(node *ast.Function) (*Symbol, error) {
-	if s.kind == globalScope || s.kind != stateScope {
+	if s.kind != scriptScope && s.kind != stateScope {
 		return nil, fmt.Errorf("%w", ErrSymbolNotSupported)
 	}
 	typ, err := s.resolveType(node)
@@ -304,7 +281,7 @@ func (s *Scope) insertFunction(node *ast.Function) (*Symbol, error) {
 	}
 	symbol := &Symbol{
 		enclosing:  s,
-		kind:       FunctionKind,
+		kind:       Function,
 		typ:        typ,
 		name:       node.Name.Text,
 		normalized: typ.Normalized(),
@@ -316,11 +293,17 @@ func (s *Scope) insertFunction(node *ast.Function) (*Symbol, error) {
 			node:     node,
 		},
 	}
+	key := key{name: symbol.normalized, namespace: Invokables}
+	if existing := s.resolve(key); existing != nil {
+		return nil, fmt.Errorf("%v collides with %v: %w", symbol, existing, ErrAlreadyExists)
+	}
+	s.symbols[key] = symbol
+	s.children = append(s.children, symbol.scope)
 	return symbol, nil
 }
 
 func (s *Scope) insertEvent(node *ast.Event) (*Symbol, error) {
-	if s.kind == globalScope || s.kind != stateScope {
+	if s.kind != scriptScope && s.kind != stateScope {
 		return nil, fmt.Errorf("%w", ErrSymbolNotSupported)
 	}
 	typ, err := s.resolveType(node)
@@ -329,7 +312,7 @@ func (s *Scope) insertEvent(node *ast.Event) (*Symbol, error) {
 	}
 	symbol := &Symbol{
 		enclosing:  s,
-		kind:       EventKind,
+		kind:       Event,
 		typ:        typ,
 		name:       node.Name.Text,
 		normalized: typ.Normalized(),
@@ -341,11 +324,17 @@ func (s *Scope) insertEvent(node *ast.Event) (*Symbol, error) {
 			node:     node,
 		},
 	}
+	key := key{name: symbol.normalized, namespace: Invokables}
+	if existing := s.resolve(key); existing != nil {
+		return nil, fmt.Errorf("%v collides with %v: %w", symbol, existing, ErrAlreadyExists)
+	}
+	s.symbols[key] = symbol
+	s.children = append(s.children, symbol.scope)
 	return symbol, nil
 }
 
 func (s *Scope) insertProperty(node *ast.Property) (*Symbol, error) {
-	if s.kind == globalScope || s.kind != scriptScope {
+	if s.kind != scriptScope {
 		return nil, fmt.Errorf("%w", ErrSymbolNotSupported)
 	}
 	typ, err := s.resolveType(node)
@@ -354,26 +343,32 @@ func (s *Scope) insertProperty(node *ast.Property) (*Symbol, error) {
 	}
 	symbol := &Symbol{
 		enclosing:  s,
-		kind:       PropertyKind,
+		kind:       Property,
 		typ:        typ,
 		name:       node.Name.Text,
 		normalized: typ.Normalized(),
 		node:       node,
-	}
-	if node.Kind == ast.Full {
-		symbol.scope = &Scope{
+		scope: &Scope{
 			resolver: s.resolver,
 			parent:   s,
 			kind:     propertyScope,
 			node:     node,
-		}
+		},
 	}
+	key := key{name: symbol.normalized, namespace: Values}
+	if existing := s.resolve(key); existing != nil {
+		return nil, fmt.Errorf("%v collides with %v: %w", symbol, existing, ErrAlreadyExists)
+	}
+	s.symbols[key] = symbol
+	s.children = append(s.children, symbol.scope)
 	return symbol, nil
 }
 
 func (s *Scope) insertVariable(node *ast.Variable) (*Symbol, error) {
 	switch s.kind {
-	case globalScope, scriptScope, functionScope, eventScope, ifScope, elseIfScope, elseScope, whileScope:
+	case scriptScope, functionScope, eventScope, ifScope, elseIfScope, elseScope, whileScope:
+		// OK.
+	default:
 		return nil, fmt.Errorf("%w", ErrSymbolNotSupported)
 	}
 	typ, err := s.resolveType(node)
@@ -382,18 +377,22 @@ func (s *Scope) insertVariable(node *ast.Variable) (*Symbol, error) {
 	}
 	symbol := &Symbol{
 		enclosing:  s,
-		kind:       VariableKind,
+		kind:       Variable,
 		typ:        typ,
 		name:       node.Name.Text,
 		normalized: typ.Normalized(),
 		node:       node,
 	}
+	key := key{name: symbol.normalized, namespace: Values}
+	if existing := s.resolve(key); existing != nil {
+		return nil, fmt.Errorf("%v collides with %v: %w", symbol, existing, ErrAlreadyExists)
+	}
+	s.symbols[key] = symbol
 	return symbol, nil
 }
 
 func (s *Scope) insertParameter(node *ast.Parameter) (*Symbol, error) {
-	switch s.kind {
-	case globalScope, functionScope, eventScope:
+	if s.kind != functionScope && s.kind != eventScope {
 		return nil, fmt.Errorf("%w", ErrSymbolNotSupported)
 	}
 	typ, err := s.resolveType(node)
@@ -402,12 +401,17 @@ func (s *Scope) insertParameter(node *ast.Parameter) (*Symbol, error) {
 	}
 	symbol := &Symbol{
 		enclosing:  s,
-		kind:       ParameterKind,
+		kind:       Parameter,
 		typ:        typ,
 		name:       node.Name.Text,
 		normalized: typ.Normalized(),
 		node:       node,
 	}
+	key := key{name: symbol.normalized, namespace: Values}
+	if existing := s.resolve(key); existing != nil {
+		return nil, fmt.Errorf("%v collides with %v: %w", symbol, existing, ErrAlreadyExists)
+	}
+	s.symbols[key] = symbol
 	return symbol, nil
 }
 
@@ -416,7 +420,7 @@ func (s *Scope) resolveType(node ast.Node) (types.Type, error) {
 	if err != nil {
 		var nferr types.NotFoundError
 		_ = errors.As(err, &nferr) // Will never return types.ErrNotTyped.
-		return nil, fmt.Errorf("parent %q: %w", nferr.Name, ErrNotFound)
+		return nil, fmt.Errorf("parent %q: %w", nferr.Name, ErrUnknownType)
 	}
 	return typ, nil
 }

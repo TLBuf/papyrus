@@ -45,7 +45,6 @@ type checker struct {
 	global    *symbol.Scope
 	typeNames map[string]types.Type
 	script    *symbol.Symbol
-	state     *symbol.Symbol
 	scope     *symbol.Scope
 	failed    bool
 }
@@ -70,38 +69,35 @@ func (c *checker) check(scripts []*ast.Script) {
 	}
 	// Build all other types, except imports.
 	for _, script := range scripts {
-		scriptSymbol, err := c.global.Lookup(script.Name.Text, symbol.ScriptClass)
-		if err != nil {
-			c.failInFile(internalInvalidState, script.File, script.Location(), "Script symbol lookup: %v", err)
+		scriptSymbol := c.global.Lookup(script.Name.Text, symbol.Values)
+		if scriptSymbol == nil {
+			c.failInFile(internalInvalidState, script.File, script.Location(), "Script symbol lookup: %q", script.Name.Text)
 			continue
 		}
-		if c.state, err = scriptSymbol.Scope().Lookup("", symbol.StateClass); err != nil {
-			c.failInFile(internalInvalidState, script.File, script.Location(), "Script empty state lookup: %v", err)
-			continue
-		}
-		emptyStateScope := c.state.Scope()
+		c.scope = scriptSymbol.Scope()
+		var states []*ast.State
 		for _, statement := range script.Statements {
 			switch statement := statement.(type) {
 			case *ast.Import, *ast.CommentStatement, *ast.ErrorStatement:
 				// Nothing
 			case *ast.Variable:
-				c.scope = scriptSymbol.Scope()
 				c.ScriptVariable(statement)
 			case *ast.Property:
-				c.scope = scriptSymbol.Scope()
 				c.Property(statement)
-			case *ast.State:
-				c.scope = scriptSymbol.Scope()
-				c.State(statement)
 			case *ast.Function:
-				c.scope = emptyStateScope
 				c.Function(statement)
 			case *ast.Event:
-				c.scope = emptyStateScope
 				c.Event(statement)
+			case *ast.State:
+				states = append(states, statement)
 			default:
 				c.failWithDetail(internalInvalidState, statement.Location(), "Unknown script statement: %v", statement)
 			}
+		}
+		// Process states last so we can verify that all
+		// functions and events exist in the empty state.
+		for _, state := range states {
+			c.State(state)
 		}
 	}
 
@@ -169,8 +165,21 @@ func (c *checker) ScriptVariable(node *ast.Variable) {
 	if node.Value == nil {
 		return
 	}
-	if typ := c.Literal(node.Value.(ast.Literal)); typ != nil {
+	decl, err := c.types.Resolve(node.Type)
+	if err != nil {
+		c.failWithDetail(
+			errorTypeReferencesUnknownScript,
+			node.Type.Location(),
+			"%q is not a known script",
+			node.Type.Name.Text,
+		)
+	}
+	typ := c.Literal(node.Value.(ast.Literal))
+	if typ != nil {
 		c.info.Expressions[node.Value] = typ
+	}
+	if typ != nil && decl != nil && !typ.IsAssignable(decl) {
+		c.failWithDetail(errorVariableTypeMismatch, node.Value.Location(), "%v is not assignable to %v", typ, decl)
 	}
 }
 
@@ -193,6 +202,35 @@ func (c *checker) Function(node *ast.Function) {
 	for _, s := range node.Statements {
 		c.FunctionStatement(s)
 	}
+	var walker returnWalker
+	walker.Walk(node.Statements)
+	returnType := sym.Type().(*types.Invokable).ReturnType()
+	for _, ret := range walker.returns {
+		if returnType == nil && ret.Value == nil {
+			continue
+		}
+		if returnType == nil && ret.Value != nil {
+			c.fail(errorFunctionReturnValueUnexpected, ret.Value.Location())
+			continue
+		}
+		if returnType != nil && ret.Value == nil {
+			c.failWithDetail(errorFunctionReturnValueMissing, ret.Location(), "Expected to return a %v", returnType)
+			continue
+		}
+		retType, ok := c.info.Expressions[ret.Value]
+		if !ok {
+			continue
+		}
+		if !retType.IsAssignable(returnType) {
+			c.failWithDetail(
+				errorFunctionReturnTypeMismatch,
+				ret.Value.Location(),
+				"%v is not assignable to %v",
+				retType,
+				returnType,
+			)
+		}
+	}
 }
 
 func (c *checker) Event(node *ast.Event) {
@@ -213,6 +251,13 @@ func (c *checker) Event(node *ast.Event) {
 	for _, s := range node.Statements {
 		c.FunctionStatement(s)
 	}
+	var walker returnWalker
+	walker.Walk(node.Statements)
+	for _, ret := range walker.returns {
+		if ret.Value != nil {
+			c.fail(errorEventReturnValueUnexpected, ret.Value.Location())
+		}
+	}
 }
 
 func (c *checker) Parameter(node *ast.Parameter) {
@@ -224,8 +269,27 @@ func (c *checker) Parameter(node *ast.Parameter) {
 	if node.DefaultValue == nil {
 		return
 	}
-	if typ := c.Literal(node.DefaultValue); typ != nil {
+	decl, err := c.types.Resolve(node.Type)
+	if err != nil {
+		c.failWithDetail(
+			errorTypeReferencesUnknownScript,
+			node.Type.Location(),
+			"%q is not a known script",
+			node.Type.Name.Text,
+		)
+	}
+	typ := c.Literal(node.DefaultValue)
+	if typ != nil {
 		c.info.Expressions[node.DefaultValue] = typ
+	}
+	if typ != nil && decl != nil && !typ.IsAssignable(decl) {
+		c.failWithDetail(
+			errorParameterDefaultValueTypeMismatch,
+			node.DefaultValue.Location(),
+			"%v is not assignable to %v",
+			typ,
+			decl,
+		)
 	}
 }
 
@@ -265,17 +329,68 @@ func (c *checker) Return(node *ast.Return) {
 }
 
 func (c *checker) Assignment(node *ast.Assignment) {
-	if typ := c.Expression(node.Assignee); typ != nil {
-		c.info.Expressions[node.Assignee] = typ
+	assigneeType := c.Expression(node.Assignee)
+	if assigneeType != nil {
+		c.info.Expressions[node.Assignee] = assigneeType
 	}
-	if typ := c.Expression(node.Value); typ != nil {
-		c.info.Expressions[node.Value] = typ
+	valueType := c.Expression(node.Value)
+	if valueType != nil {
+		c.info.Expressions[node.Value] = valueType
+	}
+	if assigneeType == nil || valueType == nil {
+		return
+	}
+	switch node.Kind {
+	case ast.Assign:
+		if !valueType.IsAssignable(assigneeType) {
+			c.failWithDetail(
+				errorAssignmentTypeMismatch,
+				node.Value.Location(),
+				"%v is not assignable to %v",
+				valueType,
+				assigneeType,
+			)
+		}
+	case ast.AssignAdd:
+		// Either string concatenation or numeric addition.
+		if assigneeType.IsIdentical(types.String) {
+			break // String concatenation.
+		}
+		fallthrough
+	case ast.AssignSubtract, ast.AssignMultiply, ast.AssignDivide:
+		if !assigneeType.IsIdentical(types.Int) && !assigneeType.IsIdentical(types.Float) {
+			c.failWithDetail(
+				errorAssignmentArithmeticAssigneeNotNumeric,
+				node.Assignee.Location(),
+				"Assignee is typed: %v",
+				assigneeType,
+			)
+		}
+		if !valueType.IsIdentical(types.Int) && !valueType.IsIdentical(types.Float) {
+			c.failWithDetail(errorAssignmentArithmeticValueNotNumeric, node.Value.Location(), "Value is typed: %v", valueType)
+		}
+	case ast.AssignModulo:
+		if !assigneeType.IsIdentical(types.Int) {
+			c.failWithDetail(
+				errorAssignmentModuloAssigneeNotInt,
+				node.Assignee.Location(),
+				"Assignee is typed: %v",
+				assigneeType,
+			)
+		}
+		if !valueType.IsIdentical(types.Int) {
+			c.failWithDetail(errorAssignmentModuloValueNotInt, node.Value.Location(), "Value is typed: %v", valueType)
+		}
 	}
 }
 
 func (c *checker) If(node *ast.If) {
 	if typ := c.Expression(node.Condition); typ != nil {
-		c.info.Expressions[node.Condition] = typ
+		if typ.IsAssignable(types.Bool) {
+			c.info.Expressions[node.Condition] = typ
+		} else {
+			c.failWithDetail(errorIfConditionNotBool, node.Condition.Location(), "Expression is typed: %v", typ)
+		}
 	}
 	scope, err := c.scope.AnonymousScope(node)
 	if err != nil {
@@ -290,7 +405,11 @@ func (c *checker) If(node *ast.If) {
 	c.scope = parent
 	for _, elseIf := range node.ElseIfs {
 		if typ := c.Expression(node.Condition); typ != nil {
-			c.info.Expressions[node.Condition] = typ
+			if typ.IsAssignable(types.Bool) {
+				c.info.Expressions[node.Condition] = typ
+			} else {
+				c.failWithDetail(errorElseIfConditionNotBool, node.Condition.Location(), "Expression is typed: %v", typ)
+			}
 		}
 		scope, err := c.scope.AnonymousScope(elseIf)
 		if err != nil {
@@ -319,7 +438,11 @@ func (c *checker) If(node *ast.If) {
 
 func (c *checker) While(node *ast.While) {
 	if typ := c.Expression(node.Condition); typ != nil {
-		c.info.Expressions[node.Condition] = typ
+		if typ.IsAssignable(types.Bool) {
+			c.info.Expressions[node.Condition] = typ
+		} else {
+			c.failWithDetail(errorWhileConditionNotBool, node.Condition.Location(), "Expression is typed: %v", typ)
+		}
 	}
 	scope, err := c.scope.AnonymousScope(node)
 	if err != nil {
@@ -344,8 +467,21 @@ func (c *checker) FunctionVariable(node *ast.Variable) {
 	if node.Value == nil {
 		return
 	}
-	if typ := c.Expression(node.Value); typ != nil {
+	decl, err := c.types.Resolve(node.Type)
+	if err != nil {
+		c.failWithDetail(
+			errorTypeReferencesUnknownScript,
+			node.Type.Location(),
+			"%q is not a known script",
+			node.Type.Name.Text,
+		)
+	}
+	typ := c.Expression(node.Value)
+	if typ != nil {
 		c.info.Expressions[node.Value] = typ
+	}
+	if typ != nil && decl != nil && !typ.IsAssignable(decl) {
+		c.failWithDetail(errorVariableTypeMismatch, node.Value.Location(), "%v is not assignable to %v", typ, decl)
 	}
 }
 
@@ -397,24 +533,24 @@ func (c *checker) Access(call bool, node *ast.Access) types.Type {
 		}
 		if call {
 			// Function access.
-			lSym, err := sym.Scope().Lookup(lookup, symbol.FunctionClass)
-			if err == nil {
+			lSym := sym.Scope().Lookup(lookup, symbol.Invokables)
+			if lSym == nil {
 				c.failWithDetail(errorUnknownFunction, node.Name.Location(), "%s does not define a function named %q", sym.Name(), node.Name.Text)
 			}
-			if lSym.Kind() == symbol.EventKind {
+			if lSym.Kind() == symbol.Event {
 				c.failWithDetail(errorCannotCallEvent, node.Value.Location(), "%q is an event, not a function", lSym.Name())
 			}
 			return lSym.Type()
 		}
 		// Property access.
-		lSym, err := sym.Scope().Lookup(lookup, symbol.ValueClass)
-		if err == nil {
+		pSym := sym.Scope().Lookup(lookup, symbol.Invokables)
+		if pSym == nil {
 			c.failWithDetail(errorUnknownProperty, node.Name.Location(), "%s does not define a property named %q", sym.Name(), node.Name.Text)
 		}
-		if lSym.Kind() == symbol.VariableKind && lSym != c.script {
-			c.failWithDetail(errorCannotAccessVariable, node.Value.Location(), "%q is a variable, not a property", lSym.Name())
+		if pSym.Kind() == symbol.Variable && pSym != c.script {
+			c.failWithDetail(errorCannotAccessVariable, node.Value.Location(), "%q is a variable, not a property", pSym.Name())
 		}
-		return lSym.Type()
+		return pSym.Type()
 	case *types.Primitive:
 		switch typ.Kind() {
 		case types.BoolKind:
@@ -456,8 +592,7 @@ func (c *checker) ArrayCreation(node *ast.ArrayCreation) types.Type {
 		)
 		return nil
 	}
-	c.info.Expressions[node] = typ
-	return typ
+	return types.ArrayOf(typ.(types.Scalar))
 }
 
 func (c *checker) Binary(node *ast.Binary) types.Type {
@@ -469,7 +604,96 @@ func (c *checker) Binary(node *ast.Binary) types.Type {
 	if right != nil {
 		c.info.Expressions[node.RightOperand] = right
 	}
-	return nil
+	if left == nil || right == nil {
+		return nil
+	}
+	var typ types.Type
+	switch node.Kind {
+	case ast.Equal, ast.NotEqual:
+		if !left.IsEquatable(right) {
+			c.failWithDetail(
+				errorBinaryOperandsNotEquatable,
+				node.Location(),
+				"%v is not equatable to %v (nor vice versa)",
+				left,
+				right,
+			)
+		}
+		typ = types.Bool
+	case ast.Less, ast.LessOrEqual, ast.Greater, ast.GreaterOrEqual:
+		if !left.IsComparable(right) {
+			c.failWithDetail(
+				errorBinaryOperandsNotComparable,
+				node.Location(),
+				"%v is not comparable to %v (nor vice versa)",
+				left,
+				right,
+			)
+		}
+		typ = types.Bool
+	case ast.LogicalAnd, ast.LogicalOr:
+		if !left.IsAssignable(types.Bool) {
+			c.failWithDetail(errorBinaryLogicalOperandNotBool, node.LeftOperand.Location(), "Left operand is typed: %v", left)
+		}
+		if !right.IsAssignable(types.Bool) {
+			c.failWithDetail(
+				errorBinaryLogicalOperandNotBool,
+				node.RightOperand.Location(),
+				"Right operand is typed: %v",
+				right,
+			)
+		}
+		typ = types.Bool
+	case ast.Add:
+		// Addition can be numeric or string concatenation (when the left is a string).
+		if left.IsIdentical(types.String) {
+			// String concatenation, right can technically be anything.
+			typ = types.String
+			break
+		}
+		fallthrough // Numeric addition.
+	case ast.Subtract, ast.Multiply, ast.Divide:
+		if !left.IsIdentical(types.Int) && !left.IsIdentical(types.Float) {
+			c.failWithDetail(
+				errorBinaryArithmeticOperandNotNumeric,
+				node.LeftOperand.Location(),
+				"Left operand is typed: %v",
+				left,
+			)
+			break
+		}
+		if !right.IsIdentical(types.Int) && !right.IsIdentical(types.Float) {
+			c.failWithDetail(
+				errorBinaryArithmeticOperandNotNumeric,
+				node.RightOperand.Location(),
+				"Right operand is typed: %v",
+				right,
+			)
+			break
+		}
+		// Result type is float if either side is float, int otherwise.
+		if left.IsIdentical(types.Float) || right.IsIdentical(types.Float) {
+			typ = types.Float
+		} else {
+			typ = types.Int
+		}
+	case ast.Modulo:
+		if !left.IsIdentical(types.Int) {
+			c.failWithDetail(errorBinaryModuloOperandNotInt, node.LeftOperand.Location(), "Left operand is typed: %v", left)
+			break
+		}
+		if !right.IsIdentical(types.Int) {
+			c.failWithDetail(
+				errorBinaryModuloOperandNotInt,
+				node.RightOperand.Location(),
+				"Right operand is typed: %v",
+				right,
+			)
+			break
+		}
+		typ = types.Int
+	}
+	return typ
 }
 
 func (c *checker) Call(node *ast.Call) types.Type {
@@ -492,7 +716,7 @@ func (c *checker) Cast(node *ast.Cast) types.Type {
 		return nil
 	}
 	if !expr.IsConvertible(typ) {
-		c.failWithDetail(errorCastNotConvertible, node.Type.Location(), "Values of type %v cannot be cast to %v", expr, typ)
+		c.failWithDetail(errorCastNotConvertible, node.Type.Location(), "%v cannot be cast to %v", expr, typ)
 		return nil
 	}
 	return typ
@@ -540,13 +764,17 @@ func (c *checker) Unary(node *ast.Unary) types.Type {
 	}
 	c.info.Expressions[node.Operand] = typ
 	if node.Kind == ast.LogicalNot {
-		return typ
+		if !typ.IsAssignable(types.Bool) {
+			c.failWithDetail(errorUnaryNegationNotBool, node.Operand.Location(), "Operand is typed: %v", typ)
+			return nil
+		}
+		return types.Bool
 	}
-	// Type of expression must be numeric.
+	// Numeric negation. Type of expression must be numeric.
 	if typ.IsIdentical(types.Int) || typ.IsIdentical(types.Float) {
 		return typ
 	}
-	c.failWithDetail(errorNegationNotNumeric, node.Operand.Location(), "Operand is typed: %v", typ)
+	c.failWithDetail(errorUnaryNegationNotNumeric, node.Operand.Location(), "Operand is typed: %v", typ)
 	return nil
 }
 
@@ -639,6 +867,11 @@ func (c *checker) sortScripts(scripts []*ast.Script) bool {
 	return success
 }
 
+func (c *checker) fail(def *issue.Definition, loc source.Location) {
+	c.log.Append(issue.New(def, c.file(), loc))
+	c.failed = true
+}
+
 func (c *checker) failWithDetail(def *issue.Definition, loc source.Location, msg string, args ...any) {
 	c.log.Append(issue.New(def, c.file(), loc).WithDetail(msg, args...))
 	c.failed = true
@@ -651,4 +884,27 @@ func (c *checker) failInFile(def *issue.Definition, file *source.File, loc sourc
 
 func normalize(name string) string {
 	return strings.ToLower(name)
+}
+
+type returnWalker struct {
+	returns []*ast.Return
+}
+
+func (w *returnWalker) Walk(statements []ast.FunctionStatement) {
+	for _, s := range statements {
+		switch s := s.(type) {
+		case *ast.Return:
+			w.returns = append(w.returns, s)
+		case *ast.If:
+			w.Walk(s.Statements)
+			for _, elseIf := range s.ElseIfs {
+				w.Walk(elseIf.Statements)
+			}
+			if s.Else != nil {
+				w.Walk(s.Else.Statements)
+			}
+		case *ast.While:
+			w.Walk(s.Statements)
+		}
+	}
 }

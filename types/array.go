@@ -5,6 +5,15 @@ type Array struct {
 	element Scalar
 }
 
+// ArrayOf returns a new array type with the given element type
+// or nil if the element is [None] or nil.
+func ArrayOf(element Scalar) *Array {
+	if _, ok := element.(None); ok || element == nil {
+		return nil
+	}
+	return &Array{element: element}
+}
+
 // Element returns the scalar type for elements of the array.
 func (a *Array) Element() Scalar {
 	return a.element

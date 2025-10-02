@@ -11,46 +11,44 @@ import (
 type Kind uint16
 
 const (
-	// ScriptKind is the kind of symbol defined by an [*ast.Script], always
+	// Script is the kind of symbol defined by an [*ast.Script], always
 	// defines a [Scope], and is always of type [*types.Object].
-	ScriptKind Kind = 1 << iota
-	// StateKind is the kind of symbol defined by an [*ast.State], always defines
-	// a [Scope], and unlike all other symbols, has no type.
-	StateKind
-	// FunctionKind is the kind of symbol defined by an [*ast.Function], defines a
-	// scope if the function is not native, and is always of type
-	// [*types.FunctionKind].
-	FunctionKind
-	// EventKind is the kind of symbol defined by an [*ast.Event], defines a scope
-	// if the event is not native, and is always of type [*types.Function].
-	EventKind
-	// PropertyKind is the kind of symbol defined by an [*ast.Property], defines a
-	// scope only if the definition is a full property, and is always of type
-	// [types.Value].
-	PropertyKind
-	// VariableKind is the kind of symbol defined by an [*ast.Variable], never
-	// defines a scope, and is always of type [types.Value].
-	VariableKind
-	// ParameterKind is the kind of symbol defined by an [*ast.Parameter], never
-	// defines a scope, and is always of type [types.Value].
-	ParameterKind
+	Script Kind = 1 << iota
+	// State is the kind of symbol defined by an [*ast.State], always
+	// defines a [Scope], and unlike all other symbols, has no type.
+	State
+	// Function is the kind of symbol defined by an [*ast.Function], always
+	// defines a [Scope], and is always of type [*types.Function].
+	Function
+	// Event is the kind of symbol defined by an [*ast.Event], always
+	// defines a [Scope], and is always of type [*types.Function].
+	Event
+	// Property is the kind of symbol defined by an [*ast.Property], always
+	// defines a [Scope], and is always of type [types.Value].
+	Property
+	// Variable is the kind of symbol defined by an [*ast.Variable],
+	// never defines a scope, and is always of type [types.Value].
+	Variable
+	// Parameter is the kind of symbol defined by an [*ast.Parameter],
+	// never defines a scope, and is always of type [types.Value].
+	Parameter
 )
 
 func (k Kind) String() string {
 	switch k {
-	case ScriptKind:
+	case Script:
 		return "Script"
-	case StateKind:
+	case State:
 		return "State"
-	case FunctionKind:
+	case Function:
 		return "Function"
-	case EventKind:
+	case Event:
 		return "Event"
-	case PropertyKind:
+	case Property:
 		return "Property"
-	case VariableKind:
+	case Variable:
 		return "Variable"
-	case ParameterKind:
+	case Parameter:
 		return "Parameter"
 	default:
 		return fmt.Sprintf("Unknown Kind (%d)", k)
