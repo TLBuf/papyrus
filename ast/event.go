@@ -77,6 +77,16 @@ func (e *Event) Comments() *Comments {
 	return e.NodeComments
 }
 
+// SignatureLocation returns the source location of the event signature,
+// including the event name, parameters, and any "Native" flags.
+func (e *Event) SignatureLocation() source.Location {
+	end := e.CloseLocation
+	if len(e.NativeLocations) > 0 {
+		end = e.NativeLocations[len(e.NativeLocations)-1]
+	}
+	return source.Span(e.StartKeywordLocation, end)
+}
+
 // Location returns the source location of the node.
 func (e *Event) Location() source.Location {
 	if e.EndKeywordLocation != source.UnknownLocation {

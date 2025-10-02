@@ -63,25 +63,25 @@ func (r *Resolver) Resolve(node ast.Node) (Type, error) {
 		if err != nil {
 			return nil, fmt.Errorf("return type: %w", err)
 		}
-		pts := make([]Value, 0, len(node.ParameterList))
+		pts := make([]Parameter, 0, len(node.ParameterList))
 		for _, p := range node.ParameterList {
 			pt, err := r.resolveTypeLiteral(p.Type)
 			if err != nil {
 				return nil, fmt.Errorf("parameter: %w", err)
 			}
-			pts = append(pts, pt)
+			pts = append(pts, NewParameter(p.Name.Text, pt, p.DefaultValue != nil))
 		}
-		return NewFunction(node.Name.Text, rt, pts...), nil
+		return NewFunction(node.Name.Text, rt, len(node.NativeLocations) > 0, len(node.GlobalLocations) > 0, pts...), nil
 	case *ast.Event:
-		pts := make([]Value, 0, len(node.ParameterList))
+		pts := make([]Parameter, 0, len(node.ParameterList))
 		for _, p := range node.ParameterList {
 			pt, err := r.resolveTypeLiteral(p.Type)
 			if err != nil {
 				return nil, fmt.Errorf("parameter: %w", err)
 			}
-			pts = append(pts, pt)
+			pts = append(pts, NewParameter(p.Name.Text, pt, p.DefaultValue != nil))
 		}
-		return NewEvent(node.Name.Text, pts...), nil
+		return NewEvent(node.Name.Text, len(node.NativeLocations) > 0, pts...), nil
 	case *ast.Property:
 		typ, err := r.resolveTypeLiteral(node.Type)
 		if err != nil {

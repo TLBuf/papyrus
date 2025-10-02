@@ -111,8 +111,30 @@ func NewGlobalScope(resolver *types.Resolver) *Scope {
 	}
 }
 
-// LookupKind returns the symbol associated with the name of a specific
+// ResolveKind returns the symbol associated with the name of a specific
 // kind in this scope or a parent scope or nil if the symbol does not exist.
+func (s *Scope) ResolveKind(name string, kind Kind) *Symbol {
+	var symbol *Symbol
+	switch {
+	case Namespace(kind)&Values > 0:
+		symbol = s.Resolve(name, Values)
+	case Namespace(kind)&Invokables > 0:
+		symbol = s.Resolve(name, Invokables)
+	case Namespace(kind)&States > 0:
+		symbol = s.Resolve(name, States)
+	default:
+		return nil
+	}
+	if symbol == nil || symbol.kind&kind == 0 {
+		return nil
+	}
+	return symbol
+}
+
+// LookupKind returns the symbol associated with the name of a specific
+// kind in this scope or nil if the symbol does not exist.
+//
+// Note: LookupKind does not search parent scopes.
 func (s *Scope) LookupKind(name string, kind Kind) *Symbol {
 	var symbol *Symbol
 	switch {
@@ -131,22 +153,31 @@ func (s *Scope) LookupKind(name string, kind Kind) *Symbol {
 	return symbol
 }
 
-// Lookup returns the symbol associated with the name in this
+// Resolve returns the symbol associated with the name in this
 // scope or a parent scope or nil if the symbol does not exist.
-func (s *Scope) Lookup(name string, namespace Namespace) *Symbol {
+func (s *Scope) Resolve(name string, namespace Namespace) *Symbol {
 	key := key{name: normalize(name), namespace: namespace}
-	return s.resolve(key)
+	return s.resolveRecursive(key)
 }
 
-func (s *Scope) resolve(key key) *Symbol {
+// Lookup returns the symbol associated with the name in this scope
+// or nil and false if the symbol does not exist in this scope.
+//
+// Note: Lookup does not search parent scopes.
+func (s *Scope) Lookup(name string, namespace Namespace) *Symbol {
+	key := key{name: normalize(name), namespace: namespace}
+	return s.symbols[key]
+}
+
+func (s *Scope) resolveRecursive(key key) *Symbol {
 	if symbol, ok := s.symbols[key]; ok {
 		return symbol
 	}
 	if s.parent != nil {
 		if s.kind != scriptScope {
-			return s.parent.resolve(key)
+			return s.parent.resolveRecursive(key)
 		}
-		symbol := s.parent.resolve(key)
+		symbol := s.parent.resolveRecursive(key)
 		if symbol.kind&Variable == 0 {
 			// Variables cannot be seen by other scripts.
 			return symbol
@@ -294,7 +325,7 @@ func (s *Scope) insertFunction(node *ast.Function) (*Symbol, error) {
 		},
 	}
 	key := key{name: symbol.normalized, namespace: Invokables}
-	if existing := s.resolve(key); existing != nil {
+	if existing := s.resolveRecursive(key); existing != nil {
 		return nil, fmt.Errorf("%v collides with %v: %w", symbol, existing, ErrAlreadyExists)
 	}
 	s.symbols[key] = symbol
@@ -325,7 +356,7 @@ func (s *Scope) insertEvent(node *ast.Event) (*Symbol, error) {
 		},
 	}
 	key := key{name: symbol.normalized, namespace: Invokables}
-	if existing := s.resolve(key); existing != nil {
+	if existing := s.resolveRecursive(key); existing != nil {
 		return nil, fmt.Errorf("%v collides with %v: %w", symbol, existing, ErrAlreadyExists)
 	}
 	s.symbols[key] = symbol
@@ -356,7 +387,7 @@ func (s *Scope) insertProperty(node *ast.Property) (*Symbol, error) {
 		},
 	}
 	key := key{name: symbol.normalized, namespace: Values}
-	if existing := s.resolve(key); existing != nil {
+	if existing := s.resolveRecursive(key); existing != nil {
 		return nil, fmt.Errorf("%v collides with %v: %w", symbol, existing, ErrAlreadyExists)
 	}
 	s.symbols[key] = symbol
@@ -384,7 +415,7 @@ func (s *Scope) insertVariable(node *ast.Variable) (*Symbol, error) {
 		node:       node,
 	}
 	key := key{name: symbol.normalized, namespace: Values}
-	if existing := s.resolve(key); existing != nil {
+	if existing := s.resolveRecursive(key); existing != nil {
 		return nil, fmt.Errorf("%v collides with %v: %w", symbol, existing, ErrAlreadyExists)
 	}
 	s.symbols[key] = symbol
@@ -408,7 +439,7 @@ func (s *Scope) insertParameter(node *ast.Parameter) (*Symbol, error) {
 		node:       node,
 	}
 	key := key{name: symbol.normalized, namespace: Values}
-	if existing := s.resolve(key); existing != nil {
+	if existing := s.resolveRecursive(key); existing != nil {
 		return nil, fmt.Errorf("%v collides with %v: %w", symbol, existing, ErrAlreadyExists)
 	}
 	s.symbols[key] = symbol

@@ -17,31 +17,35 @@ const (
 
 // NewFunction returns a new function Invokable type with
 // an optional return type and zero or more parameters.
-func NewFunction(name string, returnType Value, params ...Value) *Invokable {
+func NewFunction(name string, returnType Value, native, global bool, params ...Parameter) *Invokable {
 	return &Invokable{
 		kind:       FunctionKind,
 		name:       name,
 		normalized: normalize(name),
 		params:     params,
 		returnType: returnType,
+		native:     native,
+		global:     global,
 	}
 }
 
 // NewEvent returns a new event Invokable type with zero or more parameters.
-func NewEvent(name string, params ...Value) *Invokable {
+func NewEvent(name string, native bool, params ...Parameter) *Invokable {
 	return &Invokable{
 		kind:       EventKind,
 		name:       name,
 		normalized: normalize(name),
 		params:     params,
+		native:     native,
 	}
 }
 
 // Invokable is a function or event type.
 type Invokable struct {
 	name, normalized string
-	params           []Value
+	params           []Parameter
 	returnType       Value
+	native, global   bool
 	kind             InvokableKind
 }
 
@@ -57,8 +61,18 @@ func (i *Invokable) ReturnType() Value {
 }
 
 // Parameters returns the parameters in declaration order.
-func (i *Invokable) Parameters() []Value {
+func (i *Invokable) Parameters() []Parameter {
 	return i.params
+}
+
+// Native returns true if this invokable is native and false otherwise.
+func (i *Invokable) Native() bool {
+	return i.native
+}
+
+// Global returns true if this invokable is global and false otherwise.
+func (i *Invokable) Global() bool {
+	return i.global
 }
 
 // Name returns the declared name for the type.
@@ -82,8 +96,11 @@ func (i *Invokable) Normalized() string {
 func (i *Invokable) IsIdentical(other Type) bool {
 	o, ok := other.(*Invokable)
 	return ok && i.normalized == o.normalized && i.returnType.IsIdentical(o.returnType) &&
+		i.native == o.native && i.global == o.global &&
 		len(i.params) == len(o.params) &&
-		slices.EqualFunc(i.params, o.params, func(a, b Value) bool { return a.IsIdentical(b) })
+		slices.EqualFunc(i.params, o.params, func(a, b Parameter) bool {
+			return a.Type().IsIdentical(b.Type()) && a.normalized == b.normalized
+		})
 }
 
 // IsAssignable returns true if a value of another type can be assigned to a
@@ -151,9 +168,60 @@ func (i *Invokable) String() string {
 		_, _ = sb.WriteString(p.String())
 	}
 	_, _ = sb.Write([]byte{')'})
+	if i.native {
+		_, _ = sb.WriteString(" Native")
+	}
+	if i.global {
+		_, _ = sb.WriteString(" Global")
+	}
 	return sb.String()
 }
 
 func (*Invokable) types() {}
 
 var _ Type = (*Invokable)(nil)
+
+// Parameter is a function or event parameter (though not a type itself).
+type Parameter struct {
+	name, normalized string
+	typ              Value
+	def              bool
+}
+
+// NewParameter returns a new parameter with the given name, type and
+// default flag (true if the parameter has a default value and false otherwise).
+func NewParameter(name string, typ Value, def bool) Parameter {
+	return Parameter{
+		name:       name,
+		normalized: normalize(name),
+		typ:        typ,
+		def:        def,
+	}
+}
+
+// Name returns the declared name for the parameter.
+func (p *Parameter) Name() string {
+	return p.name
+}
+
+// Normalized returns the normalized name for the parameter.
+func (p *Parameter) Normalized() string {
+	return p.normalized
+}
+
+// Type returns the type of the parameter.
+func (p *Parameter) Type() Type {
+	return p.typ
+}
+
+// Default returns true if this parameter has a default value.
+func (p *Parameter) Default() bool {
+	return p.def
+}
+
+func (p *Parameter) String() string {
+	if p.def {
+		return p.typ.String() + " = <default>"
+	}
+	return p.typ.String()
+}

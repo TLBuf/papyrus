@@ -46,6 +46,7 @@ type checker struct {
 	typeNames map[string]types.Type
 	script    *symbol.Symbol
 	scope     *symbol.Scope
+	call      bool
 	failed    bool
 }
 
@@ -69,7 +70,7 @@ func (c *checker) check(scripts []*ast.Script) {
 	}
 	// Build all other types, except imports.
 	for _, script := range scripts {
-		scriptSymbol := c.global.Lookup(script.Name.Text, symbol.Values)
+		scriptSymbol := c.global.Resolve(script.Name.Text, symbol.Values)
 		if scriptSymbol == nil {
 			c.failInFile(internalInvalidState, script.File, script.Location(), "Script symbol lookup: %q", script.Name.Text)
 			continue
@@ -112,9 +113,9 @@ func (c *checker) State(node *ast.State) {
 	}
 	c.info.Symbols[node] = sym
 	c.info.Scopes[node] = sym.Scope()
-	prev := c.scope
+	parent := c.scope
 	defer func() {
-		c.scope = prev
+		c.scope = parent
 	}()
 	c.scope = sym.Scope()
 	for _, invokable := range node.Invokables {
@@ -123,8 +124,69 @@ func (c *checker) State(node *ast.State) {
 			// Nothing
 		case *ast.Function:
 			c.Function(invokable)
+			function := c.scope.LookupKind(normalize(invokable.Name.Text), symbol.Function)
+			if function == nil {
+				continue // Error already reported.
+			}
+			if function.Type().(*types.Invokable).Native() {
+				c.fail(errorStateNativeFunction, invokable.SignatureLocation())
+			}
+			if function.Type().(*types.Invokable).Global() {
+				c.fail(errorStateGlobalFunction, invokable.SignatureLocation())
+			}
+			sym := parent.Lookup(normalize(invokable.Name.Text), symbol.Invokables)
+			if sym == nil {
+				c.failWithDetail(errorStateFunctionNoEmptyStateDefintion, invokable.SignatureLocation(), "Function %s", invokable.Name.Text)
+				continue
+			}
+			if sym.Kind() == symbol.Event {
+				//revive:disable-next-line:unchecked-type-assertion
+				event := sym.Node().(*ast.Event)
+				c.log.Append(issue.New(errorStateFunctionEventNameCollision, c.file(), invokable.SignatureLocation()).
+					WithDetail("Function %s", invokable.Name.Text).
+					AppendRelated(c.file(), event.SignatureLocation(), "Clashes with Event %s", event.Name.Text))
+				c.failed = true
+				continue
+			}
+			if !sym.Type().IsIdentical(function.Type()) {
+				//revive:disable-next-line:unchecked-type-assertion
+				other := sym.Node().(*ast.Function)
+				c.log.Append(issue.New(errorStateFunctionSignatureMismatch, c.file(), invokable.SignatureLocation()).
+					WithDetail("Signature %s", function.Type()).
+					AppendRelated(c.file(), other.SignatureLocation(), "Does not match %s", sym.Type()))
+				c.failed = true
+			}
 		case *ast.Event:
 			c.Event(invokable)
+			event := c.scope.LookupKind(normalize(invokable.Name.Text), symbol.Function)
+			if event == nil {
+				continue // Error already reported.
+			}
+			if event.Type().(*types.Invokable).Native() {
+				c.fail(errorStateNativeEvent, invokable.SignatureLocation())
+			}
+			sym := parent.Lookup(normalize(invokable.Name.Text), symbol.Invokables)
+			if sym == nil {
+				c.failWithDetail(errorStateEventNoEmptyStateDefintion, invokable.SignatureLocation(), "Event %s", invokable.Name.Text)
+				continue
+			}
+			if sym.Kind() == symbol.Function {
+				//revive:disable-next-line:unchecked-type-assertion
+				function := sym.Node().(*ast.Function)
+				c.log.Append(issue.New(errorStateEventFunctionNameCollision, c.file(), invokable.SignatureLocation()).
+					WithDetail("Event %s", invokable.Name.Text).
+					AppendRelated(c.file(), function.SignatureLocation(), "Clashes with Function %s", function.Name.Text))
+				c.failed = true
+				continue
+			}
+			if !sym.Type().IsIdentical(event.Type()) {
+				//revive:disable-next-line:unchecked-type-assertion
+				other := sym.Node().(*ast.Event)
+				c.log.Append(issue.New(errorStateEventSignatureMismatch, c.file(), invokable.SignatureLocation()).
+					WithDetail("Signature %s", event.Type()).
+					AppendRelated(c.file(), other.SignatureLocation(), "Does not match %s", sym.Type()))
+				c.failed = true
+			}
 		default:
 			c.failWithDetail(internalInvalidState, invokable.Location(), "Unknown state invokable: %v", invokable)
 		}
@@ -498,7 +560,7 @@ func (c *checker) Expression(node ast.Expression) types.Type {
 	case *ast.Cast:
 		return c.Cast(node)
 	case *ast.Identifier:
-		return c.Identifier(false, node)
+		return c.Identifier(node)
 	case *ast.Index:
 		return c.Index(node)
 	case ast.Literal:
@@ -533,7 +595,7 @@ func (c *checker) Access(call bool, node *ast.Access) types.Type {
 		}
 		if call {
 			// Function access.
-			lSym := sym.Scope().Lookup(lookup, symbol.Invokables)
+			lSym := sym.Scope().Resolve(lookup, symbol.Invokables)
 			if lSym == nil {
 				c.failWithDetail(errorUnknownFunction, node.Name.Location(), "%s does not define a function named %q", sym.Name(), node.Name.Text)
 			}
@@ -543,7 +605,7 @@ func (c *checker) Access(call bool, node *ast.Access) types.Type {
 			return lSym.Type()
 		}
 		// Property access.
-		pSym := sym.Scope().Lookup(lookup, symbol.Invokables)
+		pSym := sym.Scope().Resolve(lookup, symbol.Invokables)
 		if pSym == nil {
 			c.failWithDetail(errorUnknownProperty, node.Name.Location(), "%s does not define a property named %q", sym.Name(), node.Name.Text)
 		}
@@ -697,6 +759,14 @@ func (c *checker) Binary(node *ast.Binary) types.Type {
 }
 
 func (c *checker) Call(node *ast.Call) types.Type {
+	c.call = true
+	function := c.Expression(node.Function)
+	c.call = false
+	if function == nil {
+		return nil
+	}
+	c.info.Expressions[node.Function] = function
+	// TODO: Check function arguments.
 	return nil
 }
 
@@ -722,7 +792,7 @@ func (c *checker) Cast(node *ast.Cast) types.Type {
 	return typ
 }
 
-func (c *checker) Identifier(call bool, node *ast.Identifier) types.Type {
+func (c *checker) Identifier(node *ast.Identifier) types.Type {
 	return nil
 }
 

@@ -201,4 +201,40 @@ var (
 		"CHKR1048",
 		`Expressions combined with the modulo operator ('%') must be of type Int.`,
 	)
+	errorStateFunctionNoEmptyStateDefintion = issue.NewError(
+		"CHKR1049",
+		`Functions defined in a State must also be defined outside of any state (in the empty state).`,
+	)
+	errorStateEventNoEmptyStateDefintion = issue.NewError(
+		"CHKR1050",
+		`Events defined in a State must also be defined outside of any state (in the empty state).`,
+	)
+	errorStateFunctionEventNameCollision = issue.NewError(
+		"CHKR1051",
+		`Functions defined in a state cannot have the same name as an event defined outside of any state (in the empty state).`,
+	)
+	errorStateEventFunctionNameCollision = issue.NewError(
+		"CHKR1052",
+		`Events defined in a state cannot have the same name as a function defined outside of any state (in the empty state).`,
+	)
+	errorStateFunctionSignatureMismatch = issue.NewError(
+		"CHKR1053",
+		`Functions defined in a state must have the same signative (return type and parameter list) as their corresponding function defined outside of any state (in the empty state).`,
+	)
+	errorStateEventSignatureMismatch = issue.NewError(
+		"CHKR1054",
+		`Events defined in a state must have the same signative (return type and parameter list) as their corresponding event defined outside of any state (in the empty state).`,
+	)
+	errorStateNativeFunction = issue.NewError(
+		"CHKR1055",
+		`Native functions cannot be defined in a state.`,
+	)
+	errorStateNativeEvent = issue.NewError(
+		"CHKR1056",
+		`Native events cannot be defined in a state.`,
+	)
+	errorStateGlobalFunction = issue.NewError(
+		"CHKR1057",
+		`Global functions cannot be defined in a state.`,
+	)
 )

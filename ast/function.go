@@ -86,6 +86,27 @@ func (f *Function) Comments() *Comments {
 	return f.NodeComments
 }
 
+// SignatureLocation returns the source location of the function signature,
+// including the function name, parameters, return type (if any), and any
+// "Native" or "Global" flags.
+func (f *Function) SignatureLocation() source.Location {
+	start := f.StartKeywordLocation
+	if f.ReturnType != nil {
+		start = f.ReturnType.Location()
+	}
+	end := f.CloseLocation
+	if len(f.NativeLocations) > 0 {
+		end = f.NativeLocations[len(f.NativeLocations)-1]
+	}
+	if len(f.GlobalLocations) > 0 {
+		last := f.GlobalLocations[len(f.GlobalLocations)-1]
+		if last.Start() > end.Start() {
+			end = last
+		}
+	}
+	return source.Span(start, end)
+}
+
 // Location returns the source location of the node.
 func (f *Function) Location() source.Location {
 	start := f.StartKeywordLocation
