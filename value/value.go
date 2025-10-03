@@ -51,15 +51,15 @@ func (v Value) Kind() Kind {
 func (v Value) Type() types.Type {
 	switch v.kind {
 	case Bool:
-		return types.Bool
+		return types.BoolType
 	case Int:
-		return types.Int
+		return types.IntType
 	case Float:
-		return types.Float
+		return types.FloatType
 	case String:
-		return types.String
+		return types.StringType
 	default:
-		return types.Any
+		return types.NoneType
 	}
 }
 

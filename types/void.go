@@ -1,16 +1,16 @@
 package types
 
-// None is the special type used for the 'None' literal.
-type None struct{}
+// Void is special type used for functions that do not return a value.
+type Void struct{}
 
 // Name returns the declared name for the type.
-func (None) Name() string {
-	return "<None>"
+func (Void) Name() string {
+	return "<Void>"
 }
 
 // Normalized returns the normalized name for the type.
-func (None) Normalized() string {
-	return "<None>"
+func (Void) Normalized() string {
+	return "<Void>"
 }
 
 // IsIdentical returns true if this type is
@@ -21,7 +21,7 @@ func (None) Normalized() string {
 //
 //	a.IsIdentical(b)
 //	b.IsIdentical(a)
-func (None) IsIdentical(Type) bool {
+func (Void) IsIdentical(Type) bool {
 	return false
 }
 
@@ -34,7 +34,7 @@ func (None) IsIdentical(Type) bool {
 //
 //	a.IsAssignable(b)
 //	b.IsAssignable(a)
-func (None) IsAssignable(Type) bool {
+func (Void) IsAssignable(Type) bool {
 	return false
 }
 
@@ -46,7 +46,7 @@ func (None) IsAssignable(Type) bool {
 //
 //	a.IsComparable(b)
 //	b.IsComparable(a)
-func (None) IsComparable(Type) bool {
+func (Void) IsComparable(Type) bool {
 	return false
 }
 
@@ -59,11 +59,7 @@ func (None) IsComparable(Type) bool {
 //
 //	a.IsEquatable(b)
 //	b.IsEquatable(a)
-func (None) IsEquatable(other Type) bool {
-	switch other.(type) {
-	case *Object, None:
-		return true
-	}
+func (Void) IsEquatable(Type) bool {
 	return false
 }
 
@@ -75,18 +71,16 @@ func (None) IsEquatable(other Type) bool {
 //
 //	a.IsConvertible(b)
 //	b.IsConvertible(a)
-func (None) IsConvertible(Type) bool {
+func (Void) IsConvertible(Type) bool {
 	return false
 }
 
-func (None) String() string {
-	return "<None>"
+func (Void) String() string {
+	return "<Void>"
 }
 
-func (None) types() {}
+func (Void) types() {}
 
-func (None) scalar() {}
+func (Void) value() {}
 
-func (None) value() {}
-
-var _ Scalar = None{}
+var _ Value = Void{}

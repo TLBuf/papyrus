@@ -1,8 +1,8 @@
 // Package types defines the Papyrus type system.
 //
-// Types are broken down into two main categories: [Invokable] and [Value] types;
-// as the names imply, the former describes function type information and the
-// latter value type information (e.g. for variables and parameters).
+// Types are broken down into two main categories: [Invokable] and [Value]
+// types; as the names imply, the former describes function type information and
+// the latter value type information (e.g. for variables and parameters).
 //
 // Value types again break down into two categories: [Scalar] and [Array] types;
 // the former represent single values while the latter represent sequence of
@@ -10,7 +10,12 @@
 //
 // Scalar types again break down into two categories: [Object] and [Primitive]
 // types; the former representing an script object and the latter the four
-// primitive types: [Bool], [Int], [Float], [String].
+// primitive types: [BoolType], [IntType], [FloatType], [StringType].
+//
+// There are also two special types: [NoneType] and [VoidType]. [None] is a
+// scalar value type that is compatible with any object type and is used
+// exclusively with the 'None' literal. [Void] is a value type that is used for
+// functions that do not return a value.
 package types
 
 import (
@@ -19,25 +24,27 @@ import (
 )
 
 var (
-	// Bool is the boolean type.
-	Bool = &Primitive{BoolKind, "Bool", "bool"}
-	// Int is the integer type.
-	Int = &Primitive{IntKind, "Int", "int"}
-	// Float is the floating-point type.
-	Float = &Primitive{FloatKind, "Float", "float"}
-	// String is the string type.
-	String = &Primitive{StringKind, "String", "string"}
-	// BoolArray is the boolean array type.
-	BoolArray = &Array{Bool}
-	// IntArray is the integer array type.
-	IntArray = &Array{Int}
-	// FloatArray is the floating-point array type.
-	FloatArray = &Array{Float}
-	// StringArray is the string array type.
-	StringArray = &Array{String}
-	// Any is the type that is compatible with any object or array
+	// BoolType is the boolean type.
+	BoolType = &Primitive{BoolKind, "Bool", "bool"}
+	// IntType is the integer type.
+	IntType = &Primitive{IntKind, "Int", "int"}
+	// FloatType is the floating-point type.
+	FloatType = &Primitive{FloatKind, "Float", "float"}
+	// StringType is the string type.
+	StringType = &Primitive{StringKind, "String", "string"}
+	// BoolArrayType is the boolean array type.
+	BoolArrayType = &Array{BoolType}
+	// IntArrayType is the integer array type.
+	IntArrayType = &Array{IntType}
+	// FloatArrayType is the floating-point array type.
+	FloatArrayType = &Array{FloatType}
+	// StringArrayType is the string array type.
+	StringArrayType = &Array{StringType}
+	// NoneType is the type that is compatible with any object or array
 	// type. This is used exclusively with the 'None' literal.
-	Any = None{}
+	NoneType = None{}
+	// VoidType is the type used for functions that do not return a value.
+	VoidType = Void{}
 )
 
 // Type is the common interface for all types.

@@ -57,11 +57,11 @@ var (
 		"CHKR1012",
 		`An array value has an invalid access; arrays can only have 'Length' accessed via the dot operator.`,
 	)
-	errorUnknownFunction = issue.NewError(
+	errorAccessFunctionUnknown = issue.NewError(
 		"CHKR1013",
 		`Access operator references an unknown function.`,
 	)
-	errorCannotCallEvent = issue.NewError(
+	errorAccessEvent = issue.NewError(
 		"CHKR1014",
 		`Access operator references an event for a call, but events cannot be called like functions.`,
 	)
@@ -236,5 +236,37 @@ var (
 	errorStateGlobalFunction = issue.NewError(
 		"CHKR1057",
 		`Global functions cannot be defined in a state.`,
+	)
+	errorCallRecieverNotObject = issue.NewError(
+		"CHKR1058",
+		`Functions cannot be called on non-script values.`,
+	)
+	errorCallFunctionUnknown = issue.NewError(
+		"CHKR1059",
+		`Call references an unknown function.`,
+	)
+	errorCallEvent = issue.NewError(
+		"CHKR1060",
+		`Events cannot be called like functions.`,
+	)
+	errorCallMalformed = issue.NewError(
+		"CHKR1061",
+		`Calls must only reference functions through an Identifier.`,
+	)
+	errorCallArgumentMissing = issue.NewError(
+		"CHKR1063",
+		`Calls must provide an argument for each parameter that does not specify a default value.`,
+	)
+	errorCallArgumentTypeMismatch = issue.NewError(
+		"CHKR1064",
+		`Function call arguments must be expressions of a type that is assignable to the declared type of the corresponding parameter.`,
+	)
+	errorCallArgumentExtra = issue.NewError(
+		"CHKR1065",
+		`A function call provides more arguments than there are parameters in the function's declaration.`,
+	)
+	errorIdentifierUnknown = issue.NewError(
+		"CHKR1070",
+		`An identifier references an unknown script, variable, property, or parameter.`,
 	)
 )

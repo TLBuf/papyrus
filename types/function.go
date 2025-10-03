@@ -35,6 +35,7 @@ func NewEvent(name string, native bool, params ...Parameter) *Invokable {
 		kind:       EventKind,
 		name:       name,
 		normalized: normalize(name),
+		returnType: VoidType,
 		params:     params,
 		native:     native,
 	}
@@ -55,7 +56,7 @@ func (i *Invokable) Kind() InvokableKind {
 }
 
 // ReturnType returns the return type of
-// the function or nil if there isn't one.
+// the function or [VoidType] if there isn't one.
 func (i *Invokable) ReturnType() Value {
 	return i.returnType
 }
@@ -200,26 +201,26 @@ func NewParameter(name string, typ Value, def bool) Parameter {
 }
 
 // Name returns the declared name for the parameter.
-func (p *Parameter) Name() string {
+func (p Parameter) Name() string {
 	return p.name
 }
 
 // Normalized returns the normalized name for the parameter.
-func (p *Parameter) Normalized() string {
+func (p Parameter) Normalized() string {
 	return p.normalized
 }
 
 // Type returns the type of the parameter.
-func (p *Parameter) Type() Type {
+func (p Parameter) Type() Type {
 	return p.typ
 }
 
 // Default returns true if this parameter has a default value.
-func (p *Parameter) Default() bool {
+func (p Parameter) Default() bool {
 	return p.def
 }
 
-func (p *Parameter) String() string {
+func (p Parameter) String() string {
 	if p.def {
 		return p.typ.String() + " = <default>"
 	}

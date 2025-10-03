@@ -124,26 +124,26 @@ func (r *Resolver) resolveTypeLiteral(literal *ast.TypeLiteral) (Value, error) {
 		return nil, nil
 	}
 	switch name := normalize(literal.Name.Text); name {
-	case Bool.normalized:
+	case BoolType.normalized:
 		if literal.IsArray {
-			return BoolArray, nil
+			return BoolArrayType, nil
 		}
-		return Bool, nil
-	case Int.normalized:
+		return BoolType, nil
+	case IntType.normalized:
 		if literal.IsArray {
-			return IntArray, nil
+			return IntArrayType, nil
 		}
-		return Int, nil
-	case Float.normalized:
+		return IntType, nil
+	case FloatType.normalized:
 		if literal.IsArray {
-			return FloatArray, nil
+			return FloatArrayType, nil
 		}
-		return Float, nil
-	case String.normalized:
+		return FloatType, nil
+	case StringType.normalized:
 		if literal.IsArray {
-			return StringArray, nil
+			return StringArrayType, nil
 		}
-		return String, nil
+		return StringType, nil
 	default:
 		obj, ok := r.objects[name]
 		if !ok {
