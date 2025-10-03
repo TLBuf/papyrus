@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"iter"
+	"maps"
 	"slices"
 	"strings"
 
@@ -466,6 +467,16 @@ func (s *Scope) Parent() *Scope {
 // that are defined directly within this scope.
 func (s *Scope) Children() iter.Seq[*Scope] {
 	return slices.Values(s.children)
+}
+
+// Symbols returns an iterator over the symbols
+// that are defined directly within this scope.
+//
+// NOTE: You probably want to use [Scope.Resolve] or [Scope.Lookup] (or their
+// kind-specific variants) instead of this method, as those account for symbol
+// namespaces and parent scopes.
+func (s *Scope) Symbols() iter.Seq[*Symbol] {
+	return maps.Values(s.symbols)
 }
 
 func normalize(name string) string {

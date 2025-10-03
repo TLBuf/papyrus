@@ -67,13 +67,91 @@ func (c *checker) check(scripts []*ast.Script) {
 	if c.failed {
 		return // Don't try to keep going.
 	}
-	// Build all other types, except imports.
 	for _, script := range scripts {
 		scriptSymbol := c.global.Resolve(script.Name.Text, symbol.Values)
 		if scriptSymbol == nil {
 			c.failInFile(internalInvalidState, script.File, script.Location(), "Script symbol lookup: %q", script.Name.Text)
 			continue
 		}
+		// Scan for imports and resolve global functions, but do not insert them
+		// into the script scope yet. We need to verify that there are no functions
+		// or events declared in this script that may override them first.
+		imports := make(map[string]*symbol.Symbol)
+		clashes := make(map[string]struct{})
+		for _, stmt := range script.Statements {
+			imp, ok := stmt.(*ast.Import)
+			if !ok {
+				continue
+			}
+			imported := c.global.ResolveKind(imp.Name.Text, symbol.Script)
+			if imported == nil {
+				c.failWithDetail(errorImportUnknown, imp.Name.Location(), "Unknown script %q", imp.Name.Text)
+				continue
+			}
+			for sym := range imported.Scope().Symbols() {
+				if sym.Kind() != symbol.Function {
+					continue
+				}
+				function := sym
+				// revive:disable-next-line:unchecked-type-assertion
+				if !function.Type().(*types.Invokable).Global() {
+					continue
+				}
+				// Detect name clashes: If two imports have global functions with the same
+				// name, neither can be imported. This is not an error in the script.
+				if _, ok := clashes[function.Normalized()]; ok {
+					continue
+				}
+				if _, ok := imports[function.Normalized()]; ok {
+					clashes[function.Normalized()] = struct{}{}
+					delete(imports, function.Normalized())
+					continue
+				}
+				imports[function.Normalized()] = function
+			}
+		}
+		if len(imports) > 0 {
+			// Remove any imports that are overridden
+			// by functions or events in this script.
+			for _, stmt := range script.Statements {
+				switch stmt := stmt.(type) {
+				case *ast.Function:
+					delete(imports, normalize(stmt.Name.Text))
+				case *ast.Event:
+					delete(imports, normalize(stmt.Name.Text))
+				case *ast.State:
+					for _, invokable := range stmt.Invokables {
+						switch invokable := invokable.(type) {
+						case *ast.Function:
+							delete(imports, normalize(invokable.Name.Text))
+						case *ast.Event:
+							delete(imports, normalize(invokable.Name.Text))
+						}
+					}
+				}
+			}
+			// Remove any imports that are already defined in
+			// the script scope (e.g. from a parent script).
+			for name := range imports {
+				if scriptSymbol.Scope().Resolve(name, symbol.Invokables) != nil {
+					delete(imports, name)
+				}
+			}
+		}
+		// Inject global functions into this script's scope.
+		for _, function := range imports {
+			_, err := c.script.Scope().Symbol(function.Node())
+			if err != nil {
+				c.failWithDetail(
+					internalInvalidState,
+					script.Location(),
+					"insert imported global function into script scope: %v",
+					err,
+				)
+				return
+			}
+		}
+		// Process the rest of the script.
 		c.scope = scriptSymbol.Scope()
 		var states []*ast.State
 		for _, statement := range script.Statements {
@@ -100,8 +178,6 @@ func (c *checker) check(scripts []*ast.Script) {
 			c.State(state)
 		}
 	}
-
-	// Handle imported types.
 }
 
 func (c *checker) State(node *ast.State) {

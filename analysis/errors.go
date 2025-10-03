@@ -281,4 +281,8 @@ var (
 		"CHKR1069",
 		`An identifier references an unknown script, variable, property, or parameter.`,
 	)
+	errorImportUnknown = issue.NewError(
+		"CHKR1070",
+		`An import references an unknown script.`,
+	)
 )
