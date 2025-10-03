@@ -73,6 +73,8 @@ func (c *checker) check(scripts []*ast.Script) {
 			c.failInFile(internalInvalidState, script.File, script.Location(), "Script symbol lookup: %q", script.Name.Text)
 			continue
 		}
+		c.scope = scriptSymbol.Scope()
+		c.script = scriptSymbol
 		// Scan for imports and resolve global functions, but do not insert them
 		// into the script scope yet. We need to verify that there are no functions
 		// or events declared in this script that may override them first.
@@ -133,14 +135,14 @@ func (c *checker) check(scripts []*ast.Script) {
 			// Remove any imports that are already defined in
 			// the script scope (e.g. from a parent script).
 			for name := range imports {
-				if scriptSymbol.Scope().Resolve(name, symbol.Invokables) != nil {
+				if c.scope.Resolve(name, symbol.Invokables) != nil {
 					delete(imports, name)
 				}
 			}
 		}
 		// Inject global functions into this script's scope.
 		for _, function := range imports {
-			_, err := c.script.Scope().Symbol(function.Node())
+			_, err := c.scope.Symbol(function.Node())
 			if err != nil {
 				c.failWithDetail(
 					internalInvalidState,
@@ -152,7 +154,6 @@ func (c *checker) check(scripts []*ast.Script) {
 			}
 		}
 		// Process the rest of the script.
-		c.scope = scriptSymbol.Scope()
 		var states []*ast.State
 		for _, statement := range script.Statements {
 			switch statement := statement.(type) {
@@ -971,13 +972,15 @@ func (c *checker) Call(node *ast.Call) types.Type {
 				paramIndex, ok := params[argName]
 				if !ok {
 					c.log.Append(issue.New(errorCallArgumentUnknownNamed, c.file(), arg.Name.Location()).
-						AppendRelated(c.file(), funcNode.SignatureLocation(), "Function %s does not have a parameter named %s", funcNode.Name.Text, arg.Name.Text))
+						WithDetail("Function %s does not have a parameter named %s", funcNode.Name.Text, arg.Name.Text).
+						AppendRelated(c.file(), funcNode.SignatureLocation(), "Function definition"))
 					c.failed = true
 					continue
 				}
 				if existing, matched := matched[argName]; matched {
 					c.log.Append(issue.New(errorCallArgumentNamedDuplicate, c.file(), arg.Name.Location()).
-						AppendRelated(c.file(), existing.Location(), "Parameter %s is already associated with this argument", arg.Name.Text))
+						WithDetail("Argument for parameter %s provided more than once", arg.Name.Text).
+						AppendRelated(c.file(), existing.Location(), "Argument already associated with parameter %s", arg.Name.Text))
 					c.failed = true
 					continue
 				}
