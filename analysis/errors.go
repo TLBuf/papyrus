@@ -265,8 +265,20 @@ var (
 		"CHKR1065",
 		`A function call provides more arguments than there are parameters in the function's declaration.`,
 	)
+	errorCallArgumentUnknownNamed = issue.NewError(
+		"CHKR1066",
+		`A function call provides a named argument that does not match any parameter name.`,
+	)
+	errorCallArgumentNamedDuplicate = issue.NewError(
+		"CHKR1067",
+		`A function call provides a named argument for a parameter that is already associated with an argument.`,
+	)
+	errorCallPositionalAfterNamed = issue.NewError(
+		"CHKR1068",
+		`Function calls cannot provide positional arguments after a named argument.`,
+	)
 	errorIdentifierUnknown = issue.NewError(
-		"CHKR1070",
+		"CHKR1069",
 		`An identifier references an unknown script, variable, property, or parameter.`,
 	)
 )

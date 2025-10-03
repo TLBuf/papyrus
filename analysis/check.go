@@ -877,8 +877,98 @@ func (c *checker) Call(node *ast.Call) types.Type {
 		//   - Align positional arguments in order until we reach a named argument.
 		//   - Match named arguments to parameters by name.
 		//   - Any unmatched parameters must have defaults.
-
-		// TODO: Implement named argument matching.
+		paramNodes := funcNode.Parameters()
+		paramTypes := funcType.Parameters()
+		params := make(map[string]int)
+		for i, p := range paramTypes {
+			params[p.Normalized()] = i
+		}
+		matched := make(map[string]*ast.Argument)
+		var firstNamedArgument *ast.Argument
+		for i, arg := range node.Arguments {
+			if arg.Name != nil {
+				// Named argument
+				if firstNamedArgument == nil {
+					firstNamedArgument = arg
+				}
+				argName := normalize(arg.Name.Text)
+				paramIndex, ok := params[argName]
+				if !ok {
+					c.log.Append(issue.New(errorCallArgumentUnknownNamed, c.file(), arg.Name.Location()).
+						AppendRelated(c.file(), funcNode.SignatureLocation(), "Function %s does not have a parameter named %s", funcNode.Name.Text, arg.Name.Text))
+					c.failed = true
+					continue
+				}
+				if existing, matched := matched[argName]; matched {
+					c.log.Append(issue.New(errorCallArgumentNamedDuplicate, c.file(), arg.Name.Location()).
+						AppendRelated(c.file(), existing.Location(), "Parameter %s is already associated with this argument", arg.Name.Text))
+					c.failed = true
+					continue
+				}
+				paramType := paramTypes[paramIndex].Type()
+				argType := c.Expression(arg.Value)
+				if argType == nil {
+					// Error already reported.
+					continue
+				}
+				c.info.Expressions[arg.Value] = argType
+				if !argType.IsAssignable(paramType) {
+					param := paramNodes[paramIndex]
+					c.log.Append(issue.New(errorCallArgumentTypeMismatch, c.file(), arg.Value.Location()).
+						WithDetail("%v is not assignable to %v", argType, paramType).
+						AppendRelated(c.file(), param.Location(), "Parameter %s is of type %v", param.Name.Text, paramType))
+					c.failed = true
+				}
+				matched[argName] = arg
+			} else {
+				// Positional argument
+				if firstNamedArgument != nil {
+					c.log.Append(issue.New(errorCallPositionalAfterNamed, c.file(), arg.Location()).
+						WithDetail("Argument at position %d", i+1).
+						AppendRelated(c.file(), firstNamedArgument.Location(), "First named argument"))
+					c.failed = true
+					continue
+				}
+				if i >= len(paramNodes) {
+					c.log.Append(issue.New(errorCallArgumentExtra, c.file(), arg.Value.Location()).
+						WithDetail("Argument at position %d exceeds the number of declared parameters", i+1).
+						AppendRelated(
+							c.file(),
+							funcNode.SignatureLocation(),
+							"%s declared %d parameter(s)",
+							funcNode.Name.Text,
+							len(paramNodes),
+						))
+					c.failed = true
+					continue
+				}
+				paramType := paramTypes[i].Type()
+				argType := c.Expression(arg.Value)
+				if argType == nil {
+					continue
+				}
+				c.info.Expressions[arg.Value] = argType
+				if !argType.IsAssignable(paramType) {
+					param := paramNodes[i]
+					c.log.Append(issue.New(errorCallArgumentTypeMismatch, c.file(), arg.Value.Location()).
+						WithDetail("%v is not assignable to %v", argType, paramType).
+						AppendRelated(c.file(), param.Location(), "Parameter %s is of type %v", param.Name.Text, paramType))
+					c.failed = true
+				}
+				matched[paramType.Normalized()] = arg
+			}
+		}
+		// Check for unmatched parameters that don't have default values.
+		for _, param := range paramNodes {
+			paramName := normalize(param.Name.Text)
+			if _, matched := matched[paramName]; matched || param.DefaultValue != nil {
+				continue
+			}
+			c.log.Append(issue.New(errorCallArgumentMissing, c.file(), node.Location()).
+				WithDetail("Missing argument for parameter %s", param.Name.Text).
+				AppendRelated(c.file(), param.Location(), "%s does not have a default value", param.Name.Text))
+			c.failed = true
+		}
 	}
 	return funcType.ReturnType()
 }
